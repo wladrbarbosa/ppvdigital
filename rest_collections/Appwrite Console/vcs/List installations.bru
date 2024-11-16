@@ -1,0 +1,20 @@
+meta {
+  name: List installations
+  type: http
+  seq: 8
+}
+
+get {
+  url: {{baseUrl}}/vcs/installations
+  body: none
+  auth: none
+}
+
+params:query {
+  ~queries: 
+  ~search: 
+}
+
+headers {
+  X-Appwrite-Project: {{projectId}}
+}

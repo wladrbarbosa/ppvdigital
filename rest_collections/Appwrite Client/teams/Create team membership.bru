@@ -1,0 +1,30 @@
+meta {
+  name: Create team membership
+  type: http
+  seq: 7
+}
+
+post {
+  url: {{baseUrl}}/teams/:teamId/memberships
+  body: json
+  auth: none
+}
+
+params:path {
+  teamId: 
+}
+
+headers {
+  X-Appwrite-Project: {{projectId}}
+}
+
+body:json {
+  {
+    "email": "",
+    "userId": "",
+    "phone": "",
+    "roles": [],
+    "url": "",
+    "name": ""
+  }
+}

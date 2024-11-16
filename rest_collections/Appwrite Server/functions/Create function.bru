@@ -1,0 +1,42 @@
+meta {
+  name: Create function
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{baseUrl}}/functions
+  body: json
+  auth: none
+}
+
+headers {
+  X-Appwrite-Project: {{projectId}}
+}
+
+body:json {
+  {
+    "functionId": "",
+    "name": "",
+    "runtime": "",
+    "execute": [],
+    "events": [],
+    "schedule": "",
+    "timeout": "",
+    "enabled": "",
+    "logging": "",
+    "entrypoint": "",
+    "commands": "",
+    "scopes": [],
+    "installationId": "",
+    "providerRepositoryId": "",
+    "providerBranch": "",
+    "providerSilentMode": "",
+    "providerRootDirectory": "",
+    "templateRepository": "",
+    "templateOwner": "",
+    "templateRootDirectory": "",
+    "templateVersion": "",
+    "specification": ""
+  }
+}

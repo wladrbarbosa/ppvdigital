@@ -1,0 +1,25 @@
+meta {
+  name: Get country flag
+  type: http
+  seq: 4
+}
+
+get {
+  url: {{baseUrl}}/avatars/flags/:code
+  body: none
+  auth: none
+}
+
+params:query {
+  ~width: 
+  ~height: 
+  ~quality: 
+}
+
+params:path {
+  code: 
+}
+
+headers {
+  X-Appwrite-Project: {{projectId}}
+}

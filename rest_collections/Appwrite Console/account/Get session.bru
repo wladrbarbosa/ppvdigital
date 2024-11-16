@@ -1,0 +1,19 @@
+meta {
+  name: Get session
+  type: http
+  seq: 34
+}
+
+get {
+  url: {{baseUrl}}/account/sessions/:sessionId
+  body: none
+  auth: none
+}
+
+params:path {
+  sessionId: 
+}
+
+headers {
+  X-Appwrite-Project: {{projectId}}
+}

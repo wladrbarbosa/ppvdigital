@@ -1,0 +1,27 @@
+meta {
+  name: Update custom SMS template
+  type: http
+  seq: 38
+}
+
+patch {
+  url: {{baseUrl}}/projects/:projectId/templates/sms/:type/:locale
+  body: json
+  auth: none
+}
+
+params:path {
+  projectId: 
+  type: 
+  locale: 
+}
+
+headers {
+  X-Appwrite-Project: {{projectId}}
+}
+
+body:json {
+  {
+    "message": ""
+  }
+}

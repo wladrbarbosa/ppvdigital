@@ -1,0 +1,41 @@
+meta {
+  name: Update function
+  type: http
+  seq: 9
+}
+
+put {
+  url: {{baseUrl}}/functions/:functionId
+  body: json
+  auth: none
+}
+
+params:path {
+  functionId: 
+}
+
+headers {
+  X-Appwrite-Project: {{projectId}}
+}
+
+body:json {
+  {
+    "name": "",
+    "runtime": "",
+    "execute": [],
+    "events": [],
+    "schedule": "",
+    "timeout": "",
+    "enabled": "",
+    "logging": "",
+    "entrypoint": "",
+    "commands": "",
+    "scopes": [],
+    "installationId": "",
+    "providerRepositoryId": "",
+    "providerBranch": "",
+    "providerSilentMode": "",
+    "providerRootDirectory": "",
+    "specification": ""
+  }
+}

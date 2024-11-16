@@ -1,0 +1,19 @@
+meta {
+  name: Get message
+  type: http
+  seq: 8
+}
+
+get {
+  url: {{baseUrl}}/messaging/messages/:messageId
+  body: none
+  auth: none
+}
+
+params:path {
+  messageId: 
+}
+
+headers {
+  X-Appwrite-Project: {{projectId}}
+}

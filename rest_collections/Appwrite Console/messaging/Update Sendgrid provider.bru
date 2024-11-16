@@ -1,0 +1,31 @@
+meta {
+  name: Update Sendgrid provider
+  type: http
+  seq: 22
+}
+
+patch {
+  url: {{baseUrl}}/messaging/providers/sendgrid/:providerId
+  body: json
+  auth: none
+}
+
+params:path {
+  providerId: 
+}
+
+headers {
+  X-Appwrite-Project: {{projectId}}
+}
+
+body:json {
+  {
+    "name": "",
+    "enabled": "",
+    "projectId": "",
+    "fromName": "",
+    "fromEmail": "",
+    "replyToName": "",
+    "replyToEmail": ""
+  }
+}

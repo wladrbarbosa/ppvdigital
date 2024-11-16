@@ -1,0 +1,21 @@
+meta {
+  name: Delete attribute
+  type: http
+  seq: 33
+}
+
+delete {
+  url: {{baseUrl}}/databases/:databaseId/collections/:collectionId/attributes/:key
+  body: none
+  auth: none
+}
+
+params:path {
+  databaseId: 
+  collectionId: 
+  key: 
+}
+
+headers {
+  X-Appwrite-Project: {{projectId}}
+}

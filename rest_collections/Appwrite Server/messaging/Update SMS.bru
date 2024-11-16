@@ -1,0 +1,30 @@
+meta {
+  name: Update SMS
+  type: http
+  seq: 7
+}
+
+patch {
+  url: {{baseUrl}}/messaging/messages/sms/:messageId
+  body: json
+  auth: none
+}
+
+params:path {
+  messageId: 
+}
+
+headers {
+  X-Appwrite-Project: {{projectId}}
+}
+
+body:json {
+  {
+    "topics": [],
+    "users": [],
+    "targets": [],
+    "content": "",
+    "draft": "",
+    "scheduledAt": ""
+  }
+}

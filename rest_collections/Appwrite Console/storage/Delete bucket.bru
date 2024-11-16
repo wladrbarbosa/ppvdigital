@@ -1,0 +1,19 @@
+meta {
+  name: Delete bucket
+  type: http
+  seq: 5
+}
+
+delete {
+  url: {{baseUrl}}/storage/buckets/:bucketId
+  body: none
+  auth: none
+}
+
+params:path {
+  bucketId: 
+}
+
+headers {
+  X-Appwrite-Project: {{projectId}}
+}

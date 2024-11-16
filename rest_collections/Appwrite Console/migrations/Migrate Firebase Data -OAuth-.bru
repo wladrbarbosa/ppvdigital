@@ -1,0 +1,22 @@
+meta {
+  name: Migrate Firebase Data -OAuth-
+  type: http
+  seq: 6
+}
+
+post {
+  url: {{baseUrl}}/migrations/firebase/oauth
+  body: json
+  auth: none
+}
+
+headers {
+  X-Appwrite-Project: {{projectId}}
+}
+
+body:json {
+  {
+    "resources": [],
+    "projectId": ""
+  }
+}

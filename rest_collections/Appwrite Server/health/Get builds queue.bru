@@ -1,0 +1,19 @@
+meta {
+  name: Get builds queue
+  type: http
+  seq: 8
+}
+
+get {
+  url: {{baseUrl}}/health/queue/builds
+  body: none
+  auth: none
+}
+
+params:query {
+  ~threshold: 
+}
+
+headers {
+  X-Appwrite-Project: {{projectId}}
+}

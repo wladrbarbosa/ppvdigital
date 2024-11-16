@@ -1,0 +1,28 @@
+meta {
+  name: Create document
+  type: http
+  seq: 36
+}
+
+post {
+  url: {{baseUrl}}/databases/:databaseId/collections/:collectionId/documents
+  body: json
+  auth: none
+}
+
+params:path {
+  databaseId: 
+  collectionId: 
+}
+
+headers {
+  X-Appwrite-Project: {{projectId}}
+}
+
+body:json {
+  {
+    "documentId": "",
+    "data": {},
+    "permissions": []
+  }
+}

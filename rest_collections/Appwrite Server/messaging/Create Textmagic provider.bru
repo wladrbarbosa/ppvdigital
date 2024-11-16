@@ -1,0 +1,26 @@
+meta {
+  name: Create Textmagic provider
+  type: http
+  seq: 27
+}
+
+post {
+  url: {{baseUrl}}/messaging/providers/textmagic
+  body: json
+  auth: none
+}
+
+headers {
+  X-Appwrite-Project: {{projectId}}
+}
+
+body:json {
+  {
+    "providerId": "",
+    "name": "",
+    "from": "",
+    "username": "",
+    "projectId": "",
+    "enabled": ""
+  }
+}

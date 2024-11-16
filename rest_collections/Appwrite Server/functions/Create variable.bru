@@ -1,0 +1,26 @@
+meta {
+  name: Create variable
+  type: http
+  seq: 21
+}
+
+post {
+  url: {{baseUrl}}/functions/:functionId/variables
+  body: json
+  auth: none
+}
+
+params:path {
+  functionId: 
+}
+
+headers {
+  X-Appwrite-Project: {{projectId}}
+}
+
+body:json {
+  {
+    "key": "",
+    "value": ""
+  }
+}

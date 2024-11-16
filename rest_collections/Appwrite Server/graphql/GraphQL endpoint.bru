@@ -1,0 +1,15 @@
+meta {
+  name: GraphQL endpoint
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{baseUrl}}/graphql/mutation
+  body: none
+  auth: none
+}
+
+headers {
+  X-Appwrite-Project: {{projectId}}
+}

@@ -1,0 +1,15 @@
+meta {
+  name: Get user locale
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/locale
+  body: none
+  auth: none
+}
+
+headers {
+  X-Appwrite-Project: {{projectId}}
+}

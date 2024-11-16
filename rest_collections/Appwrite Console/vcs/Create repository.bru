@@ -1,0 +1,26 @@
+meta {
+  name: Create repository
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{baseUrl}}/vcs/github/installations/:installationId/providerRepositories
+  body: json
+  auth: none
+}
+
+params:path {
+  installationId: 
+}
+
+headers {
+  X-Appwrite-Project: {{projectId}}
+}
+
+body:json {
+  {
+    "name": "",
+    "private": ""
+  }
+}

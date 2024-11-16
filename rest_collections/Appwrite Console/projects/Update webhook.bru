@@ -1,0 +1,32 @@
+meta {
+  name: Update webhook
+  type: http
+  seq: 43
+}
+
+put {
+  url: {{baseUrl}}/projects/:projectId/webhooks/:webhookId
+  body: json
+  auth: none
+}
+
+params:path {
+  projectId: 
+  webhookId: 
+}
+
+headers {
+  X-Appwrite-Project: {{projectId}}
+}
+
+body:json {
+  {
+    "name": "",
+    "enabled": "",
+    "events": [],
+    "url": "",
+    "security": "",
+    "httpUser": "",
+    "httpPass": ""
+  }
+}

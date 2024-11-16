@@ -1,0 +1,26 @@
+meta {
+  name: Update membership
+  type: http
+  seq: 9
+}
+
+patch {
+  url: {{baseUrl}}/teams/:teamId/memberships/:membershipId
+  body: json
+  auth: none
+}
+
+params:path {
+  teamId: 
+  membershipId: 
+}
+
+headers {
+  X-Appwrite-Project: {{projectId}}
+}
+
+body:json {
+  {
+    "roles": []
+  }
+}

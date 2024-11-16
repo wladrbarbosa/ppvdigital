@@ -1,0 +1,31 @@
+meta {
+  name: Update integer attribute
+  type: http
+  seq: 24
+}
+
+patch {
+  url: {{baseUrl}}/databases/:databaseId/collections/:collectionId/attributes/integer/:key
+  body: json
+  auth: none
+}
+
+params:path {
+  databaseId: 
+  collectionId: 
+  key: 
+}
+
+headers {
+  X-Appwrite-Project: {{projectId}}
+}
+
+body:json {
+  {
+    "required": "",
+    "min": "",
+    "max": "",
+    "default": "",
+    "newKey": ""
+  }
+}

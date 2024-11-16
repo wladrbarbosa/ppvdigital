@@ -1,0 +1,23 @@
+meta {
+  name: Create Rule
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{baseUrl}}/proxy/rules
+  body: json
+  auth: none
+}
+
+headers {
+  X-Appwrite-Project: {{projectId}}
+}
+
+body:json {
+  {
+    "domain": "",
+    "resourceType": "",
+    "resourceId": ""
+  }
+}

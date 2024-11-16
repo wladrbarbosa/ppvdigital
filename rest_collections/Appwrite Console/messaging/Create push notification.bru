@@ -1,0 +1,36 @@
+meta {
+  name: Create push notification
+  type: http
+  seq: 4
+}
+
+post {
+  url: {{baseUrl}}/messaging/messages/push
+  body: json
+  auth: none
+}
+
+headers {
+  X-Appwrite-Project: {{projectId}}
+}
+
+body:json {
+  {
+    "messageId": "",
+    "title": "",
+    "body": "",
+    "topics": [],
+    "users": [],
+    "targets": [],
+    "data": {},
+    "action": "",
+    "image": "",
+    "icon": "",
+    "sound": "",
+    "color": "",
+    "tag": "",
+    "badge": "",
+    "draft": "",
+    "scheduledAt": ""
+  }
+}

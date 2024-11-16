@@ -1,0 +1,19 @@
+meta {
+  name: Update Rule Verification Status
+  type: http
+  seq: 5
+}
+
+patch {
+  url: {{baseUrl}}/proxy/rules/:ruleId/verification
+  body: none
+  auth: none
+}
+
+params:path {
+  ruleId: 
+}
+
+headers {
+  X-Appwrite-Project: {{projectId}}
+}

@@ -1,0 +1,24 @@
+meta {
+  name: Get files and directories of a VCS repository
+  type: http
+  seq: 5
+}
+
+get {
+  url: {{baseUrl}}/vcs/github/installations/:installationId/providerRepositories/:providerRepositoryId/contents
+  body: none
+  auth: none
+}
+
+params:query {
+  ~providerRootDirectory: 
+}
+
+params:path {
+  installationId: 
+  providerRepositoryId: 
+}
+
+headers {
+  X-Appwrite-Project: {{projectId}}
+}

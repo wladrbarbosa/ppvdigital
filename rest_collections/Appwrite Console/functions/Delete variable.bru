@@ -1,0 +1,20 @@
+meta {
+  name: Delete variable
+  type: http
+  seq: 28
+}
+
+delete {
+  url: {{baseUrl}}/functions/:functionId/variables/:variableId
+  body: none
+  auth: none
+}
+
+params:path {
+  functionId: 
+  variableId: 
+}
+
+headers {
+  X-Appwrite-Project: {{projectId}}
+}

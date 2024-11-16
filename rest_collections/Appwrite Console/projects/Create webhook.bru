@@ -1,0 +1,31 @@
+meta {
+  name: Create webhook
+  type: http
+  seq: 41
+}
+
+post {
+  url: {{baseUrl}}/projects/:projectId/webhooks
+  body: json
+  auth: none
+}
+
+params:path {
+  projectId: 
+}
+
+headers {
+  X-Appwrite-Project: {{projectId}}
+}
+
+body:json {
+  {
+    "name": "",
+    "enabled": "",
+    "events": [],
+    "url": "",
+    "security": "",
+    "httpUser": "",
+    "httpPass": ""
+  }
+}

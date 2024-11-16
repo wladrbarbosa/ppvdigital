@@ -1,0 +1,25 @@
+meta {
+  name: Update project authentication duration
+  type: http
+  seq: 8
+}
+
+patch {
+  url: {{baseUrl}}/projects/:projectId/auth/duration
+  body: json
+  auth: none
+}
+
+params:path {
+  projectId: 
+}
+
+headers {
+  X-Appwrite-Project: {{projectId}}
+}
+
+body:json {
+  {
+    "duration": ""
+  }
+}

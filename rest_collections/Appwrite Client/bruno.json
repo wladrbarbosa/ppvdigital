@@ -1,0 +1,9 @@
+{
+  "version": "1",
+  "name": "Appwrite Client",
+  "type": "collection",
+  "ignore": [
+    "node_modules",
+    ".git"
+  ]
+}

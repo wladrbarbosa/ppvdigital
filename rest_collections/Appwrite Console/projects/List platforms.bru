@@ -1,0 +1,19 @@
+meta {
+  name: List platforms
+  type: http
+  seq: 24
+}
+
+get {
+  url: {{baseUrl}}/projects/:projectId/platforms
+  body: none
+  auth: none
+}
+
+params:path {
+  projectId: 
+}
+
+headers {
+  X-Appwrite-Project: {{projectId}}
+}

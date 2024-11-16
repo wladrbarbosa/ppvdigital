@@ -1,0 +1,21 @@
+meta {
+  name: Ask Query
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}/console/assistant
+  body: json
+  auth: none
+}
+
+headers {
+  X-Appwrite-Project: {{projectId}}
+}
+
+body:json {
+  {
+    "prompt": ""
+  }
+}

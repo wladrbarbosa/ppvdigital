@@ -1,0 +1,22 @@
+meta {
+  name: Get user initials
+  type: http
+  seq: 6
+}
+
+get {
+  url: {{baseUrl}}/avatars/initials
+  body: none
+  auth: none
+}
+
+params:query {
+  ~name: 
+  ~width: 
+  ~height: 
+  ~background: 
+}
+
+headers {
+  X-Appwrite-Project: {{projectId}}
+}

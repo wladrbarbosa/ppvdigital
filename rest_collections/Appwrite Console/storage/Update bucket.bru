@@ -1,0 +1,33 @@
+meta {
+  name: Update bucket
+  type: http
+  seq: 4
+}
+
+put {
+  url: {{baseUrl}}/storage/buckets/:bucketId
+  body: json
+  auth: none
+}
+
+params:path {
+  bucketId: 
+}
+
+headers {
+  X-Appwrite-Project: {{projectId}}
+}
+
+body:json {
+  {
+    "name": "",
+    "permissions": [],
+    "fileSecurity": "",
+    "enabled": "",
+    "maximumFileSize": "",
+    "allowedFileExtensions": [],
+    "compression": "",
+    "encryption": "",
+    "antivirus": ""
+  }
+}

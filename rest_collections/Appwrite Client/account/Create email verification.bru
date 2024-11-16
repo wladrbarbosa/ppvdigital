@@ -1,0 +1,21 @@
+meta {
+  name: Create email verification
+  type: http
+  seq: 44
+}
+
+post {
+  url: {{baseUrl}}/account/verification
+  body: json
+  auth: none
+}
+
+headers {
+  X-Appwrite-Project: {{projectId}}
+}
+
+body:json {
+  {
+    "url": ""
+  }
+}

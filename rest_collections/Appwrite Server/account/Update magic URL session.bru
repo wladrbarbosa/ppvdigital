@@ -1,0 +1,22 @@
+meta {
+  name: Update magic URL session
+  type: http
+  seq: 29
+}
+
+put {
+  url: {{baseUrl}}/account/sessions/magic-url
+  body: json
+  auth: none
+}
+
+headers {
+  X-Appwrite-Project: {{projectId}}
+}
+
+body:json {
+  {
+    "userId": "",
+    "secret": ""
+  }
+}

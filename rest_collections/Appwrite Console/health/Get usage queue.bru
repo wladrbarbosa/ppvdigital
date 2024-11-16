@@ -1,0 +1,19 @@
+meta {
+  name: Get usage queue
+  type: http
+  seq: 18
+}
+
+get {
+  url: {{baseUrl}}/health/queue/usage
+  body: none
+  auth: none
+}
+
+params:query {
+  ~threshold: 
+}
+
+headers {
+  X-Appwrite-Project: {{projectId}}
+}

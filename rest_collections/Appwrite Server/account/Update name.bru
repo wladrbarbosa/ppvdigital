@@ -1,0 +1,21 @@
+meta {
+  name: Update name
+  type: http
+  seq: 18
+}
+
+patch {
+  url: {{baseUrl}}/account/name
+  body: json
+  auth: none
+}
+
+headers {
+  X-Appwrite-Project: {{projectId}}
+}
+
+body:json {
+  {
+    "name": ""
+  }
+}

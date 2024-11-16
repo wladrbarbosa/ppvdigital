@@ -1,0 +1,15 @@
+meta {
+  name: Get DB
+  type: http
+  seq: 5
+}
+
+get {
+  url: {{baseUrl}}/health/db
+  body: none
+  auth: none
+}
+
+headers {
+  X-Appwrite-Project: {{projectId}}
+}

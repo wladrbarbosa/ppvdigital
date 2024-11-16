@@ -1,0 +1,29 @@
+meta {
+  name: Update Vonage provider
+  type: http
+  seq: 32
+}
+
+patch {
+  url: {{baseUrl}}/messaging/providers/vonage/:providerId
+  body: json
+  auth: none
+}
+
+params:path {
+  providerId: 
+}
+
+headers {
+  X-Appwrite-Project: {{projectId}}
+}
+
+body:json {
+  {
+    "name": "",
+    "enabled": "",
+    "projectId": "",
+    "apiSecret": "",
+    "from": ""
+  }
+}

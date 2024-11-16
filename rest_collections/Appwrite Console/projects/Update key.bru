@@ -1,0 +1,28 @@
+meta {
+  name: Update key
+  type: http
+  seq: 21
+}
+
+put {
+  url: {{baseUrl}}/projects/:projectId/keys/:keyId
+  body: json
+  auth: none
+}
+
+params:path {
+  projectId: 
+  keyId: 
+}
+
+headers {
+  X-Appwrite-Project: {{projectId}}
+}
+
+body:json {
+  {
+    "name": "",
+    "scopes": [],
+    "expire": ""
+  }
+}

@@ -1,0 +1,28 @@
+meta {
+  name: Update document
+  type: http
+  seq: 4
+}
+
+patch {
+  url: {{baseUrl}}/databases/:databaseId/collections/:collectionId/documents/:documentId
+  body: json
+  auth: none
+}
+
+params:path {
+  databaseId: 
+  collectionId: 
+  documentId: 
+}
+
+headers {
+  X-Appwrite-Project: {{projectId}}
+}
+
+body:json {
+  {
+    "data": {},
+    "permissions": []
+  }
+}

@@ -1,0 +1,19 @@
+meta {
+  name: Get databases usage stats
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{baseUrl}}/databases/usage
+  body: none
+  auth: none
+}
+
+params:query {
+  ~range: 
+}
+
+headers {
+  X-Appwrite-Project: {{projectId}}
+}

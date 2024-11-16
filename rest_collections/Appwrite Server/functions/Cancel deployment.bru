@@ -1,0 +1,20 @@
+meta {
+  name: Cancel deployment
+  type: http
+  seq: 14
+}
+
+patch {
+  url: {{baseUrl}}/functions/:functionId/deployments/:deploymentId/build
+  body: none
+  auth: none
+}
+
+params:path {
+  functionId: 
+  deploymentId: 
+}
+
+headers {
+  X-Appwrite-Project: {{projectId}}
+}

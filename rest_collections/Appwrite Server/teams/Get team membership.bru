@@ -1,0 +1,20 @@
+meta {
+  name: Get team membership
+  type: http
+  seq: 8
+}
+
+get {
+  url: {{baseUrl}}/teams/:teamId/memberships/:membershipId
+  body: none
+  auth: none
+}
+
+params:path {
+  teamId: 
+  membershipId: 
+}
+
+headers {
+  X-Appwrite-Project: {{projectId}}
+}

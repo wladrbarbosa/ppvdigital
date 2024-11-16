@@ -1,0 +1,26 @@
+meta {
+  name: Generate a report on NHost Data
+  type: http
+  seq: 11
+}
+
+get {
+  url: {{baseUrl}}/migrations/nhost/report
+  body: none
+  auth: none
+}
+
+params:query {
+  resources: 
+  subdomain: 
+  region: 
+  adminSecret: 
+  database: 
+  username: 
+  password: 
+  ~port: 
+}
+
+headers {
+  X-Appwrite-Project: {{projectId}}
+}

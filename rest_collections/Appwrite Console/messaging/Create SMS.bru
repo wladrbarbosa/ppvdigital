@@ -1,0 +1,27 @@
+meta {
+  name: Create SMS
+  type: http
+  seq: 6
+}
+
+post {
+  url: {{baseUrl}}/messaging/messages/sms
+  body: json
+  auth: none
+}
+
+headers {
+  X-Appwrite-Project: {{projectId}}
+}
+
+body:json {
+  {
+    "messageId": "",
+    "content": "",
+    "topics": [],
+    "users": [],
+    "targets": [],
+    "draft": "",
+    "scheduledAt": ""
+  }
+}

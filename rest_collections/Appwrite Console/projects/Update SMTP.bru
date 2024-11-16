@@ -1,0 +1,33 @@
+meta {
+  name: Update SMTP
+  type: http
+  seq: 31
+}
+
+patch {
+  url: {{baseUrl}}/projects/:projectId/smtp
+  body: json
+  auth: none
+}
+
+params:path {
+  projectId: 
+}
+
+headers {
+  X-Appwrite-Project: {{projectId}}
+}
+
+body:json {
+  {
+    "enabled": "",
+    "senderName": "",
+    "senderEmail": "",
+    "replyTo": "",
+    "host": "",
+    "port": "",
+    "username": "",
+    "password": "",
+    "secure": ""
+  }
+}

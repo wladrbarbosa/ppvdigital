@@ -1,0 +1,29 @@
+meta {
+  name: Update email attribute
+  type: http
+  seq: 18
+}
+
+patch {
+  url: {{baseUrl}}/databases/:databaseId/collections/:collectionId/attributes/email/:key
+  body: json
+  auth: none
+}
+
+params:path {
+  databaseId: 
+  collectionId: 
+  key: 
+}
+
+headers {
+  X-Appwrite-Project: {{projectId}}
+}
+
+body:json {
+  {
+    "required": "",
+    "default": "",
+    "newKey": ""
+  }
+}

@@ -1,0 +1,26 @@
+meta {
+  name: Create Twilio provider
+  type: http
+  seq: 29
+}
+
+post {
+  url: {{baseUrl}}/messaging/providers/twilio
+  body: json
+  auth: none
+}
+
+headers {
+  X-Appwrite-Project: {{projectId}}
+}
+
+body:json {
+  {
+    "providerId": "",
+    "name": "",
+    "from": "",
+    "accountSid": "",
+    "authToken": "",
+    "enabled": ""
+  }
+}

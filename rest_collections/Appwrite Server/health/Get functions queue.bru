@@ -1,0 +1,19 @@
+meta {
+  name: Get functions queue
+  type: http
+  seq: 13
+}
+
+get {
+  url: {{baseUrl}}/health/queue/functions
+  body: none
+  auth: none
+}
+
+params:query {
+  ~threshold: 
+}
+
+headers {
+  X-Appwrite-Project: {{projectId}}
+}

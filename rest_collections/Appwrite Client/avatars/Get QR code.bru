@@ -1,0 +1,22 @@
+meta {
+  name: Get QR code
+  type: http
+  seq: 7
+}
+
+get {
+  url: {{baseUrl}}/avatars/qr
+  body: none
+  auth: none
+}
+
+params:query {
+  text: 
+  ~size: 
+  ~margin: 
+  ~download: 
+}
+
+headers {
+  X-Appwrite-Project: {{projectId}}
+}

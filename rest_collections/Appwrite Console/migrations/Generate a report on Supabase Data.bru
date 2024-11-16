@@ -1,0 +1,25 @@
+meta {
+  name: Generate a report on Supabase Data
+  type: http
+  seq: 13
+}
+
+get {
+  url: {{baseUrl}}/migrations/supabase/report
+  body: none
+  auth: none
+}
+
+params:query {
+  resources: 
+  endpoint: 
+  projectId: 
+  databaseHost: 
+  username: 
+  password: 
+  ~port: 
+}
+
+headers {
+  X-Appwrite-Project: {{projectId}}
+}

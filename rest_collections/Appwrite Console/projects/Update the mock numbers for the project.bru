@@ -1,0 +1,27 @@
+meta {
+  name: Update the mock numbers for the project
+  type: http
+  seq: 11
+}
+
+patch {
+  url: {{baseUrl}}/projects/:projectId/auth/mock-numbers
+  body: json
+  auth: none
+}
+
+params:path {
+  projectId: 
+}
+
+headers {
+  X-Appwrite-Project: {{projectId}}
+}
+
+body:json {
+  {
+    "numbers": [
+      {}
+    ]
+  }
+}

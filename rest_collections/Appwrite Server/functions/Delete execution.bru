@@ -1,0 +1,20 @@
+meta {
+  name: Delete execution
+  type: http
+  seq: 19
+}
+
+delete {
+  url: {{baseUrl}}/functions/:functionId/executions/:executionId
+  body: none
+  auth: none
+}
+
+params:path {
+  functionId: 
+  executionId: 
+}
+
+headers {
+  X-Appwrite-Project: {{projectId}}
+}

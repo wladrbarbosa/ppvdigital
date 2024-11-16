@@ -1,0 +1,19 @@
+meta {
+  name: Delete team
+  type: http
+  seq: 5
+}
+
+delete {
+  url: {{baseUrl}}/teams/:teamId
+  body: none
+  auth: none
+}
+
+params:path {
+  teamId: 
+}
+
+headers {
+  X-Appwrite-Project: {{projectId}}
+}

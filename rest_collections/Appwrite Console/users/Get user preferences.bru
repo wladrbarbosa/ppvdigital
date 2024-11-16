@@ -1,0 +1,19 @@
+meta {
+  name: Get user preferences
+  type: http
+  seq: 29
+}
+
+get {
+  url: {{baseUrl}}/users/:userId/prefs
+  body: none
+  auth: none
+}
+
+params:path {
+  userId: 
+}
+
+headers {
+  X-Appwrite-Project: {{projectId}}
+}

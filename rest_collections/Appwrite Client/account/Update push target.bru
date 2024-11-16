@@ -1,0 +1,25 @@
+meta {
+  name: Update push target
+  type: http
+  seq: 38
+}
+
+put {
+  url: {{baseUrl}}/account/targets/:targetId/push
+  body: json
+  auth: none
+}
+
+params:path {
+  targetId: 
+}
+
+headers {
+  X-Appwrite-Project: {{projectId}}
+}
+
+body:json {
+  {
+    "identifier": ""
+  }
+}

@@ -1,0 +1,21 @@
+meta {
+  name: Get project usage stats
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/project/usage
+  body: none
+  auth: none
+}
+
+params:query {
+  startDate: 
+  endDate: 
+  ~period: 
+}
+
+headers {
+  X-Appwrite-Project: {{projectId}}
+}

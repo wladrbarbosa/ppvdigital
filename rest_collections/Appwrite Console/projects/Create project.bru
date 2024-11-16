@@ -1,0 +1,33 @@
+meta {
+  name: Create project
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{baseUrl}}/projects
+  body: json
+  auth: none
+}
+
+headers {
+  X-Appwrite-Project: {{projectId}}
+}
+
+body:json {
+  {
+    "projectId": "",
+    "name": "",
+    "teamId": "",
+    "region": "",
+    "description": "",
+    "logo": "",
+    "url": "",
+    "legalName": "",
+    "legalCountry": "",
+    "legalState": "",
+    "legalCity": "",
+    "legalAddress": "",
+    "legalTaxId": ""
+  }
+}

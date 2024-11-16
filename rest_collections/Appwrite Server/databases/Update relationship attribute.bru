@@ -1,0 +1,28 @@
+meta {
+  name: Update relationship attribute
+  type: http
+  seq: 33
+}
+
+patch {
+  url: {{baseUrl}}/databases/:databaseId/collections/:collectionId/attributes/:key/relationship
+  body: json
+  auth: none
+}
+
+params:path {
+  databaseId: 
+  collectionId: 
+  key: 
+}
+
+headers {
+  X-Appwrite-Project: {{projectId}}
+}
+
+body:json {
+  {
+    "onDelete": "",
+    "newKey": ""
+  }
+}

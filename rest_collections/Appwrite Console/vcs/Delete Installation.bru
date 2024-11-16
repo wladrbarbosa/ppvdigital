@@ -1,0 +1,19 @@
+meta {
+  name: Delete Installation
+  type: http
+  seq: 10
+}
+
+delete {
+  url: {{baseUrl}}/vcs/installations/:installationId
+  body: none
+  auth: none
+}
+
+params:path {
+  installationId: 
+}
+
+headers {
+  X-Appwrite-Project: {{projectId}}
+}

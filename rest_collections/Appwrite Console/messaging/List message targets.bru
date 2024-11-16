@@ -1,0 +1,23 @@
+meta {
+  name: List message targets
+  type: http
+  seq: 11
+}
+
+get {
+  url: {{baseUrl}}/messaging/messages/:messageId/targets
+  body: none
+  auth: none
+}
+
+params:query {
+  ~queries: 
+}
+
+params:path {
+  messageId: 
+}
+
+headers {
+  X-Appwrite-Project: {{projectId}}
+}

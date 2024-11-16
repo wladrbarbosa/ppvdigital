@@ -1,0 +1,29 @@
+meta {
+  name: Update boolean attribute
+  type: http
+  seq: 13
+}
+
+patch {
+  url: {{baseUrl}}/databases/:databaseId/collections/:collectionId/attributes/boolean/:key
+  body: json
+  auth: none
+}
+
+params:path {
+  databaseId: 
+  collectionId: 
+  key: 
+}
+
+headers {
+  X-Appwrite-Project: {{projectId}}
+}
+
+body:json {
+  {
+    "required": "",
+    "default": "",
+    "newKey": ""
+  }
+}

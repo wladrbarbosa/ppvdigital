@@ -1,0 +1,20 @@
+meta {
+  name: Get subscriber
+  type: http
+  seq: 45
+}
+
+get {
+  url: {{baseUrl}}/messaging/topics/:topicId/subscribers/:subscriberId
+  body: none
+  auth: none
+}
+
+params:path {
+  topicId: 
+  subscriberId: 
+}
+
+headers {
+  X-Appwrite-Project: {{projectId}}
+}

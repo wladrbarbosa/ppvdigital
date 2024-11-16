@@ -1,0 +1,19 @@
+meta {
+  name: Get migrations queue
+  type: http
+  seq: 17
+}
+
+get {
+  url: {{baseUrl}}/health/queue/migrations
+  body: none
+  auth: none
+}
+
+params:query {
+  ~threshold: 
+}
+
+headers {
+  X-Appwrite-Project: {{projectId}}
+}

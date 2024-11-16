@@ -1,0 +1,23 @@
+meta {
+  name: List message logs
+  type: http
+  seq: 10
+}
+
+get {
+  url: {{baseUrl}}/messaging/messages/:messageId/logs
+  body: none
+  auth: none
+}
+
+params:query {
+  ~queries: 
+}
+
+params:path {
+  messageId: 
+}
+
+headers {
+  X-Appwrite-Project: {{projectId}}
+}

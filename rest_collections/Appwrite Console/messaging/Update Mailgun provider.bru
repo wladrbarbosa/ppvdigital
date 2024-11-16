@@ -1,0 +1,33 @@
+meta {
+  name: Update Mailgun provider
+  type: http
+  seq: 18
+}
+
+patch {
+  url: {{baseUrl}}/messaging/providers/mailgun/:providerId
+  body: json
+  auth: none
+}
+
+params:path {
+  providerId: 
+}
+
+headers {
+  X-Appwrite-Project: {{projectId}}
+}
+
+body:json {
+  {
+    "name": "",
+    "projectId": "",
+    "domain": "",
+    "isEuRegion": "",
+    "enabled": "",
+    "fromName": "",
+    "fromEmail": "",
+    "replyToName": "",
+    "replyToEmail": ""
+  }
+}

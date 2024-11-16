@@ -1,0 +1,23 @@
+meta {
+  name: Get bucket usage stats
+  type: http
+  seq: 15
+}
+
+get {
+  url: {{baseUrl}}/storage/:bucketId/usage
+  body: none
+  auth: none
+}
+
+params:query {
+  ~range: 
+}
+
+params:path {
+  bucketId: 
+}
+
+headers {
+  X-Appwrite-Project: {{projectId}}
+}

@@ -1,0 +1,20 @@
+meta {
+  name: Delete team membership
+  type: http
+  seq: 10
+}
+
+delete {
+  url: {{baseUrl}}/teams/:teamId/memberships/:membershipId
+  body: none
+  auth: none
+}
+
+params:path {
+  teamId: 
+  membershipId: 
+}
+
+headers {
+  X-Appwrite-Project: {{projectId}}
+}

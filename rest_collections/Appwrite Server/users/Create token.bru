@@ -1,0 +1,26 @@
+meta {
+  name: Create token
+  type: http
+  seq: 40
+}
+
+post {
+  url: {{baseUrl}}/users/:userId/tokens
+  body: json
+  auth: none
+}
+
+params:path {
+  userId: 
+}
+
+headers {
+  X-Appwrite-Project: {{projectId}}
+}
+
+body:json {
+  {
+    "length": "",
+    "expire": ""
+  }
+}

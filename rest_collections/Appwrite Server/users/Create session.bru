@@ -1,0 +1,19 @@
+meta {
+  name: Create session
+  type: http
+  seq: 31
+}
+
+post {
+  url: {{baseUrl}}/users/:userId/sessions
+  body: none
+  auth: none
+}
+
+params:path {
+  userId: 
+}
+
+headers {
+  X-Appwrite-Project: {{projectId}}
+}

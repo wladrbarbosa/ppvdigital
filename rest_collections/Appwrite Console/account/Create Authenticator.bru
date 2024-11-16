@@ -1,0 +1,19 @@
+meta {
+  name: Create Authenticator
+  type: http
+  seq: 10
+}
+
+post {
+  url: {{baseUrl}}/account/mfa/authenticators/:type
+  body: none
+  auth: none
+}
+
+params:path {
+  type: 
+}
+
+headers {
+  X-Appwrite-Project: {{projectId}}
+}

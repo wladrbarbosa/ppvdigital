@@ -1,0 +1,23 @@
+meta {
+  name: List user logs
+  type: http
+  seq: 17
+}
+
+get {
+  url: {{baseUrl}}/users/:userId/logs
+  body: none
+  auth: none
+}
+
+params:query {
+  ~queries: 
+}
+
+params:path {
+  userId: 
+}
+
+headers {
+  X-Appwrite-Project: {{projectId}}
+}

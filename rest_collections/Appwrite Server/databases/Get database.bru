@@ -1,0 +1,19 @@
+meta {
+  name: Get database
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{baseUrl}}/databases/:databaseId
+  body: none
+  auth: none
+}
+
+params:path {
+  databaseId: 
+}
+
+headers {
+  X-Appwrite-Project: {{projectId}}
+}

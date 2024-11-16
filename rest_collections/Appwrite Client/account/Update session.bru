@@ -1,0 +1,19 @@
+meta {
+  name: Update session
+  type: http
+  seq: 34
+}
+
+patch {
+  url: {{baseUrl}}/account/sessions/:sessionId
+  body: none
+  auth: none
+}
+
+params:path {
+  sessionId: 
+}
+
+headers {
+  X-Appwrite-Project: {{projectId}}
+}

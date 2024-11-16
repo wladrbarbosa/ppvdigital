@@ -1,0 +1,29 @@
+meta {
+  name: Create datetime attribute
+  type: http
+  seq: 15
+}
+
+post {
+  url: {{baseUrl}}/databases/:databaseId/collections/:collectionId/attributes/datetime
+  body: json
+  auth: none
+}
+
+params:path {
+  databaseId: 
+  collectionId: 
+}
+
+headers {
+  X-Appwrite-Project: {{projectId}}
+}
+
+body:json {
+  {
+    "key": "",
+    "required": "",
+    "default": "",
+    "array": ""
+  }
+}

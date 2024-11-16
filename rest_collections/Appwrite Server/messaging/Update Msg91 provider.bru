@@ -1,0 +1,29 @@
+meta {
+  name: Update Msg91 provider
+  type: http
+  seq: 20
+}
+
+patch {
+  url: {{baseUrl}}/messaging/providers/msg91/:providerId
+  body: json
+  auth: none
+}
+
+params:path {
+  providerId: 
+}
+
+headers {
+  X-Appwrite-Project: {{projectId}}
+}
+
+body:json {
+  {
+    "name": "",
+    "enabled": "",
+    "templateId": "",
+    "senderId": "",
+    "authKey": ""
+  }
+}

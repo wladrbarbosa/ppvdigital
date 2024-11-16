@@ -1,0 +1,19 @@
+meta {
+  name: Get team
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{baseUrl}}/teams/:teamId
+  body: none
+  auth: none
+}
+
+params:path {
+  teamId: 
+}
+
+headers {
+  X-Appwrite-Project: {{projectId}}
+}

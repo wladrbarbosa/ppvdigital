@@ -1,0 +1,22 @@
+meta {
+  name: Create session
+  type: http
+  seq: 31
+}
+
+post {
+  url: {{baseUrl}}/account/sessions/token
+  body: json
+  auth: none
+}
+
+headers {
+  X-Appwrite-Project: {{projectId}}
+}
+
+body:json {
+  {
+    "userId": "",
+    "secret": ""
+  }
+}

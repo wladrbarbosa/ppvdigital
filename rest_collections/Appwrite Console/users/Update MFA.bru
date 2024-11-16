@@ -1,0 +1,25 @@
+meta {
+  name: Update MFA
+  type: http
+  seq: 20
+}
+
+patch {
+  url: {{baseUrl}}/users/:userId/mfa
+  body: json
+  auth: none
+}
+
+params:path {
+  userId: 
+}
+
+headers {
+  X-Appwrite-Project: {{projectId}}
+}
+
+body:json {
+  {
+    "mfa": ""
+  }
+}

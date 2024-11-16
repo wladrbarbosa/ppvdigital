@@ -1,0 +1,23 @@
+meta {
+  name: List subscriber logs
+  type: http
+  seq: 36
+}
+
+get {
+  url: {{baseUrl}}/messaging/subscribers/:subscriberId/logs
+  body: none
+  auth: none
+}
+
+params:query {
+  ~queries: 
+}
+
+params:path {
+  subscriberId: 
+}
+
+headers {
+  X-Appwrite-Project: {{projectId}}
+}

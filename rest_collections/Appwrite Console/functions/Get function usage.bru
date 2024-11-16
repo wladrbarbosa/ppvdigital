@@ -1,0 +1,23 @@
+meta {
+  name: Get function usage
+  type: http
+  seq: 23
+}
+
+get {
+  url: {{baseUrl}}/functions/:functionId/usage
+  body: none
+  auth: none
+}
+
+params:query {
+  ~range: 
+}
+
+params:path {
+  functionId: 
+}
+
+headers {
+  X-Appwrite-Project: {{projectId}}
+}

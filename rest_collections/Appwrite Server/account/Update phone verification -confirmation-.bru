@@ -1,0 +1,22 @@
+meta {
+  name: Update phone verification -confirmation-
+  type: http
+  seq: 43
+}
+
+put {
+  url: {{baseUrl}}/account/verification/phone
+  body: json
+  auth: none
+}
+
+headers {
+  X-Appwrite-Project: {{projectId}}
+}
+
+body:json {
+  {
+    "userId": "",
+    "secret": ""
+  }
+}

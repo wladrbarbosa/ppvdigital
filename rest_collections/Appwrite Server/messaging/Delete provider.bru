@@ -1,0 +1,19 @@
+meta {
+  name: Delete provider
+  type: http
+  seq: 34
+}
+
+delete {
+  url: {{baseUrl}}/messaging/providers/:providerId
+  body: none
+  auth: none
+}
+
+params:path {
+  providerId: 
+}
+
+headers {
+  X-Appwrite-Project: {{projectId}}
+}

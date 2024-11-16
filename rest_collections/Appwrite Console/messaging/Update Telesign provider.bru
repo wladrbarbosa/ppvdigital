@@ -1,0 +1,29 @@
+meta {
+  name: Update Telesign provider
+  type: http
+  seq: 26
+}
+
+patch {
+  url: {{baseUrl}}/messaging/providers/telesign/:providerId
+  body: json
+  auth: none
+}
+
+params:path {
+  providerId: 
+}
+
+headers {
+  X-Appwrite-Project: {{projectId}}
+}
+
+body:json {
+  {
+    "name": "",
+    "enabled": "",
+    "customerId": "",
+    "projectId": "",
+    "from": ""
+  }
+}

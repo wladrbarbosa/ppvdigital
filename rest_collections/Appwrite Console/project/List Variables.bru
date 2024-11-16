@@ -1,0 +1,15 @@
+meta {
+  name: List Variables
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{baseUrl}}/project/variables
+  body: none
+  auth: none
+}
+
+headers {
+  X-Appwrite-Project: {{projectId}}
+}

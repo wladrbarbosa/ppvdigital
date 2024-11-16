@@ -1,0 +1,22 @@
+meta {
+  name: Update phone
+  type: http
+  seq: 20
+}
+
+patch {
+  url: {{baseUrl}}/account/phone
+  body: json
+  auth: none
+}
+
+headers {
+  X-Appwrite-Project: {{projectId}}
+}
+
+body:json {
+  {
+    "phone": "",
+    "password": ""
+  }
+}

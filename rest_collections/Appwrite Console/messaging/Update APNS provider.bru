@@ -1,0 +1,31 @@
+meta {
+  name: Update APNS provider
+  type: http
+  seq: 14
+}
+
+patch {
+  url: {{baseUrl}}/messaging/providers/apns/:providerId
+  body: json
+  auth: none
+}
+
+params:path {
+  providerId: 
+}
+
+headers {
+  X-Appwrite-Project: {{projectId}}
+}
+
+body:json {
+  {
+    "name": "",
+    "enabled": "",
+    "authKey": "",
+    "authKeyId": "",
+    "teamId": "",
+    "bundleId": "",
+    "sandbox": ""
+  }
+}

@@ -1,0 +1,23 @@
+meta {
+  name: Create topic
+  type: http
+  seq: 38
+}
+
+post {
+  url: {{baseUrl}}/messaging/topics
+  body: json
+  auth: none
+}
+
+headers {
+  X-Appwrite-Project: {{projectId}}
+}
+
+body:json {
+  {
+    "topicId": "",
+    "name": "",
+    "subscribe": []
+  }
+}

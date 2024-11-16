@@ -1,0 +1,20 @@
+meta {
+  name: Download deployment
+  type: http
+  seq: 15
+}
+
+get {
+  url: {{baseUrl}}/functions/:functionId/deployments/:deploymentId/download
+  body: none
+  auth: none
+}
+
+params:path {
+  functionId: 
+  deploymentId: 
+}
+
+headers {
+  X-Appwrite-Project: {{projectId}}
+}

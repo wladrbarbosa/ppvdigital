@@ -1,0 +1,15 @@
+meta {
+  name: List sessions
+  type: http
+  seq: 26
+}
+
+get {
+  url: {{baseUrl}}/account/sessions
+  body: none
+  auth: none
+}
+
+headers {
+  X-Appwrite-Project: {{projectId}}
+}

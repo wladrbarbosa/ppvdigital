@@ -1,0 +1,25 @@
+meta {
+  name: Update email
+  type: http
+  seq: 14
+}
+
+patch {
+  url: {{baseUrl}}/users/:userId/email
+  body: json
+  auth: none
+}
+
+params:path {
+  userId: 
+}
+
+headers {
+  X-Appwrite-Project: {{projectId}}
+}
+
+body:json {
+  {
+    "email": ""
+  }
+}

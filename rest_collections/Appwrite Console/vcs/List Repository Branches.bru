@@ -1,0 +1,20 @@
+meta {
+  name: List Repository Branches
+  type: http
+  seq: 4
+}
+
+get {
+  url: {{baseUrl}}/vcs/github/installations/:installationId/providerRepositories/:providerRepositoryId/branches
+  body: none
+  auth: none
+}
+
+params:path {
+  installationId: 
+  providerRepositoryId: 
+}
+
+headers {
+  X-Appwrite-Project: {{projectId}}
+}

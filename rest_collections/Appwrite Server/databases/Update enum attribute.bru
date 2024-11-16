@@ -1,0 +1,30 @@
+meta {
+  name: Update enum attribute
+  type: http
+  seq: 19
+}
+
+patch {
+  url: {{baseUrl}}/databases/:databaseId/collections/:collectionId/attributes/enum/:key
+  body: json
+  auth: none
+}
+
+params:path {
+  databaseId: 
+  collectionId: 
+  key: 
+}
+
+headers {
+  X-Appwrite-Project: {{projectId}}
+}
+
+body:json {
+  {
+    "elements": [],
+    "required": "",
+    "default": "",
+    "newKey": ""
+  }
+}

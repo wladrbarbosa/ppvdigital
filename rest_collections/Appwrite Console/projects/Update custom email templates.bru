@@ -1,0 +1,31 @@
+meta {
+  name: Update custom email templates
+  type: http
+  seq: 35
+}
+
+patch {
+  url: {{baseUrl}}/projects/:projectId/templates/email/:type/:locale
+  body: json
+  auth: none
+}
+
+params:path {
+  projectId: 
+  type: 
+  locale: 
+}
+
+headers {
+  X-Appwrite-Project: {{projectId}}
+}
+
+body:json {
+  {
+    "subject": "",
+    "message": "",
+    "senderName": "",
+    "senderEmail": "",
+    "replyTo": ""
+  }
+}

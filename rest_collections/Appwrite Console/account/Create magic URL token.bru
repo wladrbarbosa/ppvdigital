@@ -1,0 +1,24 @@
+meta {
+  name: Create magic URL token
+  type: http
+  seq: 42
+}
+
+post {
+  url: {{baseUrl}}/account/tokens/magic-url
+  body: json
+  auth: none
+}
+
+headers {
+  X-Appwrite-Project: {{projectId}}
+}
+
+body:json {
+  {
+    "userId": "",
+    "email": "",
+    "url": "",
+    "phrase": ""
+  }
+}

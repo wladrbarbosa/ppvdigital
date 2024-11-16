@@ -1,0 +1,19 @@
+meta {
+  name: Delete Rule
+  type: http
+  seq: 4
+}
+
+delete {
+  url: {{baseUrl}}/proxy/rules/:ruleId
+  body: none
+  auth: none
+}
+
+params:path {
+  ruleId: 
+}
+
+headers {
+  X-Appwrite-Project: {{projectId}}
+}

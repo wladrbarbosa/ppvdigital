@@ -1,0 +1,19 @@
+meta {
+  name: Get function template
+  type: http
+  seq: 6
+}
+
+get {
+  url: {{baseUrl}}/functions/templates/:templateId
+  body: none
+  auth: none
+}
+
+params:path {
+  templateId: 
+}
+
+headers {
+  X-Appwrite-Project: {{projectId}}
+}

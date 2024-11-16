@@ -1,0 +1,29 @@
+meta {
+  name: Update URL attribute
+  type: http
+  seq: 30
+}
+
+patch {
+  url: {{baseUrl}}/databases/:databaseId/collections/:collectionId/attributes/url/:key
+  body: json
+  auth: none
+}
+
+params:path {
+  databaseId: 
+  collectionId: 
+  key: 
+}
+
+headers {
+  X-Appwrite-Project: {{projectId}}
+}
+
+body:json {
+  {
+    "required": "",
+    "default": "",
+    "newKey": ""
+  }
+}

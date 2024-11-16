@@ -1,0 +1,20 @@
+meta {
+  name: Get platform
+  type: http
+  seq: 26
+}
+
+get {
+  url: {{baseUrl}}/projects/:projectId/platforms/:platformId
+  body: none
+  auth: none
+}
+
+params:path {
+  projectId: 
+  platformId: 
+}
+
+headers {
+  X-Appwrite-Project: {{projectId}}
+}

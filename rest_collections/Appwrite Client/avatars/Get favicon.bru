@@ -1,0 +1,19 @@
+meta {
+  name: Get favicon
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{baseUrl}}/avatars/favicon
+  body: none
+  auth: none
+}
+
+params:query {
+  url: 
+}
+
+headers {
+  X-Appwrite-Project: {{projectId}}
+}

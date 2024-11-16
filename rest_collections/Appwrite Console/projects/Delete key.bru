@@ -1,0 +1,20 @@
+meta {
+  name: Delete key
+  type: http
+  seq: 22
+}
+
+delete {
+  url: {{baseUrl}}/projects/:projectId/keys/:keyId
+  body: none
+  auth: none
+}
+
+params:path {
+  projectId: 
+  keyId: 
+}
+
+headers {
+  X-Appwrite-Project: {{projectId}}
+}

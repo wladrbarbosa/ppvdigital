@@ -1,0 +1,19 @@
+meta {
+  name: Delete push target
+  type: http
+  seq: 40
+}
+
+delete {
+  url: {{baseUrl}}/account/targets/:targetId/push
+  body: none
+  auth: none
+}
+
+params:path {
+  targetId: 
+}
+
+headers {
+  X-Appwrite-Project: {{projectId}}
+}

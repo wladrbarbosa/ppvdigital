@@ -1,0 +1,19 @@
+meta {
+  name: Delete topic
+  type: http
+  seq: 41
+}
+
+delete {
+  url: {{baseUrl}}/messaging/topics/:topicId
+  body: none
+  auth: none
+}
+
+params:path {
+  topicId: 
+}
+
+headers {
+  X-Appwrite-Project: {{projectId}}
+}

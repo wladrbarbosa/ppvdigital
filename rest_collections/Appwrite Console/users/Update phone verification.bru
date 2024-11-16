@@ -1,0 +1,25 @@
+meta {
+  name: Update phone verification
+  type: http
+  seq: 43
+}
+
+patch {
+  url: {{baseUrl}}/users/:userId/verification/phone
+  body: json
+  auth: none
+}
+
+params:path {
+  userId: 
+}
+
+headers {
+  X-Appwrite-Project: {{projectId}}
+}
+
+body:json {
+  {
+    "phoneVerification": ""
+  }
+}

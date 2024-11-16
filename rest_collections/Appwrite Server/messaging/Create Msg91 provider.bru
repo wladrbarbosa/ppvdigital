@@ -1,0 +1,26 @@
+meta {
+  name: Create Msg91 provider
+  type: http
+  seq: 19
+}
+
+post {
+  url: {{baseUrl}}/messaging/providers/msg91
+  body: json
+  auth: none
+}
+
+headers {
+  X-Appwrite-Project: {{projectId}}
+}
+
+body:json {
+  {
+    "providerId": "",
+    "name": "",
+    "templateId": "",
+    "senderId": "",
+    "authKey": "",
+    "enabled": ""
+  }
+}

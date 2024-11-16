@@ -1,0 +1,29 @@
+meta {
+  name: Create URL attribute
+  type: http
+  seq: 29
+}
+
+post {
+  url: {{baseUrl}}/databases/:databaseId/collections/:collectionId/attributes/url
+  body: json
+  auth: none
+}
+
+params:path {
+  databaseId: 
+  collectionId: 
+}
+
+headers {
+  X-Appwrite-Project: {{projectId}}
+}
+
+body:json {
+  {
+    "key": "",
+    "required": "",
+    "default": "",
+    "array": ""
+  }
+}

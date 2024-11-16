@@ -1,0 +1,21 @@
+meta {
+  name: Get custom email template
+  type: http
+  seq: 34
+}
+
+get {
+  url: {{baseUrl}}/projects/:projectId/templates/email/:type/:locale
+  body: none
+  auth: none
+}
+
+params:path {
+  projectId: 
+  type: 
+  locale: 
+}
+
+headers {
+  X-Appwrite-Project: {{projectId}}
+}

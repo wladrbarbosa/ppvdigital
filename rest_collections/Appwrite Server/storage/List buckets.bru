@@ -1,0 +1,20 @@
+meta {
+  name: List buckets
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/storage/buckets
+  body: none
+  auth: none
+}
+
+params:query {
+  ~queries: 
+  ~search: 
+}
+
+headers {
+  X-Appwrite-Project: {{projectId}}
+}

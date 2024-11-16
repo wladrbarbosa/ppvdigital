@@ -1,0 +1,27 @@
+meta {
+  name: Create key
+  type: http
+  seq: 19
+}
+
+post {
+  url: {{baseUrl}}/projects/:projectId/keys
+  body: json
+  auth: none
+}
+
+params:path {
+  projectId: 
+}
+
+headers {
+  X-Appwrite-Project: {{projectId}}
+}
+
+body:json {
+  {
+    "name": "",
+    "scopes": [],
+    "expire": ""
+  }
+}

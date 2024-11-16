@@ -1,0 +1,31 @@
+meta {
+  name: Create float attribute
+  type: http
+  seq: 21
+}
+
+post {
+  url: {{baseUrl}}/databases/:databaseId/collections/:collectionId/attributes/float
+  body: json
+  auth: none
+}
+
+params:path {
+  databaseId: 
+  collectionId: 
+}
+
+headers {
+  X-Appwrite-Project: {{projectId}}
+}
+
+body:json {
+  {
+    "key": "",
+    "required": "",
+    "min": "",
+    "max": "",
+    "default": "",
+    "array": ""
+  }
+}

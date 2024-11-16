@@ -1,0 +1,19 @@
+meta {
+  name: Delete Migration
+  type: http
+  seq: 16
+}
+
+delete {
+  url: {{baseUrl}}/migrations/:migrationId
+  body: none
+  auth: none
+}
+
+params:path {
+  migrationId: 
+}
+
+headers {
+  X-Appwrite-Project: {{projectId}}
+}

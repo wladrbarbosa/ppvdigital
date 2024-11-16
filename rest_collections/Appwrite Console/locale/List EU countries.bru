@@ -1,0 +1,15 @@
+meta {
+  name: List EU countries
+  type: http
+  seq: 5
+}
+
+get {
+  url: {{baseUrl}}/locale/countries/eu
+  body: none
+  auth: none
+}
+
+headers {
+  X-Appwrite-Project: {{projectId}}
+}

@@ -1,0 +1,15 @@
+meta {
+  name: List available function runtime specifications
+  type: http
+  seq: 4
+}
+
+get {
+  url: {{baseUrl}}/functions/specifications
+  body: none
+  auth: none
+}
+
+headers {
+  X-Appwrite-Project: {{projectId}}
+}

@@ -1,0 +1,24 @@
+meta {
+  name: List documents
+  type: http
+  seq: 35
+}
+
+get {
+  url: {{baseUrl}}/databases/:databaseId/collections/:collectionId/documents
+  body: none
+  auth: none
+}
+
+params:query {
+  ~queries: 
+}
+
+params:path {
+  databaseId: 
+  collectionId: 
+}
+
+headers {
+  X-Appwrite-Project: {{projectId}}
+}

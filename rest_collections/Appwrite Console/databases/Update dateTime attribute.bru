@@ -1,0 +1,29 @@
+meta {
+  name: Update dateTime attribute
+  type: http
+  seq: 16
+}
+
+patch {
+  url: {{baseUrl}}/databases/:databaseId/collections/:collectionId/attributes/datetime/:key
+  body: json
+  auth: none
+}
+
+params:path {
+  databaseId: 
+  collectionId: 
+  key: 
+}
+
+headers {
+  X-Appwrite-Project: {{projectId}}
+}
+
+body:json {
+  {
+    "required": "",
+    "default": "",
+    "newKey": ""
+  }
+}

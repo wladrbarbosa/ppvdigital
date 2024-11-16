@@ -1,0 +1,20 @@
+meta {
+  name: Update webhook signature key
+  type: http
+  seq: 45
+}
+
+patch {
+  url: {{baseUrl}}/projects/:projectId/webhooks/:webhookId/signature
+  body: none
+  auth: none
+}
+
+params:path {
+  projectId: 
+  webhookId: 
+}
+
+headers {
+  X-Appwrite-Project: {{projectId}}
+}

@@ -1,0 +1,20 @@
+meta {
+  name: Delete user session
+  type: http
+  seq: 33
+}
+
+delete {
+  url: {{baseUrl}}/users/:userId/sessions/:sessionId
+  body: none
+  auth: none
+}
+
+params:path {
+  userId: 
+  sessionId: 
+}
+
+headers {
+  X-Appwrite-Project: {{projectId}}
+}

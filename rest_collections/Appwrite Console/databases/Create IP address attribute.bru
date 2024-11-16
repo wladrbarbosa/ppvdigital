@@ -1,0 +1,29 @@
+meta {
+  name: Create IP address attribute
+  type: http
+  seq: 25
+}
+
+post {
+  url: {{baseUrl}}/databases/:databaseId/collections/:collectionId/attributes/ip
+  body: json
+  auth: none
+}
+
+params:path {
+  databaseId: 
+  collectionId: 
+}
+
+headers {
+  X-Appwrite-Project: {{projectId}}
+}
+
+body:json {
+  {
+    "key": "",
+    "required": "",
+    "default": "",
+    "array": ""
+  }
+}

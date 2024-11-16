@@ -1,0 +1,25 @@
+meta {
+  name: Get credit card icon
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{baseUrl}}/avatars/credit-cards/:code
+  body: none
+  auth: none
+}
+
+params:query {
+  ~width: 
+  ~height: 
+  ~quality: 
+}
+
+params:path {
+  code: 
+}
+
+headers {
+  X-Appwrite-Project: {{projectId}}
+}

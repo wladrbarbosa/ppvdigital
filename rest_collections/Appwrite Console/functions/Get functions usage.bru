@@ -1,0 +1,19 @@
+meta {
+  name: Get functions usage
+  type: http
+  seq: 7
+}
+
+get {
+  url: {{baseUrl}}/functions/usage
+  body: none
+  auth: none
+}
+
+params:query {
+  ~range: 
+}
+
+headers {
+  X-Appwrite-Project: {{projectId}}
+}

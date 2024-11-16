@@ -1,0 +1,29 @@
+meta {
+  name: Create User Target
+  type: http
+  seq: 37
+}
+
+post {
+  url: {{baseUrl}}/users/:userId/targets
+  body: json
+  auth: none
+}
+
+params:path {
+  userId: 
+}
+
+headers {
+  X-Appwrite-Project: {{projectId}}
+}
+
+body:json {
+  {
+    "targetId": "",
+    "providerType": "",
+    "identifier": "",
+    "providerId": "",
+    "name": ""
+  }
+}

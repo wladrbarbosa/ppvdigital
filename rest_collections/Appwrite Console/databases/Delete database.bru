@@ -1,0 +1,19 @@
+meta {
+  name: Delete database
+  type: http
+  seq: 6
+}
+
+delete {
+  url: {{baseUrl}}/databases/:databaseId
+  body: none
+  auth: none
+}
+
+params:path {
+  databaseId: 
+}
+
+headers {
+  X-Appwrite-Project: {{projectId}}
+}

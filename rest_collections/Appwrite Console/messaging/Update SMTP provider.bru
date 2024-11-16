@@ -1,0 +1,37 @@
+meta {
+  name: Update SMTP provider
+  type: http
+  seq: 24
+}
+
+patch {
+  url: {{baseUrl}}/messaging/providers/smtp/:providerId
+  body: json
+  auth: none
+}
+
+params:path {
+  providerId: 
+}
+
+headers {
+  X-Appwrite-Project: {{projectId}}
+}
+
+body:json {
+  {
+    "name": "",
+    "host": "",
+    "port": "",
+    "username": "",
+    "password": "",
+    "encryption": "",
+    "autoTLS": "",
+    "mailer": "",
+    "fromName": "",
+    "fromEmail": "",
+    "replyToName": "",
+    "replyToEmail": "",
+    "enabled": ""
+  }
+}

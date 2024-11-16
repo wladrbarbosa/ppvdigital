@@ -1,0 +1,29 @@
+meta {
+  name: Update platform
+  type: http
+  seq: 27
+}
+
+put {
+  url: {{baseUrl}}/projects/:projectId/platforms/:platformId
+  body: json
+  auth: none
+}
+
+params:path {
+  projectId: 
+  platformId: 
+}
+
+headers {
+  X-Appwrite-Project: {{projectId}}
+}
+
+body:json {
+  {
+    "name": "",
+    "key": "",
+    "store": "",
+    "hostname": ""
+  }
+}

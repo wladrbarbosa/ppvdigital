@@ -1,0 +1,15 @@
+meta {
+  name: Create MFA Recovery Codes
+  type: http
+  seq: 16
+}
+
+post {
+  url: {{baseUrl}}/account/mfa/recovery-codes
+  body: none
+  auth: none
+}
+
+headers {
+  X-Appwrite-Project: {{projectId}}
+}

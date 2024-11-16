@@ -1,0 +1,19 @@
+meta {
+  name: List keys
+  type: http
+  seq: 18
+}
+
+get {
+  url: {{baseUrl}}/projects/:projectId/keys
+  body: none
+  auth: none
+}
+
+params:path {
+  projectId: 
+}
+
+headers {
+  X-Appwrite-Project: {{projectId}}
+}

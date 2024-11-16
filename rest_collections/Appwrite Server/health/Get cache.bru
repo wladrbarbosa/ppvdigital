@@ -1,0 +1,15 @@
+meta {
+  name: Get cache
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{baseUrl}}/health/cache
+  body: none
+  auth: none
+}
+
+headers {
+  X-Appwrite-Project: {{projectId}}
+}

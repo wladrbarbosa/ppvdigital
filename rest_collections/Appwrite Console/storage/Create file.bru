@@ -1,0 +1,25 @@
+meta {
+  name: Create file
+  type: http
+  seq: 7
+}
+
+post {
+  url: {{baseUrl}}/storage/buckets/:bucketId/files
+  body: multipartForm
+  auth: none
+}
+
+params:path {
+  bucketId: 
+}
+
+headers {
+  X-Appwrite-Project: {{projectId}}
+}
+
+body:multipart-form {
+  fileId: 
+  file: 
+  permissions: 
+}

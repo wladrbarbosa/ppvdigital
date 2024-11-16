@@ -1,0 +1,21 @@
+meta {
+  name: Get custom SMS template
+  type: http
+  seq: 37
+}
+
+get {
+  url: {{baseUrl}}/projects/:projectId/templates/sms/:type/:locale
+  body: none
+  auth: none
+}
+
+params:path {
+  projectId: 
+  type: 
+  locale: 
+}
+
+headers {
+  X-Appwrite-Project: {{projectId}}
+}

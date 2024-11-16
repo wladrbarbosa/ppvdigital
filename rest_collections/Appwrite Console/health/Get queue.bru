@@ -1,0 +1,15 @@
+meta {
+  name: Get queue
+  type: http
+  seq: 7
+}
+
+get {
+  url: {{baseUrl}}/health/queue
+  body: none
+  auth: none
+}
+
+headers {
+  X-Appwrite-Project: {{projectId}}
+}

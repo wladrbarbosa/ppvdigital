@@ -1,0 +1,28 @@
+meta {
+  name: Update project OAuth2
+  type: http
+  seq: 23
+}
+
+patch {
+  url: {{baseUrl}}/projects/:projectId/oauth2
+  body: json
+  auth: none
+}
+
+params:path {
+  projectId: 
+}
+
+headers {
+  X-Appwrite-Project: {{projectId}}
+}
+
+body:json {
+  {
+    "provider": "",
+    "appId": "",
+    "secret": "",
+    "enabled": ""
+  }
+}

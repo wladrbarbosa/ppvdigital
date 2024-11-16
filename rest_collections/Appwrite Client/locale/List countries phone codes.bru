@@ -1,0 +1,15 @@
+meta {
+  name: List countries phone codes
+  type: http
+  seq: 6
+}
+
+get {
+  url: {{baseUrl}}/locale/countries/phones
+  body: none
+  auth: none
+}
+
+headers {
+  X-Appwrite-Project: {{projectId}}
+}

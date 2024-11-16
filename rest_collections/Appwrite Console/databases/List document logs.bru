@@ -1,0 +1,25 @@
+meta {
+  name: List document logs
+  type: http
+  seq: 40
+}
+
+get {
+  url: {{baseUrl}}/databases/:databaseId/collections/:collectionId/documents/:documentId/logs
+  body: none
+  auth: none
+}
+
+params:query {
+  ~queries: 
+}
+
+params:path {
+  databaseId: 
+  collectionId: 
+  documentId: 
+}
+
+headers {
+  X-Appwrite-Project: {{projectId}}
+}

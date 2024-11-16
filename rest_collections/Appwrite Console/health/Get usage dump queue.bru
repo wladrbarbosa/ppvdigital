@@ -1,0 +1,19 @@
+meta {
+  name: Get usage dump queue
+  type: http
+  seq: 19
+}
+
+get {
+  url: {{baseUrl}}/health/queue/usage-dump
+  body: none
+  auth: none
+}
+
+params:query {
+  ~threshold: 
+}
+
+headers {
+  X-Appwrite-Project: {{projectId}}
+}

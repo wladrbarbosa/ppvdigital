@@ -1,0 +1,22 @@
+meta {
+  name: Update phone session
+  type: http
+  seq: 31
+}
+
+put {
+  url: {{baseUrl}}/account/sessions/phone
+  body: json
+  auth: none
+}
+
+headers {
+  X-Appwrite-Project: {{projectId}}
+}
+
+body:json {
+  {
+    "userId": "",
+    "secret": ""
+  }
+}

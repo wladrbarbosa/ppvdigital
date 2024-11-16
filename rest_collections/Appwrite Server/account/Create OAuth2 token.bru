@@ -1,0 +1,25 @@
+meta {
+  name: Create OAuth2 token
+  type: http
+  seq: 38
+}
+
+get {
+  url: {{baseUrl}}/account/tokens/oauth2/:provider
+  body: none
+  auth: none
+}
+
+params:query {
+  ~success: 
+  ~failure: 
+  ~scopes: 
+}
+
+params:path {
+  provider: 
+}
+
+headers {
+  X-Appwrite-Project: {{projectId}}
+}

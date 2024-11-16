@@ -122,3 +122,6 @@ app.*.symbols
 
 google-services.json
 GoogleService-Info.plist
+
+# FVM Version Cache
+.fvm/

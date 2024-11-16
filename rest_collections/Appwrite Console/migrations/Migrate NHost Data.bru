@@ -1,0 +1,28 @@
+meta {
+  name: Migrate NHost Data
+  type: http
+  seq: 10
+}
+
+post {
+  url: {{baseUrl}}/migrations/nhost
+  body: json
+  auth: none
+}
+
+headers {
+  X-Appwrite-Project: {{projectId}}
+}
+
+body:json {
+  {
+    "resources": [],
+    "subdomain": "",
+    "region": "",
+    "adminSecret": "",
+    "database": "",
+    "username": "",
+    "password": "",
+    "port": ""
+  }
+}

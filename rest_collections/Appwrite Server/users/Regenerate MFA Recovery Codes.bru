@@ -1,0 +1,19 @@
+meta {
+  name: Regenerate MFA Recovery Codes
+  type: http
+  seq: 23
+}
+
+put {
+  url: {{baseUrl}}/users/:userId/mfa/recovery-codes
+  body: none
+  auth: none
+}
+
+params:path {
+  userId: 
+}
+
+headers {
+  X-Appwrite-Project: {{projectId}}
+}

@@ -1,0 +1,23 @@
+meta {
+  name: Create database
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{baseUrl}}/databases
+  body: json
+  auth: none
+}
+
+headers {
+  X-Appwrite-Project: {{projectId}}
+}
+
+body:json {
+  {
+    "databaseId": "",
+    "name": "",
+    "enabled": ""
+  }
+}

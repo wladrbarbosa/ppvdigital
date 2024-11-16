@@ -1,0 +1,19 @@
+meta {
+  name: List webhooks
+  type: http
+  seq: 40
+}
+
+get {
+  url: {{baseUrl}}/projects/:projectId/webhooks
+  body: none
+  auth: none
+}
+
+params:path {
+  projectId: 
+}
+
+headers {
+  X-Appwrite-Project: {{projectId}}
+}

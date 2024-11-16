@@ -1,0 +1,15 @@
+meta {
+  name: List Factors
+  type: http
+  seq: 15
+}
+
+get {
+  url: {{baseUrl}}/account/mfa/factors
+  body: none
+  auth: none
+}
+
+headers {
+  X-Appwrite-Project: {{projectId}}
+}

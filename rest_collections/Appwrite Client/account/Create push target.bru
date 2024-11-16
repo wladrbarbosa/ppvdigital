@@ -1,0 +1,23 @@
+meta {
+  name: Create push target
+  type: http
+  seq: 37
+}
+
+post {
+  url: {{baseUrl}}/account/targets/push
+  body: json
+  auth: none
+}
+
+headers {
+  X-Appwrite-Project: {{projectId}}
+}
+
+body:json {
+  {
+    "targetId": "",
+    "identifier": "",
+    "providerId": ""
+  }
+}

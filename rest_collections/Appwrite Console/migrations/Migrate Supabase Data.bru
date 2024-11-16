@@ -1,0 +1,27 @@
+meta {
+  name: Migrate Supabase Data
+  type: http
+  seq: 12
+}
+
+post {
+  url: {{baseUrl}}/migrations/supabase
+  body: json
+  auth: none
+}
+
+headers {
+  X-Appwrite-Project: {{projectId}}
+}
+
+body:json {
+  {
+    "resources": [],
+    "endpoint": "",
+    "projectId": "",
+    "databaseHost": "",
+    "username": "",
+    "password": "",
+    "port": ""
+  }
+}

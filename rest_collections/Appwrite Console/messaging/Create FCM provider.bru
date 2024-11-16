@@ -1,0 +1,24 @@
+meta {
+  name: Create FCM provider
+  type: http
+  seq: 15
+}
+
+post {
+  url: {{baseUrl}}/messaging/providers/fcm
+  body: json
+  auth: none
+}
+
+headers {
+  X-Appwrite-Project: {{projectId}}
+}
+
+body:json {
+  {
+    "providerId": "",
+    "name": "",
+    "serviceAccountJSON": {},
+    "enabled": ""
+  }
+}

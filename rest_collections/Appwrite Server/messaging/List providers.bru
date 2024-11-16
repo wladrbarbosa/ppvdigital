@@ -1,0 +1,20 @@
+meta {
+  name: List providers
+  type: http
+  seq: 12
+}
+
+get {
+  url: {{baseUrl}}/messaging/providers
+  body: none
+  auth: none
+}
+
+params:query {
+  ~queries: 
+  ~search: 
+}
+
+headers {
+  X-Appwrite-Project: {{projectId}}
+}

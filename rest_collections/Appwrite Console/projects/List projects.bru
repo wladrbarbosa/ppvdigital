@@ -1,0 +1,20 @@
+meta {
+  name: List projects
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/projects
+  body: none
+  auth: none
+}
+
+params:query {
+  ~queries: 
+  ~search: 
+}
+
+headers {
+  X-Appwrite-Project: {{projectId}}
+}

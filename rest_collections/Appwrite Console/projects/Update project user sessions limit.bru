@@ -1,0 +1,25 @@
+meta {
+  name: Update project user sessions limit
+  type: http
+  seq: 10
+}
+
+patch {
+  url: {{baseUrl}}/projects/:projectId/auth/max-sessions
+  body: json
+  auth: none
+}
+
+params:path {
+  projectId: 
+}
+
+headers {
+  X-Appwrite-Project: {{projectId}}
+}
+
+body:json {
+  {
+    "limit": ""
+  }
+}

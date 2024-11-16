@@ -1,0 +1,31 @@
+meta {
+  name: Update float attribute
+  type: http
+  seq: 21
+}
+
+patch {
+  url: {{baseUrl}}/databases/:databaseId/collections/:collectionId/attributes/float/:key
+  body: json
+  auth: none
+}
+
+params:path {
+  databaseId: 
+  collectionId: 
+  key: 
+}
+
+headers {
+  X-Appwrite-Project: {{projectId}}
+}
+
+body:json {
+  {
+    "required": "",
+    "min": "",
+    "max": "",
+    "default": "",
+    "newKey": ""
+  }
+}

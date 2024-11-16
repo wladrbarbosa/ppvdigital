@@ -1,0 +1,22 @@
+meta {
+  name: Create MFA Challenge -confirmation-
+  type: http
+  seq: 13
+}
+
+put {
+  url: {{baseUrl}}/account/mfa/challenge
+  body: json
+  auth: none
+}
+
+headers {
+  X-Appwrite-Project: {{projectId}}
+}
+
+body:json {
+  {
+    "challengeId": "",
+    "otp": ""
+  }
+}

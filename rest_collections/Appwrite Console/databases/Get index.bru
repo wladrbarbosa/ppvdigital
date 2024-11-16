@@ -1,0 +1,21 @@
+meta {
+  name: Get index
+  type: http
+  seq: 43
+}
+
+get {
+  url: {{baseUrl}}/databases/:databaseId/collections/:collectionId/indexes/:key
+  body: none
+  auth: none
+}
+
+params:path {
+  databaseId: 
+  collectionId: 
+  key: 
+}
+
+headers {
+  X-Appwrite-Project: {{projectId}}
+}

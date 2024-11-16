@@ -1,0 +1,19 @@
+meta {
+  name: Get deletes queue
+  type: http
+  seq: 11
+}
+
+get {
+  url: {{baseUrl}}/health/queue/deletes
+  body: none
+  auth: none
+}
+
+params:query {
+  ~threshold: 
+}
+
+headers {
+  X-Appwrite-Project: {{projectId}}
+}

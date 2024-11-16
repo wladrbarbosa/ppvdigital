@@ -1,0 +1,27 @@
+meta {
+  name: Update FCM provider
+  type: http
+  seq: 16
+}
+
+patch {
+  url: {{baseUrl}}/messaging/providers/fcm/:providerId
+  body: json
+  auth: none
+}
+
+params:path {
+  providerId: 
+}
+
+headers {
+  X-Appwrite-Project: {{projectId}}
+}
+
+body:json {
+  {
+    "name": "",
+    "enabled": "",
+    "serviceAccountJSON": {}
+  }
+}

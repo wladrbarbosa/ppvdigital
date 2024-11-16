@@ -1,0 +1,26 @@
+meta {
+  name: Detect runtime settings from source code
+  type: http
+  seq: 6
+}
+
+post {
+  url: {{baseUrl}}/vcs/github/installations/:installationId/providerRepositories/:providerRepositoryId/detection
+  body: json
+  auth: none
+}
+
+params:path {
+  installationId: 
+  providerRepositoryId: 
+}
+
+headers {
+  X-Appwrite-Project: {{projectId}}
+}
+
+body:json {
+  {
+    "providerRootDirectory": ""
+  }
+}

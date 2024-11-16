@@ -1,0 +1,25 @@
+meta {
+  name: Update phone
+  type: http
+  seq: 28
+}
+
+patch {
+  url: {{baseUrl}}/users/:userId/phone
+  body: json
+  auth: none
+}
+
+params:path {
+  userId: 
+}
+
+headers {
+  X-Appwrite-Project: {{projectId}}
+}
+
+body:json {
+  {
+    "number": ""
+  }
+}

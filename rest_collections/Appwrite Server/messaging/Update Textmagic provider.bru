@@ -1,0 +1,29 @@
+meta {
+  name: Update Textmagic provider
+  type: http
+  seq: 28
+}
+
+patch {
+  url: {{baseUrl}}/messaging/providers/textmagic/:providerId
+  body: json
+  auth: none
+}
+
+params:path {
+  providerId: 
+}
+
+headers {
+  X-Appwrite-Project: {{projectId}}
+}
+
+body:json {
+  {
+    "name": "",
+    "enabled": "",
+    "username": "",
+    "projectId": "",
+    "from": ""
+  }
+}

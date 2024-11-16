@@ -1,0 +1,25 @@
+meta {
+  name: Update project sessions emails
+  type: http
+  seq: 15
+}
+
+patch {
+  url: {{baseUrl}}/projects/:projectId/auth/session-alerts
+  body: json
+  auth: none
+}
+
+params:path {
+  projectId: 
+}
+
+headers {
+  X-Appwrite-Project: {{projectId}}
+}
+
+body:json {
+  {
+    "alerts": ""
+  }
+}

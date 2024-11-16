@@ -1,0 +1,15 @@
+meta {
+  name: Update status
+  type: http
+  seq: 36
+}
+
+patch {
+  url: {{baseUrl}}/account/status
+  body: none
+  auth: none
+}
+
+headers {
+  X-Appwrite-Project: {{projectId}}
+}

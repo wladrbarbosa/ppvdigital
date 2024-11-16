@@ -1,0 +1,28 @@
+meta {
+  name: Create Sendgrid provider
+  type: http
+  seq: 21
+}
+
+post {
+  url: {{baseUrl}}/messaging/providers/sendgrid
+  body: json
+  auth: none
+}
+
+headers {
+  X-Appwrite-Project: {{projectId}}
+}
+
+body:json {
+  {
+    "providerId": "",
+    "name": "",
+    "projectId": "",
+    "fromName": "",
+    "fromEmail": "",
+    "replyToName": "",
+    "replyToEmail": "",
+    "enabled": ""
+  }
+}

@@ -1,0 +1,15 @@
+meta {
+  name: Get time
+  type: http
+  seq: 23
+}
+
+get {
+  url: {{baseUrl}}/health/time
+  body: none
+  auth: none
+}
+
+headers {
+  X-Appwrite-Project: {{projectId}}
+}

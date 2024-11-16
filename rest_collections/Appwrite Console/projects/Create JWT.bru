@@ -1,0 +1,26 @@
+meta {
+  name: Create JWT
+  type: http
+  seq: 17
+}
+
+post {
+  url: {{baseUrl}}/projects/:projectId/jwts
+  body: json
+  auth: none
+}
+
+params:path {
+  projectId: 
+}
+
+headers {
+  X-Appwrite-Project: {{projectId}}
+}
+
+body:json {
+  {
+    "scopes": [],
+    "duration": ""
+  }
+}

@@ -1,0 +1,27 @@
+meta {
+  name: Update variable
+  type: http
+  seq: 23
+}
+
+put {
+  url: {{baseUrl}}/functions/:functionId/variables/:variableId
+  body: json
+  auth: none
+}
+
+params:path {
+  functionId: 
+  variableId: 
+}
+
+headers {
+  X-Appwrite-Project: {{projectId}}
+}
+
+body:json {
+  {
+    "key": "",
+    "value": ""
+  }
+}

@@ -1,0 +1,21 @@
+meta {
+  name: Get image from URL
+  type: http
+  seq: 5
+}
+
+get {
+  url: {{baseUrl}}/avatars/image
+  body: none
+  auth: none
+}
+
+params:query {
+  url: 
+  ~width: 
+  ~height: 
+}
+
+headers {
+  X-Appwrite-Project: {{projectId}}
+}

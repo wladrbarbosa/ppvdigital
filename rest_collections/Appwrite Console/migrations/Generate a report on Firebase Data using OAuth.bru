@@ -1,0 +1,20 @@
+meta {
+  name: Generate a report on Firebase Data using OAuth
+  type: http
+  seq: 9
+}
+
+get {
+  url: {{baseUrl}}/migrations/firebase/report/oauth
+  body: none
+  auth: none
+}
+
+params:query {
+  resources: 
+  projectId: 
+}
+
+headers {
+  X-Appwrite-Project: {{projectId}}
+}

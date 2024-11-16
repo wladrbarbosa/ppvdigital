@@ -1,0 +1,22 @@
+meta {
+  name: Create phone token
+  type: http
+  seq: 43
+}
+
+post {
+  url: {{baseUrl}}/account/tokens/phone
+  body: json
+  auth: none
+}
+
+headers {
+  X-Appwrite-Project: {{projectId}}
+}
+
+body:json {
+  {
+    "userId": "",
+    "phone": ""
+  }
+}

@@ -1,0 +1,20 @@
+meta {
+  name: List topics
+  type: http
+  seq: 37
+}
+
+get {
+  url: {{baseUrl}}/messaging/topics
+  body: none
+  auth: none
+}
+
+params:query {
+  ~queries: 
+  ~search: 
+}
+
+headers {
+  X-Appwrite-Project: {{projectId}}
+}

@@ -1,0 +1,19 @@
+meta {
+  name: List user memberships
+  type: http
+  seq: 19
+}
+
+get {
+  url: {{baseUrl}}/users/:userId/memberships
+  body: none
+  auth: none
+}
+
+params:path {
+  userId: 
+}
+
+headers {
+  X-Appwrite-Project: {{projectId}}
+}

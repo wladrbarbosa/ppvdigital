@@ -1,0 +1,25 @@
+meta {
+  name: Get browser icon
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/avatars/browsers/:code
+  body: none
+  auth: none
+}
+
+params:query {
+  ~width: 
+  ~height: 
+  ~quality: 
+}
+
+params:path {
+  code: 
+}
+
+headers {
+  X-Appwrite-Project: {{projectId}}
+}

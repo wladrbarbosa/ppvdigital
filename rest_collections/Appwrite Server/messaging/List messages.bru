@@ -1,0 +1,20 @@
+meta {
+  name: List messages
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/messaging/messages
+  body: none
+  auth: none
+}
+
+params:query {
+  ~queries: 
+  ~search: 
+}
+
+headers {
+  X-Appwrite-Project: {{projectId}}
+}

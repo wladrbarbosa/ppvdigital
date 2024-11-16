@@ -1,0 +1,19 @@
+meta {
+  name: Get the SSL certificate for a domain
+  type: http
+  seq: 4
+}
+
+get {
+  url: {{baseUrl}}/health/certificate
+  body: none
+  auth: none
+}
+
+params:query {
+  ~domain: 
+}
+
+headers {
+  X-Appwrite-Project: {{projectId}}
+}

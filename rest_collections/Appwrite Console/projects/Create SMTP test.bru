@@ -1,0 +1,33 @@
+meta {
+  name: Create SMTP test
+  type: http
+  seq: 32
+}
+
+post {
+  url: {{baseUrl}}/projects/:projectId/smtp/tests
+  body: json
+  auth: none
+}
+
+params:path {
+  projectId: 
+}
+
+headers {
+  X-Appwrite-Project: {{projectId}}
+}
+
+body:json {
+  {
+    "emails": [],
+    "senderName": "",
+    "senderEmail": "",
+    "replyTo": "",
+    "host": "",
+    "port": "",
+    "username": "",
+    "password": "",
+    "secure": ""
+  }
+}

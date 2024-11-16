@@ -1,0 +1,15 @@
+meta {
+  name: Create anonymous session
+  type: http
+  seq: 27
+}
+
+post {
+  url: {{baseUrl}}/account/sessions/anonymous
+  body: none
+  auth: none
+}
+
+headers {
+  X-Appwrite-Project: {{projectId}}
+}

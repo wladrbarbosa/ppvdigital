@@ -1,0 +1,15 @@
+meta {
+  name: Create phone verification
+  type: http
+  seq: 42
+}
+
+post {
+  url: {{baseUrl}}/account/verification/phone
+  body: none
+  auth: none
+}
+
+headers {
+  X-Appwrite-Project: {{projectId}}
+}

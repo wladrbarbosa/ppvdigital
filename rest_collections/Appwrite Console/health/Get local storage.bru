@@ -1,0 +1,15 @@
+meta {
+  name: Get local storage
+  type: http
+  seq: 22
+}
+
+get {
+  url: {{baseUrl}}/health/storage/local
+  body: none
+  auth: none
+}
+
+headers {
+  X-Appwrite-Project: {{projectId}}
+}

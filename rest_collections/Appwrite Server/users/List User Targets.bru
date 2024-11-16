@@ -1,0 +1,23 @@
+meta {
+  name: List User Targets
+  type: http
+  seq: 35
+}
+
+get {
+  url: {{baseUrl}}/users/:userId/targets
+  body: none
+  auth: none
+}
+
+params:query {
+  ~queries: 
+}
+
+params:path {
+  userId: 
+}
+
+headers {
+  X-Appwrite-Project: {{projectId}}
+}

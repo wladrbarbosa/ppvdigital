@@ -1,0 +1,20 @@
+meta {
+  name: Delete subscriber
+  type: http
+  seq: 2
+}
+
+delete {
+  url: {{baseUrl}}/messaging/topics/:topicId/subscribers/:subscriberId
+  body: none
+  auth: none
+}
+
+params:path {
+  topicId: 
+  subscriberId: 
+}
+
+headers {
+  X-Appwrite-Project: {{projectId}}
+}

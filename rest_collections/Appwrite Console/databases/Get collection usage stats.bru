@@ -1,0 +1,24 @@
+meta {
+  name: Get collection usage stats
+  type: http
+  seq: 46
+}
+
+get {
+  url: {{baseUrl}}/databases/:databaseId/collections/:collectionId/usage
+  body: none
+  auth: none
+}
+
+params:query {
+  ~range: 
+}
+
+params:path {
+  databaseId: 
+  collectionId: 
+}
+
+headers {
+  X-Appwrite-Project: {{projectId}}
+}

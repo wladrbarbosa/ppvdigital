@@ -1,0 +1,23 @@
+meta {
+  name: List database logs
+  type: http
+  seq: 47
+}
+
+get {
+  url: {{baseUrl}}/databases/:databaseId/logs
+  body: none
+  auth: none
+}
+
+params:query {
+  ~queries: 
+}
+
+params:path {
+  databaseId: 
+}
+
+headers {
+  X-Appwrite-Project: {{projectId}}
+}

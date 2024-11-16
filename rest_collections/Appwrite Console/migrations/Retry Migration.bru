@@ -1,0 +1,19 @@
+meta {
+  name: Retry Migration
+  type: http
+  seq: 15
+}
+
+patch {
+  url: {{baseUrl}}/migrations/:migrationId
+  body: none
+  auth: none
+}
+
+params:path {
+  migrationId: 
+}
+
+headers {
+  X-Appwrite-Project: {{projectId}}
+}

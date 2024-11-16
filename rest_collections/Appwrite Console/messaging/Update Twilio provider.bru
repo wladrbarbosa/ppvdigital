@@ -1,0 +1,29 @@
+meta {
+  name: Update Twilio provider
+  type: http
+  seq: 30
+}
+
+patch {
+  url: {{baseUrl}}/messaging/providers/twilio/:providerId
+  body: json
+  auth: none
+}
+
+params:path {
+  providerId: 
+}
+
+headers {
+  X-Appwrite-Project: {{projectId}}
+}
+
+body:json {
+  {
+    "name": "",
+    "enabled": "",
+    "accountSid": "",
+    "authToken": "",
+    "from": ""
+  }
+}

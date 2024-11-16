@@ -1,0 +1,20 @@
+meta {
+  name: Get User Target
+  type: http
+  seq: 37
+}
+
+get {
+  url: {{baseUrl}}/users/:userId/targets/:targetId
+  body: none
+  auth: none
+}
+
+params:path {
+  userId: 
+  targetId: 
+}
+
+headers {
+  X-Appwrite-Project: {{projectId}}
+}

@@ -1,0 +1,25 @@
+meta {
+  name: Update user labels
+  type: http
+  seq: 17
+}
+
+put {
+  url: {{baseUrl}}/users/:userId/labels
+  body: json
+  auth: none
+}
+
+params:path {
+  userId: 
+}
+
+headers {
+  X-Appwrite-Project: {{projectId}}
+}
+
+body:json {
+  {
+    "labels": []
+  }
+}

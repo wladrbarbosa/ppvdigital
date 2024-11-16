@@ -1,0 +1,26 @@
+meta {
+  name: Authorize external deployment
+  type: http
+  seq: 7
+}
+
+patch {
+  url: {{baseUrl}}/vcs/github/installations/:installationId/repositories/:repositoryId
+  body: json
+  auth: none
+}
+
+params:path {
+  installationId: 
+  repositoryId: 
+}
+
+headers {
+  X-Appwrite-Project: {{projectId}}
+}
+
+body:json {
+  {
+    "providerPullRequestId": ""
+  }
+}

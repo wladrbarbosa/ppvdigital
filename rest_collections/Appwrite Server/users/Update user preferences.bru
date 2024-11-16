@@ -1,0 +1,25 @@
+meta {
+  name: Update user preferences
+  type: http
+  seq: 29
+}
+
+patch {
+  url: {{baseUrl}}/users/:userId/prefs
+  body: json
+  auth: none
+}
+
+params:path {
+  userId: 
+}
+
+headers {
+  X-Appwrite-Project: {{projectId}}
+}
+
+body:json {
+  {
+    "prefs": {}
+  }
+}

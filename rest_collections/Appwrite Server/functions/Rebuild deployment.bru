@@ -1,0 +1,26 @@
+meta {
+  name: Rebuild deployment
+  type: http
+  seq: 13
+}
+
+post {
+  url: {{baseUrl}}/functions/:functionId/deployments/:deploymentId/build
+  body: json
+  auth: none
+}
+
+params:path {
+  functionId: 
+  deploymentId: 
+}
+
+headers {
+  X-Appwrite-Project: {{projectId}}
+}
+
+body:json {
+  {
+    "buildId": ""
+  }
+}

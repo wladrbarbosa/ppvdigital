@@ -1,0 +1,24 @@
+meta {
+  name: Create account
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{baseUrl}}/account
+  body: json
+  auth: none
+}
+
+headers {
+  X-Appwrite-Project: {{projectId}}
+}
+
+body:json {
+  {
+    "userId": "",
+    "email": "",
+    "password": "",
+    "name": ""
+  }
+}

@@ -1,0 +1,26 @@
+meta {
+  name: Create user JWT
+  type: http
+  seq: 15
+}
+
+post {
+  url: {{baseUrl}}/users/:userId/jwts
+  body: json
+  auth: none
+}
+
+params:path {
+  userId: 
+}
+
+headers {
+  X-Appwrite-Project: {{projectId}}
+}
+
+body:json {
+  {
+    "sessionId": "",
+    "duration": ""
+  }
+}

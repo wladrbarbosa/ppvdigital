@@ -1,0 +1,15 @@
+meta {
+  name: Get antivirus
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{baseUrl}}/health/anti-virus
+  body: none
+  auth: none
+}
+
+headers {
+  X-Appwrite-Project: {{projectId}}
+}

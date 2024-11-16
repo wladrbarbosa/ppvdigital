@@ -1,0 +1,22 @@
+meta {
+  name: List function templates
+  type: http
+  seq: 5
+}
+
+get {
+  url: {{baseUrl}}/functions/templates
+  body: none
+  auth: none
+}
+
+params:query {
+  ~runtimes: 
+  ~useCases: 
+  ~limit: 
+  ~offset: 
+}
+
+headers {
+  X-Appwrite-Project: {{projectId}}
+}

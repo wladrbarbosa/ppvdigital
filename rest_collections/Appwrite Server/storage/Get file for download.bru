@@ -1,0 +1,20 @@
+meta {
+  name: Get file for download
+  type: http
+  seq: 11
+}
+
+get {
+  url: {{baseUrl}}/storage/buckets/:bucketId/files/:fileId/download
+  body: none
+  auth: none
+}
+
+params:path {
+  bucketId: 
+  fileId: 
+}
+
+headers {
+  X-Appwrite-Project: {{projectId}}
+}

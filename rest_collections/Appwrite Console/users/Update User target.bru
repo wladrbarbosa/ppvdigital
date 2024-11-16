@@ -1,0 +1,28 @@
+meta {
+  name: Update User target
+  type: http
+  seq: 39
+}
+
+patch {
+  url: {{baseUrl}}/users/:userId/targets/:targetId
+  body: json
+  auth: none
+}
+
+params:path {
+  userId: 
+  targetId: 
+}
+
+headers {
+  X-Appwrite-Project: {{projectId}}
+}
+
+body:json {
+  {
+    "identifier": "",
+    "providerId": "",
+    "name": ""
+  }
+}

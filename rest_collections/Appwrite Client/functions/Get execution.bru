@@ -1,0 +1,20 @@
+meta {
+  name: Get execution
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{baseUrl}}/functions/:functionId/executions/:executionId
+  body: none
+  auth: none
+}
+
+params:path {
+  functionId: 
+  executionId: 
+}
+
+headers {
+  X-Appwrite-Project: {{projectId}}
+}

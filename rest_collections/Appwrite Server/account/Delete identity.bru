@@ -1,0 +1,19 @@
+meta {
+  name: Delete identity
+  type: http
+  seq: 5
+}
+
+delete {
+  url: {{baseUrl}}/account/identities/:identityId
+  body: none
+  auth: none
+}
+
+params:path {
+  identityId: 
+}
+
+headers {
+  X-Appwrite-Project: {{projectId}}
+}

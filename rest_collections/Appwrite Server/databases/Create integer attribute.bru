@@ -1,0 +1,31 @@
+meta {
+  name: Create integer attribute
+  type: http
+  seq: 22
+}
+
+post {
+  url: {{baseUrl}}/databases/:databaseId/collections/:collectionId/attributes/integer
+  body: json
+  auth: none
+}
+
+params:path {
+  databaseId: 
+  collectionId: 
+}
+
+headers {
+  X-Appwrite-Project: {{projectId}}
+}
+
+body:json {
+  {
+    "key": "",
+    "required": "",
+    "min": "",
+    "max": "",
+    "default": "",
+    "array": ""
+  }
+}

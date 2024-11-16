@@ -1,0 +1,29 @@
+meta {
+  name: Create platform
+  type: http
+  seq: 25
+}
+
+post {
+  url: {{baseUrl}}/projects/:projectId/platforms
+  body: json
+  auth: none
+}
+
+params:path {
+  projectId: 
+}
+
+headers {
+  X-Appwrite-Project: {{projectId}}
+}
+
+body:json {
+  {
+    "type": "",
+    "name": "",
+    "key": "",
+    "store": "",
+    "hostname": ""
+  }
+}

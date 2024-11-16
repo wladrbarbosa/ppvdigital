@@ -1,0 +1,15 @@
+meta {
+  name: Get pubsub
+  type: http
+  seq: 6
+}
+
+get {
+  url: {{baseUrl}}/health/pubsub
+  body: none
+  auth: none
+}
+
+headers {
+  X-Appwrite-Project: {{projectId}}
+}

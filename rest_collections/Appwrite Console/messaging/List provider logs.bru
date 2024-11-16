@@ -1,0 +1,23 @@
+meta {
+  name: List provider logs
+  type: http
+  seq: 35
+}
+
+get {
+  url: {{baseUrl}}/messaging/providers/:providerId/logs
+  body: none
+  auth: none
+}
+
+params:query {
+  ~queries: 
+}
+
+params:path {
+  providerId: 
+}
+
+headers {
+  X-Appwrite-Project: {{projectId}}
+}

@@ -1,0 +1,15 @@
+meta {
+  name: Revoke Appwrite-s authorization to access Firebase Projects
+  type: http
+  seq: 5
+}
+
+get {
+  url: {{baseUrl}}/migrations/firebase/deauthorize
+  body: none
+  auth: none
+}
+
+headers {
+  X-Appwrite-Project: {{projectId}}
+}

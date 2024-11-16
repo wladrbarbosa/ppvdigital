@@ -1,0 +1,25 @@
+meta {
+  name: Update name
+  type: http
+  seq: 25
+}
+
+patch {
+  url: {{baseUrl}}/users/:userId/name
+  body: json
+  auth: none
+}
+
+params:path {
+  userId: 
+}
+
+headers {
+  X-Appwrite-Project: {{projectId}}
+}
+
+body:json {
+  {
+    "name": ""
+  }
+}

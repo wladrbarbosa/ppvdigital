@@ -1,0 +1,21 @@
+meta {
+  name: Reset custom email template
+  type: http
+  seq: 36
+}
+
+delete {
+  url: {{baseUrl}}/projects/:projectId/templates/email/:type/:locale
+  body: none
+  auth: none
+}
+
+params:path {
+  projectId: 
+  type: 
+  locale: 
+}
+
+headers {
+  X-Appwrite-Project: {{projectId}}
+}

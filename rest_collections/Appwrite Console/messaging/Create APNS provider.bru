@@ -1,0 +1,28 @@
+meta {
+  name: Create APNS provider
+  type: http
+  seq: 13
+}
+
+post {
+  url: {{baseUrl}}/messaging/providers/apns
+  body: json
+  auth: none
+}
+
+headers {
+  X-Appwrite-Project: {{projectId}}
+}
+
+body:json {
+  {
+    "providerId": "",
+    "name": "",
+    "authKey": "",
+    "authKeyId": "",
+    "teamId": "",
+    "bundleId": "",
+    "sandbox": "",
+    "enabled": ""
+  }
+}

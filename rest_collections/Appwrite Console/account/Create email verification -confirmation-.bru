@@ -1,0 +1,22 @@
+meta {
+  name: Create email verification -confirmation-
+  type: http
+  seq: 46
+}
+
+put {
+  url: {{baseUrl}}/account/verification
+  body: json
+  auth: none
+}
+
+headers {
+  X-Appwrite-Project: {{projectId}}
+}
+
+body:json {
+  {
+    "userId": "",
+    "secret": ""
+  }
+}

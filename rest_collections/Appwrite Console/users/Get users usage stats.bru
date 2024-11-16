@@ -1,0 +1,19 @@
+meta {
+  name: Get users usage stats
+  type: http
+  seq: 12
+}
+
+get {
+  url: {{baseUrl}}/users/usage
+  body: none
+  auth: none
+}
+
+params:query {
+  ~range: 
+}
+
+headers {
+  X-Appwrite-Project: {{projectId}}
+}

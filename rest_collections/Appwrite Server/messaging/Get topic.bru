@@ -1,0 +1,19 @@
+meta {
+  name: Get topic
+  type: http
+  seq: 39
+}
+
+get {
+  url: {{baseUrl}}/messaging/topics/:topicId
+  body: none
+  auth: none
+}
+
+params:path {
+  topicId: 
+}
+
+headers {
+  X-Appwrite-Project: {{projectId}}
+}

@@ -1,0 +1,25 @@
+meta {
+  name: Update project users limit
+  type: http
+  seq: 9
+}
+
+patch {
+  url: {{baseUrl}}/projects/:projectId/auth/limit
+  body: json
+  auth: none
+}
+
+params:path {
+  projectId: 
+}
+
+headers {
+  X-Appwrite-Project: {{projectId}}
+}
+
+body:json {
+  {
+    "limit": ""
+  }
+}

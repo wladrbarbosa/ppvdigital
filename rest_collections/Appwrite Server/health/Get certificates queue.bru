@@ -1,0 +1,19 @@
+meta {
+  name: Get certificates queue
+  type: http
+  seq: 9
+}
+
+get {
+  url: {{baseUrl}}/health/queue/certificates
+  body: none
+  auth: none
+}
+
+params:query {
+  ~threshold: 
+}
+
+headers {
+  X-Appwrite-Project: {{projectId}}
+}

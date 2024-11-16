@@ -1,0 +1,26 @@
+meta {
+  name: Create deployment
+  type: http
+  seq: 12
+}
+
+post {
+  url: {{baseUrl}}/functions/:functionId/deployments
+  body: multipartForm
+  auth: none
+}
+
+params:path {
+  functionId: 
+}
+
+headers {
+  X-Appwrite-Project: {{projectId}}
+}
+
+body:multipart-form {
+  entrypoint: 
+  commands: 
+  code: 
+  activate: 
+}

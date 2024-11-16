@@ -1,0 +1,22 @@
+meta {
+  name: Update email
+  type: http
+  seq: 3
+}
+
+patch {
+  url: {{baseUrl}}/account/email
+  body: json
+  auth: none
+}
+
+headers {
+  X-Appwrite-Project: {{projectId}}
+}
+
+body:json {
+  {
+    "email": "",
+    "password": ""
+  }
+}

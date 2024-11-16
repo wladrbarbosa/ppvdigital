@@ -1,0 +1,26 @@
+meta {
+  name: Update topic
+  type: http
+  seq: 40
+}
+
+patch {
+  url: {{baseUrl}}/messaging/topics/:topicId
+  body: json
+  auth: none
+}
+
+params:path {
+  topicId: 
+}
+
+headers {
+  X-Appwrite-Project: {{projectId}}
+}
+
+body:json {
+  {
+    "name": "",
+    "subscribe": []
+  }
+}

@@ -1,0 +1,21 @@
+meta {
+  name: Delete document
+  type: http
+  seq: 38
+}
+
+delete {
+  url: {{baseUrl}}/databases/:databaseId/collections/:collectionId/documents/:documentId
+  body: none
+  auth: none
+}
+
+params:path {
+  databaseId: 
+  collectionId: 
+  documentId: 
+}
+
+headers {
+  X-Appwrite-Project: {{projectId}}
+}

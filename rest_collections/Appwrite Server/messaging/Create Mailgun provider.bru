@@ -1,0 +1,30 @@
+meta {
+  name: Create Mailgun provider
+  type: http
+  seq: 17
+}
+
+post {
+  url: {{baseUrl}}/messaging/providers/mailgun
+  body: json
+  auth: none
+}
+
+headers {
+  X-Appwrite-Project: {{projectId}}
+}
+
+body:json {
+  {
+    "providerId": "",
+    "name": "",
+    "projectId": "",
+    "domain": "",
+    "isEuRegion": "",
+    "fromName": "",
+    "fromEmail": "",
+    "replyToName": "",
+    "replyToEmail": "",
+    "enabled": ""
+  }
+}

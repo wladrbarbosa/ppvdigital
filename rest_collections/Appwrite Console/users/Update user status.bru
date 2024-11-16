@@ -1,0 +1,25 @@
+meta {
+  name: Update user status
+  type: http
+  seq: 35
+}
+
+patch {
+  url: {{baseUrl}}/users/:userId/status
+  body: json
+  auth: none
+}
+
+params:path {
+  userId: 
+}
+
+headers {
+  X-Appwrite-Project: {{projectId}}
+}
+
+body:json {
+  {
+    "status": ""
+  }
+}

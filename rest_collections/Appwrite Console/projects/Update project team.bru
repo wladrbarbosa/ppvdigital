@@ -1,0 +1,25 @@
+meta {
+  name: Update project team
+  type: http
+  seq: 33
+}
+
+patch {
+  url: {{baseUrl}}/projects/:projectId/team
+  body: json
+  auth: none
+}
+
+params:path {
+  projectId: 
+}
+
+headers {
+  X-Appwrite-Project: {{projectId}}
+}
+
+body:json {
+  {
+    "teamId": ""
+  }
+}

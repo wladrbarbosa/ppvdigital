@@ -1,0 +1,19 @@
+meta {
+  name: Get webhooks queue
+  type: http
+  seq: 20
+}
+
+get {
+  url: {{baseUrl}}/health/queue/webhooks
+  body: none
+  auth: none
+}
+
+params:query {
+  ~threshold: 
+}
+
+headers {
+  X-Appwrite-Project: {{projectId}}
+}

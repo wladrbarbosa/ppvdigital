@@ -1,0 +1,19 @@
+meta {
+  name: Delete user
+  type: http
+  seq: 14
+}
+
+delete {
+  url: {{baseUrl}}/users/:userId
+  body: none
+  auth: none
+}
+
+params:path {
+  userId: 
+}
+
+headers {
+  X-Appwrite-Project: {{projectId}}
+}

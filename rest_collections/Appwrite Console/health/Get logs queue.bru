@@ -1,0 +1,19 @@
+meta {
+  name: Get logs queue
+  type: http
+  seq: 14
+}
+
+get {
+  url: {{baseUrl}}/health/queue/logs
+  body: none
+  auth: none
+}
+
+params:query {
+  ~threshold: 
+}
+
+headers {
+  X-Appwrite-Project: {{projectId}}
+}

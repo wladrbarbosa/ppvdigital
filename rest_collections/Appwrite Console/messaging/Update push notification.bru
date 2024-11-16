@@ -1,0 +1,39 @@
+meta {
+  name: Update push notification
+  type: http
+  seq: 5
+}
+
+patch {
+  url: {{baseUrl}}/messaging/messages/push/:messageId
+  body: json
+  auth: none
+}
+
+params:path {
+  messageId: 
+}
+
+headers {
+  X-Appwrite-Project: {{projectId}}
+}
+
+body:json {
+  {
+    "topics": [],
+    "users": [],
+    "targets": [],
+    "title": "",
+    "body": "",
+    "data": {},
+    "action": "",
+    "image": "",
+    "icon": "",
+    "sound": "",
+    "color": "",
+    "tag": "",
+    "badge": "",
+    "draft": "",
+    "scheduledAt": ""
+  }
+}

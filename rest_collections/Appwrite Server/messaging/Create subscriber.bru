@@ -1,0 +1,26 @@
+meta {
+  name: Create subscriber
+  type: http
+  seq: 44
+}
+
+post {
+  url: {{baseUrl}}/messaging/topics/:topicId/subscribers
+  body: json
+  auth: none
+}
+
+params:path {
+  topicId: 
+}
+
+headers {
+  X-Appwrite-Project: {{projectId}}
+}
+
+body:json {
+  {
+    "subscriberId": "",
+    "targetId": ""
+  }
+}

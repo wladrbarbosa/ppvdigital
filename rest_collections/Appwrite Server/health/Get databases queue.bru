@@ -1,0 +1,20 @@
+meta {
+  name: Get databases queue
+  type: http
+  seq: 10
+}
+
+get {
+  url: {{baseUrl}}/health/queue/databases
+  body: none
+  auth: none
+}
+
+params:query {
+  ~name: 
+  ~threshold: 
+}
+
+headers {
+  X-Appwrite-Project: {{projectId}}
+}

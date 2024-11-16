@@ -1,0 +1,29 @@
+meta {
+  name: Create collection
+  type: http
+  seq: 7
+}
+
+post {
+  url: {{baseUrl}}/databases/:databaseId/collections
+  body: json
+  auth: none
+}
+
+params:path {
+  databaseId: 
+}
+
+headers {
+  X-Appwrite-Project: {{projectId}}
+}
+
+body:json {
+  {
+    "collectionId": "",
+    "name": "",
+    "permissions": [],
+    "documentSecurity": "",
+    "enabled": ""
+  }
+}

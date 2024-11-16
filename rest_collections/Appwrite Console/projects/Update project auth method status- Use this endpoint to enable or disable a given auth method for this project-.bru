@@ -1,0 +1,26 @@
+meta {
+  name: Update project auth method status- Use this endpoint to enable or disable a given auth method for this project-
+  type: http
+  seq: 16
+}
+
+patch {
+  url: {{baseUrl}}/projects/:projectId/auth/:method
+  body: json
+  auth: none
+}
+
+params:path {
+  projectId: 
+  method: 
+}
+
+headers {
+  X-Appwrite-Project: {{projectId}}
+}
+
+body:json {
+  {
+    "status": ""
+  }
+}

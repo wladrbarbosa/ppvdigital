@@ -1,0 +1,19 @@
+meta {
+  name: Delete Authenticator
+  type: http
+  seq: 12
+}
+
+delete {
+  url: {{baseUrl}}/account/mfa/authenticators/:type
+  body: none
+  auth: none
+}
+
+params:path {
+  type: 
+}
+
+headers {
+  X-Appwrite-Project: {{projectId}}
+}

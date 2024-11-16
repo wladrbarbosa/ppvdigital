@@ -1,0 +1,23 @@
+meta {
+  name: Create email token -OTP-
+  type: http
+  seq: 41
+}
+
+post {
+  url: {{baseUrl}}/account/tokens/email
+  body: json
+  auth: none
+}
+
+headers {
+  X-Appwrite-Project: {{projectId}}
+}
+
+body:json {
+  {
+    "userId": "",
+    "email": "",
+    "phrase": ""
+  }
+}

@@ -1,0 +1,30 @@
+meta {
+  name: Create execution
+  type: http
+  seq: 20
+}
+
+post {
+  url: {{baseUrl}}/functions/:functionId/executions
+  body: json
+  auth: none
+}
+
+params:path {
+  functionId: 
+}
+
+headers {
+  X-Appwrite-Project: {{projectId}}
+}
+
+body:json {
+  {
+    "body": "",
+    "async": "",
+    "path": "",
+    "method": "",
+    "headers": "",
+    "scheduledAt": ""
+  }
+}

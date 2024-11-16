@@ -1,0 +1,32 @@
+meta {
+  name: Create email
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{baseUrl}}/messaging/messages/email
+  body: json
+  auth: none
+}
+
+headers {
+  X-Appwrite-Project: {{projectId}}
+}
+
+body:json {
+  {
+    "messageId": "",
+    "subject": "",
+    "content": "",
+    "topics": [],
+    "users": [],
+    "targets": [],
+    "cc": [],
+    "bcc": [],
+    "attachments": [],
+    "draft": "",
+    "html": "",
+    "scheduledAt": ""
+  }
+}

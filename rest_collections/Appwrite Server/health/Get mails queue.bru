@@ -1,0 +1,19 @@
+meta {
+  name: Get mails queue
+  type: http
+  seq: 15
+}
+
+get {
+  url: {{baseUrl}}/health/queue/mails
+  body: none
+  auth: none
+}
+
+params:query {
+  ~threshold: 
+}
+
+headers {
+  X-Appwrite-Project: {{projectId}}
+}

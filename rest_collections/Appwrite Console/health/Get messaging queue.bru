@@ -1,0 +1,19 @@
+meta {
+  name: Get messaging queue
+  type: http
+  seq: 16
+}
+
+get {
+  url: {{baseUrl}}/health/queue/messaging
+  body: none
+  auth: none
+}
+
+params:query {
+  ~threshold: 
+}
+
+headers {
+  X-Appwrite-Project: {{projectId}}
+}

@@ -1,0 +1,25 @@
+meta {
+  name: Update all API status
+  type: http
+  seq: 7
+}
+
+patch {
+  url: {{baseUrl}}/projects/:projectId/api/all
+  body: json
+  auth: none
+}
+
+params:path {
+  projectId: 
+}
+
+headers {
+  X-Appwrite-Project: {{projectId}}
+}
+
+body:json {
+  {
+    "status": ""
+  }
+}

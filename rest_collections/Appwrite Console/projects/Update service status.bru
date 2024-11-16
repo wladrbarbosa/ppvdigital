@@ -1,0 +1,26 @@
+meta {
+  name: Update service status
+  type: http
+  seq: 29
+}
+
+patch {
+  url: {{baseUrl}}/projects/:projectId/service
+  body: json
+  auth: none
+}
+
+params:path {
+  projectId: 
+}
+
+headers {
+  X-Appwrite-Project: {{projectId}}
+}
+
+body:json {
+  {
+    "service": "",
+    "status": ""
+  }
+}

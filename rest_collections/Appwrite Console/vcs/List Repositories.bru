@@ -1,0 +1,23 @@
+meta {
+  name: List Repositories
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/vcs/github/installations/:installationId/providerRepositories
+  body: none
+  auth: none
+}
+
+params:query {
+  ~search: 
+}
+
+params:path {
+  installationId: 
+}
+
+headers {
+  X-Appwrite-Project: {{projectId}}
+}

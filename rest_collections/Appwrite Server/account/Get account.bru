@@ -1,0 +1,15 @@
+meta {
+  name: Get account
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/account
+  body: none
+  auth: none
+}
+
+headers {
+  X-Appwrite-Project: {{projectId}}
+}

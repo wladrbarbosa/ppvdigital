@@ -1,0 +1,19 @@
+meta {
+  name: Get provider
+  type: http
+  seq: 33
+}
+
+get {
+  url: {{baseUrl}}/messaging/providers/:providerId
+  body: none
+  auth: none
+}
+
+params:path {
+  providerId: 
+}
+
+headers {
+  X-Appwrite-Project: {{projectId}}
+}

@@ -1,0 +1,31 @@
+meta {
+  name: Create relationship attribute
+  type: http
+  seq: 27
+}
+
+post {
+  url: {{baseUrl}}/databases/:databaseId/collections/:collectionId/attributes/relationship
+  body: json
+  auth: none
+}
+
+params:path {
+  databaseId: 
+  collectionId: 
+}
+
+headers {
+  X-Appwrite-Project: {{projectId}}
+}
+
+body:json {
+  {
+    "relatedCollectionId": "",
+    "type": "",
+    "twoWay": "",
+    "key": "",
+    "twoWayKey": "",
+    "onDelete": ""
+  }
+}

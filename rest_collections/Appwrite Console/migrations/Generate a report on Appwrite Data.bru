@@ -1,0 +1,22 @@
+meta {
+  name: Generate a report on Appwrite Data
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{baseUrl}}/migrations/appwrite/report
+  body: none
+  auth: none
+}
+
+params:query {
+  resources: 
+  endpoint: 
+  projectID: 
+  key: 
+}
+
+headers {
+  X-Appwrite-Project: {{projectId}}
+}
