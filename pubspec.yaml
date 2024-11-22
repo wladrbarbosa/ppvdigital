@@ -24,10 +24,13 @@ dependencies:
   appwrite: 13.0.0
   collection: 1.18.0
   crypto: 3.0.6
-  fl_chart: 0.69.0
+  fl_chart: 0.69.1
   flutter:
     sdk: flutter
+  flutter_animate: 4.5.0
   flutter_animation_progress_bar: 2.3.1
+  flutter_localizations:
+    sdk: flutter
   flutter_mobx: 2.2.1+1
   flutter_speed_dial: 7.0.0
   flutter_web_plugins:
@@ -35,10 +38,15 @@ dependencies:
   google_fonts: 6.2.1
   intl: 0.19.0
   lint: 2.3.0
+  liquid_progress_indicator_v2: 0.5.0
   mobx: 2.4.0
-  routefly: 2.0.4
+  routefly:
+    git:
+      url: 'git@github.com:wladrbarbosa/routefly.git'
+      ref: '2f19820cb9494d5d399dd76ff53454b981618305'
   shimmer: 3.0.0
-  table_calendar: 3.1.2
+  syncfusion_flutter_calendar: 27.2.2
+  syncfusion_localizations: 27.2.2
 
 dev_dependencies:
   flutter_test:
@@ -54,6 +62,7 @@ flutter:
   # included with your application, so that you can use the icons in
   # the material Icons class.
   uses-material-design: true
+  generate: true
 
   # To add assets to your application, add an assets section, like this:
   # assets:

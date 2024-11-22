@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:ppvdigital/routes.g.dart';
+import 'package:routefly/routefly.dart';
 
 class CapacitacaoPage extends StatefulWidget {
   const CapacitacaoPage({
@@ -22,20 +24,25 @@ class _CapacitacaoPageState extends State<CapacitacaoPage> {
           crossAxisCount: 5,
           children: [
             Card(
-              child: Padding(
-                padding: const EdgeInsets.all(32.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      'Hábitos',
-                      style: Theme.of(context).textTheme.headlineLarge,
-                    ),
-                    const Text(
-                      'Controle os seus hábitos',
-                    ),
-                  ],
+              child: InkWell(
+                onTap: () {
+                  Routefly.navigate(routePaths.capacitacao.tarefasHabitos.path);
+                },
+                child: Padding(
+                  padding: const EdgeInsets.all(32.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        'Hábitos e Tarefas',
+                        style: Theme.of(context).textTheme.headlineLarge,
+                      ),
+                      const Text(
+                        'Controle os seus hábitos',
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),

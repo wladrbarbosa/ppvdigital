@@ -1,4 +1,5 @@
 import 'package:appwrite/appwrite.dart';
+import 'package:ppvdigital/app/capacitacao/tarefas_habitos/tarefas_habitos_controller.dart';
 import 'package:ppvdigital/app/login/login_controller.dart';
 
 class Core {
@@ -13,4 +14,5 @@ class Core {
       .setProject('671f6df50033227ea6d6');
 
   LoginController loginController = LoginController();
+  TarefasHabitosController tarefasHabitosController = TarefasHabitosController();
 }

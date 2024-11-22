@@ -1,5 +1,3 @@
-import 'package:appwrite/appwrite.dart';
-import 'package:appwrite/models.dart' as models;
 import 'package:flutter/material.dart';
 import 'package:ppvdigital/core.dart';
 import 'package:ppvdigital/routes.g.dart';
@@ -18,38 +16,25 @@ class LoginPage extends StatefulWidget {
 }
 
 class _LoginPageState extends State<LoginPage> {
-  late Account account;
-
   @override
   void initState() {
     super.initState();
-    account = Account(Core.client);
   }
 
-  models.User? loggedInUser;
   final TextEditingController emailController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
   final TextEditingController nameController = TextEditingController();
 
   Future<void> login(String email, String password) async {
-    await account.createEmailPasswordSession(email: email, password: password);
-    final user = await account.get();
-    setState(() {
-      loggedInUser = user;
-    });
+    await Core.instance.loginController.createEmailPasswordSession(email, password);
   }
 
   Future<void> register(String email, String password, String name) async {
-    await account.create(
-        userId: ID.unique(), email: email, password: password, name: name,);
-    await login(email, password);
+    await Core.instance.loginController.createUser(email, password, name);
   }
 
   Future<void> logout() async {
-    await account.deleteSession(sessionId: 'current');
-    setState(() {
-      loggedInUser = null;
-    });
+    await Core.instance.loginController.signOut();
   }
 
   @override
@@ -109,7 +94,7 @@ class _LoginPageState extends State<LoginPage> {
                                 onPressed: () async {
                                   await login(emailController.text, passwordController.text);
 
-                                  if (loggedInUser != null) {
+                                  if (Core.instance.loginController.status != null) {
                                     Routefly.navigate(routePaths.home);
                                   }
                                 },
@@ -156,8 +141,8 @@ class _LoginPageState extends State<LoginPage> {
                   ),
                 ),
                 const SizedBox(height: 16.0),
-                Text(loggedInUser != null
-                    ? 'Autenticado como ${loggedInUser!.name}'
+                Text(Core.instance.loginController.currentUser != null
+                    ? 'Autenticado como ${Core.instance.loginController.currentUser!.name}'
                     : 'Não autenticado',),
               ],
             ),

@@ -4,9 +4,15 @@ import 'package:routefly/routefly.dart';
 
 import 'app/app_page.dart' as a0;
 import 'app/capacitacao/capacitacao_page.dart' as a1;
-import 'app/capacitacao/tarefas/tarefas_page.dart' as a2;
-import 'app/home/home_page.dart' as a3;
-import 'app/login/login_page.dart' as a4;
+import 'app/capacitacao/criar_editar_categoria_page.dart' as a2;
+import 'app/capacitacao/criar_editar_habito_tarefa_page.dart' as a3;
+import 'app/capacitacao/tarefas_habitos/calendario_page.dart' as a4;
+import 'app/capacitacao/tarefas_habitos/categorias_page.dart' as a5;
+import 'app/capacitacao/tarefas_habitos/historico_page.dart' as a6;
+import 'app/capacitacao/tarefas_habitos/lista_habitos_tarefas_page.dart' as a7;
+import 'app/capacitacao/tarefas_habitos/tarefas_habitos_layout.dart' as a8;
+import 'app/home/home_page.dart' as a9;
+import 'app/login/login_page.dart' as a10;
 
 List<RouteEntity> get routes => [
       RouteEntity(
@@ -28,12 +34,66 @@ List<RouteEntity> get routes => [
         ),
       ),
       RouteEntity(
-        key: '/capacitacao/tarefas',
-        uri: Uri.parse('/capacitacao/tarefas'),
+        key: '/capacitacao/criar_editar_categoria',
+        uri: Uri.parse('/capacitacao/criar_editar_categoria'),
         routeBuilder: (ctx, settings) => Routefly.defaultRouteBuilder(
           ctx,
           settings,
-          const a2.TarefasPage(),
+          const a2.CriarEditarCategoriaPage(),
+        ),
+      ),
+      RouteEntity(
+        key: '/capacitacao/criar_editar_habito_tarefa',
+        uri: Uri.parse('/capacitacao/criar_editar_habito_tarefa'),
+        routeBuilder: a3.routeBuilder,
+      ),
+      RouteEntity(
+        key: '/capacitacao/tarefas_habitos/calendario',
+        parent: '/capacitacao/tarefas_habitos',
+        uri: Uri.parse('/capacitacao/tarefas_habitos/calendario'),
+        routeBuilder: (ctx, settings) => Routefly.defaultRouteBuilder(
+          ctx,
+          settings,
+          const a4.CalendarioPage(),
+        ),
+      ),
+      RouteEntity(
+        key: '/capacitacao/tarefas_habitos/categorias',
+        parent: '/capacitacao/tarefas_habitos',
+        uri: Uri.parse('/capacitacao/tarefas_habitos/categorias'),
+        routeBuilder: (ctx, settings) => Routefly.defaultRouteBuilder(
+          ctx,
+          settings,
+          const a5.CategoriasPage(),
+        ),
+      ),
+      RouteEntity(
+        key: '/capacitacao/tarefas_habitos/historico',
+        parent: '/capacitacao/tarefas_habitos',
+        uri: Uri.parse('/capacitacao/tarefas_habitos/historico'),
+        routeBuilder: (ctx, settings) => Routefly.defaultRouteBuilder(
+          ctx,
+          settings,
+          const a6.HistoricoPage(),
+        ),
+      ),
+      RouteEntity(
+        key: '/capacitacao/tarefas_habitos/lista_habitos_tarefas',
+        parent: '/capacitacao/tarefas_habitos',
+        uri: Uri.parse('/capacitacao/tarefas_habitos/lista_habitos_tarefas'),
+        routeBuilder: (ctx, settings) => Routefly.defaultRouteBuilder(
+          ctx,
+          settings,
+          const a7.ListaHabitosTarefasPage(),
+        ),
+      ),
+      RouteEntity(
+        key: '/capacitacao/tarefas_habitos',
+        uri: Uri.parse('/capacitacao/tarefas_habitos'),
+        routeBuilder: (ctx, settings) => Routefly.defaultRouteBuilder(
+          ctx,
+          settings,
+          const a8.TarefasPage(),
         ),
       ),
       RouteEntity(
@@ -42,7 +102,7 @@ List<RouteEntity> get routes => [
         routeBuilder: (ctx, settings) => Routefly.defaultRouteBuilder(
           ctx,
           settings,
-          const a3.HomePage(),
+          const a9.HomePage(),
         ),
       ),
       RouteEntity(
@@ -51,7 +111,7 @@ List<RouteEntity> get routes => [
         routeBuilder: (ctx, settings) => Routefly.defaultRouteBuilder(
           ctx,
           settings,
-          const a4.LoginPage(),
+          const a10.LoginPage(),
         ),
       ),
     ];
@@ -60,7 +120,15 @@ const routePaths = (
   path: '/',
   capacitacao: (
     path: '/capacitacao',
-    tarefas: '/capacitacao/tarefas',
+    criarEditarCategoria: '/capacitacao/criar_editar_categoria',
+    criarEditarHabitoTarefa: '/capacitacao/criar_editar_habito_tarefa',
+    tarefasHabitos: (
+      path: '/capacitacao/tarefas_habitos',
+      calendario: '/capacitacao/tarefas_habitos/calendario',
+      categorias: '/capacitacao/tarefas_habitos/categorias',
+      historico: '/capacitacao/tarefas_habitos/historico',
+      listaHabitosTarefas: '/capacitacao/tarefas_habitos/lista_habitos_tarefas',
+    ),
   ),
   home: '/home',
   login: '/login',

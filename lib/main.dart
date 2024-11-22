@@ -1,3 +1,5 @@
+import 'dart:developer';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_web_plugins/flutter_web_plugins.dart';
 import 'package:intl/date_symbol_data_local.dart';
@@ -14,7 +16,7 @@ void main() {
 
   mainContext.spy((event) {
     // ignore: avoid_print
-    print(event);
+    log(event.toString());
   });
 
   Intl.defaultLocale = 'pt_BR';
