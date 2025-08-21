@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:ppvdigital/app/capacitacao/tarefas_habitos/calendario_controller.dart';
+import 'package:ppvdigital/core.dart';
 import 'package:syncfusion_flutter_calendar/calendar.dart';
 
 class CalendarioPage extends StatefulWidget {
@@ -12,6 +14,12 @@ class CalendarioPage extends StatefulWidget {
 
 class _CalendarioPageState extends State<CalendarioPage> {
   int? _selectedItem;
+
+  @override
+  void initState() {
+    super.initState();
+    CalendarioController.historicoFuture = Core.historicoController.loadDocuments();
+  }
 
   @override
   Widget build(BuildContext context) {

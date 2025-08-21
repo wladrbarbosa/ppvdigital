@@ -126,8 +126,10 @@ class LoginController {
       Routefly.navigate(routePaths.login);
     }
 
-    if (_status.value == AuthStatus.authenticated && prevRouteIsLoginOrRoot) {
-      Routefly.navigate(routePaths.home);
+    if (_status.value == AuthStatus.authenticated) {
+      if (prevRouteIsLoginOrRoot) {
+        Routefly.navigate(routePaths.home);
+      }
     }
   }
 }

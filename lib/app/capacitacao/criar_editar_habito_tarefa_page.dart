@@ -35,15 +35,13 @@ class CriarHabitoTarefaPage extends StatefulWidget {
 class _CriarHabitoTarefaPageState extends State<CriarHabitoTarefaPage> {
   @override
   Widget build(BuildContext context) {
-    return Container(
-      child: Column(
-        children: [
-          Text(
-            'Criar/Editar Tarefa/Hábito',
-            style: Theme.of(context).textTheme.headlineLarge,
-          )
-        ],
-      ),
+    return Column(
+      children: [
+        Text(
+          'Criar/Editar Tarefa/Hábito',
+          style: Theme.of(context).textTheme.headlineLarge,
+        ),
+      ],
     );
   }
 }

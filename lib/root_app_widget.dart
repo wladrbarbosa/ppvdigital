@@ -1,9 +1,11 @@
 import 'dart:async';
+import 'dart:developer';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:ppvdigital/app/capacitacao/tarefas_habitos/tarefas_habitos_layout.dart';
 import 'package:ppvdigital/app/login/auth_builder.dart';
+import 'package:ppvdigital/core.dart';
 import 'package:ppvdigital/routes.g.dart';
 import 'package:ppvdigital/theme.dart';
 import 'package:ppvdigital/util.dart';
@@ -12,21 +14,24 @@ import 'package:syncfusion_localizations/syncfusion_localizations.dart';
 
 class RootAppWidget extends StatelessWidget {
   FutureOr<RouteInformation> _guardRoute(RouteInformation routeInformation) {
-    print(routeInformation.uri.path);
+    log(routeInformation.uri.path);
 
     if (TarefasPageState.tabController != null && routeInformation.uri.path.contains('/capacitacao/tarefas_habitos')) {
-      switch (routeInformation.uri.path) {
-        case final String url when url == routePaths.capacitacao.tarefasHabitos.calendario:
-          TarefasPageState.tabController!.index = 1;
-        case final String url when url == routePaths.capacitacao.tarefasHabitos.categorias:
-          TarefasPageState.tabController!.index = 2;
-        case final String url when url == routePaths.capacitacao.tarefasHabitos.historico:
-          TarefasPageState.tabController!.index = 3;
-        default:
-          TarefasPageState.tabController!.index = 0;
+      if (!TarefasPageState.fromTabClick) {
+        switch (routeInformation.uri.path) {
+          case final String url when url == routePaths.capacitacao.tarefasHabitos.calendario:
+            Core.globalKey.currentContext?.findAncestorStateOfType<TarefasPageState>()?.updateTabIndex(1);
+          case final String url when url == routePaths.capacitacao.tarefasHabitos.categorias:
+            Core.globalKey.currentContext?.findAncestorStateOfType<TarefasPageState>()?.updateTabIndex(2);
+          case final String url when url == routePaths.capacitacao.tarefasHabitos.historico:
+            Core.globalKey.currentContext?.findAncestorStateOfType<TarefasPageState>()?.updateTabIndex(3);
+          default:
+            Core.globalKey.currentContext?.findAncestorStateOfType<TarefasPageState>()?.updateTabIndex(0);
+        }
       }
-
-      TarefasPageState.globalKey = GlobalKey();
+      else {
+        TarefasPageState.fromTabClick = false;
+      }
     }
 
     return routeInformation;

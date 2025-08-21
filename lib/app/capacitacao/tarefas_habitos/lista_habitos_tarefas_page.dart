@@ -1,8 +1,25 @@
+import 'dart:math';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:liquid_progress_indicator_v2/liquid_progress_indicator.dart';
+import 'package:ppvdigital/app/capacitacao/tarefas_habitos/tarefas_habitos_controller.dart';
 import 'package:ppvdigital/core.dart';
+
+extension RoundCorrectDouble on double {
+  double roundDouble(int places) {
+    final num mod = pow(10.0, places);
+    return (this * mod).roundToDouble() / mod;
+  }
+}
+
+extension RoundCorrectNum on num {
+  num roundDouble(int places) {
+    final num mod = pow(10.0, places);
+    return (this * mod).roundToDouble() / mod;
+  }
+}
 
 class ListaHabitosTarefasPage extends StatefulWidget {
   const ListaHabitosTarefasPage({
@@ -10,114 +27,140 @@ class ListaHabitosTarefasPage extends StatefulWidget {
   });
 
   @override
-  State<ListaHabitosTarefasPage> createState() => _ListaHabitosTarefasPageState();
+  State<ListaHabitosTarefasPage> createState() => ListaHabitosTarefasPageState();
 }
 
-class _ListaHabitosTarefasPageState extends State<ListaHabitosTarefasPage> {
+class ListaHabitosTarefasPageState extends State<ListaHabitosTarefasPage> {
   final double width = 220.0;
   final double height = 120.0;
-  final GlobalKey<AnimatedGridState> _gridKey = GlobalKey<AnimatedGridState>();
+  static int? qtdItems;
   int? _selectedItem;
 
   @override
+  void initState() {
+    super.initState();
+    TarefasHabitosController.tarefasHabitosFuture = Core.tarefasHabitosController.loadDocuments();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(16.0),
-      child: AnimatedGrid(
-        key: _gridKey,
-        gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
-          maxCrossAxisExtent: width,
-          mainAxisExtent: height,
-          mainAxisSpacing: 10.0,
-          crossAxisSpacing: 10.0,
-        ),
-        initialItemCount: Core.instance.tarefasHabitosController.tarefasHabitosList.length,
-        itemBuilder: (itemContext, index, animation) {
-          return LayoutBuilder(
-            builder: (BuildContext layoutContext, BoxConstraints constraints) {
-              return Observer(
-                warnWhenNoObservables: true,
-                name: 'tarefas_habitos',
-                builder: (observerContext) {
-                  return LiquidCustomProgressIndicator(
-                    value: 1.05,
-                    backgroundColor: Colors.transparent,
-                    direction: Axis.vertical,
-                    shapePath: Path()
-                      ..addRRect(
-                        RRect.fromRectAndRadius(
-                          Rect.fromLTWH(
-                            5,
-                            5,
-                            constraints.maxWidth - 10,
-                            constraints.maxHeight - 10,
-                          ),
-                          const Radius.circular(20),
-                        ),
-                      ),
-                    center: Card(
-                      color: Colors.transparent,
-                      child: InkWell(
-                        onTap: () async {
-                        },
-                        child: Padding(
-                          padding: const EdgeInsets.all(16.0),
-                          child: Row(
-                            children: [
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  mainAxisAlignment: MainAxisAlignment.spaceAround,
-                                  children: [
-                                    Text(
-                                      Core.instance.tarefasHabitosController.tarefasHabitosList[index].data['nome'] as String,
+    return FutureBuilder(
+      future: TarefasHabitosController.tarefasHabitosFuture,
+      builder: (context, snapshot) {
+        if (snapshot.hasData && snapshot.connectionState == ConnectionState.done) {
+          return Container(
+            padding: const EdgeInsets.all(16.0),
+            child: AnimatedGrid(
+              gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
+                maxCrossAxisExtent: width,
+                mainAxisExtent: height,
+                mainAxisSpacing: 10.0,
+                crossAxisSpacing: 10.0,
+              ),
+              initialItemCount: Core.tarefasHabitosController.tarefasHabitosList.length,
+              itemBuilder: (itemContext, index, animation) {
+                return LayoutBuilder(
+                  builder: (BuildContext layoutContext, BoxConstraints constraints) {
+                    return Observer(
+                      warnWhenNoObservables: true,
+                      name: 'tarefas_habitos',
+                      builder: (observerContext) {
+                        final List<Widget> children = [];
+
+                        for (int i = 0; i < Core.tarefasHabitosController.tarefasHabitosList[index].tarefasHabitosQtd.length; i++) {
+                          final int greaterMeta = Core.tarefasHabitosController.tarefasHabitosList[index].tarefasHabitosQtd.fold(0, (previousValue, el) => el.metaVezes > previousValue ? el.metaVezes : previousValue,);
+                          final Color? liquidColor = Core.tarefasHabitosController.tarefasHabitosList[index].tarefasHabitosQtd.isNotEmpty
+                            ? Core.tarefasHabitosController.tarefasHabitosList[index].tarefasHabitosQtd[i].categoriasTarefasHabitos?.cor
+                            : null;
+
+                          children.add(Expanded(
+                            child: LiquidCustomProgressIndicator(
+                              value: Core.tarefasHabitosController.tarefasHabitosList[index].tarefasHabitosQtd[i].vezesPraticado * 1.05 / greaterMeta,
+                              backgroundColor: Colors.transparent,
+                              valueColor: liquidColor != null ? AlwaysStoppedAnimation(liquidColor) : null,
+                              direction: Axis.vertical,
+                              shapePath: Path()
+                                ..addRRect(
+                                  RRect.fromRectAndCorners(
+                                    Rect.fromLTWH(
+                                      i == 0 ? 5 : 0,
+                                      5,
+                                      ((constraints.maxWidth - 10) / Core.tarefasHabitosController.tarefasHabitosList[index].tarefasHabitosQtd.length),
+                                      constraints.maxHeight - 10,
                                     ),
-                                    Text(
-                                      '${Core.instance.tarefasHabitosController.tarefasHabitosList[index].data['vezes_praticado']} vezes',
-                                    ),
-                                  ],
+                                    topLeft: Radius.circular(i == 0 ? 20 : 0),
+                                    topRight: Radius.circular(i == Core.tarefasHabitosController.tarefasHabitosList[index].tarefasHabitosQtd.length - 1 ? 20 : 0),
+                                    bottomLeft: Radius.circular(i == 0 ? 20 : 0),
+                                    bottomRight: Radius.circular(i == Core.tarefasHabitosController.tarefasHabitosList[index].tarefasHabitosQtd.length - 1 ? 20 : 0),
+                                  ),
+                                ),
+                            ),
+                          ),);
+                        }
+                        
+                        return Stack(
+                          children: [
+                            Row(
+                              children: children,
+                            ),
+                            Card(
+                              clipBehavior: Clip.hardEdge,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(22),
+                              ),
+                              color: Colors.transparent,
+                              child: InkWell(
+                                onTap: () async {
+                                },
+                                child: Padding(
+                                  padding: const EdgeInsets.all(16.0),
+                                  child: Row(
+                                    children: [
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          mainAxisAlignment: MainAxisAlignment.spaceAround,
+                                          children: [
+                                            Text(
+                                              Core.tarefasHabitosController.tarefasHabitosList[index].nome,
+                                            ),
+                                            Text(
+                                              '${Core.tarefasHabitosController.tarefasHabitosList[index].tarefasHabitosQtd[0].vezesPraticado.roundDouble(2)} vezes',
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                      IconButton(
+                                        onPressed: () {
+                                          Core.tarefasHabitosController.incrementQtdHabito(
+                                            Core.tarefasHabitosController.tarefasHabitosList[index].id,
+                                          );
+                                        },
+                                        icon: const Icon(
+                                          Icons.add_circle,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
                                 ),
                               ),
-                              Column(
-                                crossAxisAlignment: CrossAxisAlignment.end,
-                                mainAxisAlignment: MainAxisAlignment.spaceAround,
-                                children: [
-                                  IconButton(
-                                    onPressed: () {
-                                      Core.instance.tarefasHabitosController.updateQtdHabito(
-                                        Core.instance.tarefasHabitosController.tarefasHabitosList[index].$id,
-                                        (Core.instance.tarefasHabitosController.tarefasHabitosList[index].data['vezes_praticado'] as int) + 1,
-                                      );
-                                    },
-                                    icon: const Icon(
-                                      Icons.add_circle,
-                                    ),
-                                  ),
-                                  IconButton(
-                                    onPressed: Core.instance.tarefasHabitosController.tarefasHabitosList[index].data['vezes_praticado'] == 0 ? null : () {
-                                      Core.instance.tarefasHabitosController.updateQtdHabito(
-                                        Core.instance.tarefasHabitosController.tarefasHabitosList[index].$id,
-                                        (Core.instance.tarefasHabitosController.tarefasHabitosList[index].data['vezes_praticado'] as int) - 1,
-                                      );
-                                    },
-                                    icon: const Icon(
-                                      Icons.remove_circle,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
-                  ).animate().flipH();
-                },
-              );
-            },
+                            ),
+                          ],
+                        ).animate().flipH();
+                      },
+                    );
+                  },
+                );
+              },
+            ),
           );
-        },
-      ),
+        }
+        else {
+          return const Center(
+            child: CircularProgressIndicator(),
+          );
+        }
+      },
     );
   }
 }

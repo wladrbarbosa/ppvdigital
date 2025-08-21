@@ -26,15 +26,15 @@ class _LoginPageState extends State<LoginPage> {
   final TextEditingController nameController = TextEditingController();
 
   Future<void> login(String email, String password) async {
-    await Core.instance.loginController.createEmailPasswordSession(email, password);
+    await Core.loginController.createEmailPasswordSession(email, password);
   }
 
   Future<void> register(String email, String password, String name) async {
-    await Core.instance.loginController.createUser(email, password, name);
+    await Core.loginController.createUser(email, password, name);
   }
 
   Future<void> logout() async {
-    await Core.instance.loginController.signOut();
+    await Core.loginController.signOut();
   }
 
   @override
@@ -78,11 +78,14 @@ class _LoginPageState extends State<LoginPage> {
                         children: [
                           TextField(
                             controller: emailController,
+                            autofillHints: const [AutofillHints.username],
+                            keyboardType: TextInputType.emailAddress,
                             decoration: const InputDecoration(labelText: 'Email',),
                           ),
                           const SizedBox(height: 16.0,),
                           TextField(
                             controller: passwordController,
+                            autofillHints: const [AutofillHints.password],
                             decoration: const InputDecoration(labelText: 'Senha'),
                             obscureText: true,
                           ),
@@ -94,7 +97,7 @@ class _LoginPageState extends State<LoginPage> {
                                 onPressed: () async {
                                   await login(emailController.text, passwordController.text);
 
-                                  if (Core.instance.loginController.status != null) {
+                                  if (Core.loginController.status != null) {
                                     Routefly.navigate(routePaths.home);
                                   }
                                 },
@@ -141,8 +144,8 @@ class _LoginPageState extends State<LoginPage> {
                   ),
                 ),
                 const SizedBox(height: 16.0),
-                Text(Core.instance.loginController.currentUser != null
-                    ? 'Autenticado como ${Core.instance.loginController.currentUser!.name}'
+                Text(Core.loginController.currentUser != null
+                    ? 'Autenticado como ${Core.loginController.currentUser!.name}'
                     : 'Não autenticado',),
               ],
             ),

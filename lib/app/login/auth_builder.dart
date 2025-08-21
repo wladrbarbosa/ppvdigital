@@ -19,17 +19,17 @@ class _AuthBuilderState extends State<AuthBuilder> {
   @override
   void initState() {
     super.initState();
-    Core.instance.loginController.addStatusListener(checkAuth);
+    Core.loginController.addStatusListener(checkAuth);
   }
 
   @override
   void dispose() {
-    Core.instance.loginController.removeStatusListener(checkAuth);
+    Core.loginController.removeStatusListener(checkAuth);
     super.dispose();
   }
 
   void checkAuth(AuthStatus status) {
-    Core.instance.loginController.checkAuthentication(Routefly.currentUri.path);
+    Core.loginController.checkAuthentication(Routefly.currentUri.path);
   }
 
   @override

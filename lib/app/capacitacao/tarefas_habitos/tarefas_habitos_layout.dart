@@ -19,25 +19,28 @@ class TarefasPage extends StatefulWidget {
 
 class TarefasPageState extends State<TarefasPage> with SingleTickerProviderStateMixin {
   static TabController? tabController;
-  Future<void>? tarefasHabitosList;
-  static GlobalKey globalKey = GlobalKey();
+  static bool fromTabClick = false;
+
+  void updateTabIndex(int index) {
+    setState(() {
+      tabController!.index = index;
+    });
+  }
 
   @override
   void initState() {
     super.initState();
-    tarefasHabitosList = Core.instance.tarefasHabitosController.loadDocuments();
 
-    if (tabController == null) {
-      switch (Routefly.currentUri.path) {
-        case final String url when url == routePaths.capacitacao.tarefasHabitos.calendario:
-          tabController = TabController(initialIndex: 1, vsync: this, length: 4);
-        case final String url when url == routePaths.capacitacao.tarefasHabitos.categorias:
-          tabController = TabController(initialIndex: 2, vsync: this, length: 4);
-        case final String url when url == routePaths.capacitacao.tarefasHabitos.historico:
-          tabController = TabController(initialIndex: 3, vsync: this, length: 4);
-        default:
-          tabController = TabController(vsync: this, length: 4);
-      }
+    // Precisa acontecer sempre para que funcione a troca visual das tabs na TabBar
+    switch (Routefly.currentUri.path) {
+      case final String url when url == routePaths.capacitacao.tarefasHabitos.calendario:
+        tabController = TabController(initialIndex: 1, vsync: this, length: 4);
+      case final String url when url == routePaths.capacitacao.tarefasHabitos.categorias:
+        tabController = TabController(initialIndex: 2, vsync: this, length: 4);
+      case final String url when url == routePaths.capacitacao.tarefasHabitos.historico:
+        tabController = TabController(initialIndex: 3, vsync: this, length: 4);
+      default:
+        tabController = TabController(vsync: this, length: 4);
     }
 
     tabController?.addListener(tabListening);
@@ -45,6 +48,8 @@ class TarefasPageState extends State<TarefasPage> with SingleTickerProviderState
 
   void tabListening() {
     if (tabController?.indexIsChanging ?? false) {
+      fromTabClick = true;
+
       switch (tabController?.index) {
         case 1:
           Routefly.navigate(routePaths.capacitacao.tarefasHabitos.calendario);
@@ -66,68 +71,58 @@ class TarefasPageState extends State<TarefasPage> with SingleTickerProviderState
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      key: globalKey,
-      appBar: AppBar(
-        bottom: TabBar(
-          controller: tabController,
-          tabs: const [
-            ListTile(
-              title: Text(
-              'Tarefas/Hábitos',
+    return KeyedSubtree(
+      key: Core.globalKey,
+      child: Scaffold(
+        appBar: AppBar(
+          bottom: TabBar(
+            controller: tabController,
+            tabs: const [
+              ListTile(
+                title: Text(
+                'Tarefas/Hábitos',
+                ),
               ),
+              ListTile(
+                title: Text(
+                'Calendário',
+                ),
+              ),
+              ListTile(
+                title: Text(
+                'Categorias',
+                ),
+              ),
+              ListTile(
+                title: Text(
+                'Histórico',
+                ),
+              ),
+            ],
+          ),
+          title: const Text('Tarefas e Hábitos'),
+        ),
+        body: RouterOutlet(
+          defaultWidget: ListaHabitosTarefasPage(key: GlobalKey(),),
+        ),
+        floatingActionButton: SpeedDial(
+          tooltip: 'Adicionar',
+          spaceBetweenChildren: 16,
+          children: [
+            SpeedDialChild(
+              label: 'Tarefa/Hábito',
+              child: const Icon(Icons.task),
+              onTap: () {
+                Routefly.pushNavigate(routePaths.capacitacao.criarEditarHabitoTarefa, arguments: Routefly.currentUri.path);
+              },
             ),
-            ListTile(
-              title: Text(
-              'Calendário',
-              ),
-            ),
-            ListTile(
-              title: Text(
-              'Categorias',
-              ),
-            ),
-            ListTile(
-              title: Text(
-              'Histórico',
-              ),
+            SpeedDialChild(
+              label: 'Categoria',
+              child: const Icon(Icons.category_outlined),
             ),
           ],
+          child: const Icon(Icons.add),
         ),
-        title: const Text('Tarefas e Hábitos'),
-      ),
-      body: FutureBuilder(
-        future: tarefasHabitosList,
-        builder: (context, snapshot) {
-          if (snapshot.hasData && snapshot.connectionState == ConnectionState.done) {
-            return const RouterOutlet(
-              defaultWidget: ListaHabitosTarefasPage(),
-            );
-          }
-          else {
-            return const Center(
-              child: CircularProgressIndicator(),
-            );
-          }
-        },
-      ),
-      floatingActionButton: SpeedDial(
-        tooltip: 'Adicionar',
-        spaceBetweenChildren: 16,
-        children: [
-          SpeedDialChild(
-            label: 'Tarefa/Hábito',
-            child: const Icon(Icons.task),
-            onTap: () {
-              Routefly.pushNavigate(routePaths.capacitacao.criarEditarHabitoTarefa, arguments: Routefly.currentUri.path);
-            },
-          ),
-          SpeedDialChild(
-            label: 'Categoria',
-            child: const Icon(Icons.category_outlined),
-          ),
-        ],
-        child: const Icon(Icons.add),
       ),
     );
   }

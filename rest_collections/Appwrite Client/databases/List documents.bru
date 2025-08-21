@@ -5,18 +5,19 @@ meta {
 }
 
 get {
-  url: {{baseUrl}}/databases/:databaseId/collections/:collectionId/documents
+  url: {{baseUrl}}/databases/:databaseId/collections/:collectionId/documents?queries[0]={"method":"equal","attribute":"usuario","values":["671f7b5f0038af4974f0"]}&queries[1]={"method":"greaterThanEqual","attribute":"$createdAt","values":["2024-11-23 17:00:00"]}
   body: none
   auth: none
 }
 
 params:query {
-  ~queries: 
+  queries[0]: {"method":"equal","attribute":"usuario","values":["671f7b5f0038af4974f0"]}
+  queries[1]: {"method":"greaterThanEqual","attribute":"$createdAt","values":["2024-11-23 17:00:00"]}
 }
 
 params:path {
-  databaseId: 
-  collectionId: 
+  databaseId: 671f6e1600022832cba5
+  collectionId: 6741f10d000d985e4af9
 }
 
 headers {
