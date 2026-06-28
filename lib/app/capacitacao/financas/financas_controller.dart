@@ -448,6 +448,7 @@ class FinancasController {
     required bool consolidada,
     required String? categoriaId,
     required List<Map<String, dynamic>> divisao,
+    String? optionRecorrencia, // 'only_current', 'current_and_future', 'all'
   }) async {
     try {
       final TablesDB tablesDB = TablesDB(databases.client);
@@ -472,7 +473,164 @@ class FinancasController {
         }
       }
 
-      // 2. Update transaction
+      String? updatedRecId = original.recorrencia?.id;
+
+      if (original.recorrencia != null && optionRecorrencia != null) {
+        if (optionRecorrencia == 'only_current') {
+          updatedRecId = null;
+        } else if (optionRecorrencia == 'current_and_future') {
+          // create new recurrence row
+          final originalRec = original.recorrencia!;
+          final Row newRecRow = await tablesDB.createRow(
+            databaseId: '671f6e1600022832cba5',
+            tableId: 'transacao_recorrencia',
+            rowId: ID.unique(),
+            data: {
+              'tipoRecorrencia': originalRec.tipoRecorrencia,
+              'frequencia': originalRec.frequencia,
+              'totalParcelas': originalRec.totalParcelas,
+              'parcelaInicio': originalRec.parcelaInicio,
+              'fimRecorrencia': originalRec.fimRecorrencia?.toIso8601String(),
+            },
+          );
+          updatedRecId = newRecRow.$id;
+
+          // update other future transactions in series
+          final allRecTrans = transacoesList.where((t) => t.recorrencia?.id == original.recorrencia!.id).toList();
+          final futureTrans = allRecTrans.where((t) =>
+            t.id != original.id && t.dataCompetencia.isAfter(original.dataCompetencia)
+          ).toList();
+
+          for (final t in futureTrans) {
+            // Revert balance if consolidated
+            if (t.consolidada) {
+              if (t.tipo == 'despesa' && t.conta != null) {
+                await updateAccountBalance(t.conta!.id, t.valor);
+              } else if (t.tipo == 'receita' && t.conta != null) {
+                await updateAccountBalance(t.conta!.id, -t.valor);
+              } else if (t.tipo == 'transferencia' && t.conta != null && t.contaDestino != null) {
+                await updateAccountBalance(t.conta!.id, t.valor);
+                await updateAccountBalance(t.contaDestino!.id, -t.valor);
+              }
+            }
+
+            // Update row
+            await tablesDB.updateRow(
+              databaseId: '671f6e1600022832cba5',
+              tableId: '671f7a6f000cb3ab17b9',
+              rowId: t.id,
+              data: {
+                'descricao': descricao,
+                'valor': valor,
+                'tipo': tipo,
+                'conta': contaId,
+                'contaDestino': contaDestinoId,
+                'consolidada': consolidada,
+                'categoria': categoriaId,
+                'recorrencia': updatedRecId,
+              },
+            );
+
+            // Apply new balance
+            if (consolidada) {
+              if (tipo == 'despesa' && contaId != null) {
+                await updateAccountBalance(contaId, -valor);
+              } else if (tipo == 'receita' && contaId != null) {
+                await updateAccountBalance(contaId, valor);
+              } else if (tipo == 'transferencia' && contaId != null && contaDestinoId != null) {
+                await updateAccountBalance(contaId, -valor);
+                await updateAccountBalance(contaDestinoId, valor);
+              }
+            }
+
+            // Update divisions
+            for (final oldDiv in t.divisoes) {
+              await tablesDB.deleteRow(
+                databaseId: '671f6e1600022832cba5',
+                tableId: 'divisao_transacoes',
+                rowId: oldDiv.id,
+              );
+            }
+            for (final divItem in divisao) {
+              final String rUser = divItem['userId'] as String;
+              final double rPeso = (divItem['peso'] as num).toDouble();
+              await tablesDB.createRow(
+                databaseId: '671f6e1600022832cba5',
+                tableId: 'divisao_transacoes',
+                rowId: ID.unique(),
+                data: {'transacao': t.id, 'userId': rUser, 'peso': rPeso},
+              );
+            }
+          }
+        } else if (optionRecorrencia == 'all') {
+          // update all other transactions in series
+          final allRecTrans = transacoesList.where((t) => t.recorrencia?.id == original.recorrencia!.id).toList();
+          final otherTrans = allRecTrans.where((t) => t.id != original.id).toList();
+
+          for (final t in otherTrans) {
+            // Revert balance if consolidated
+            if (t.consolidada) {
+              if (t.tipo == 'despesa' && t.conta != null) {
+                await updateAccountBalance(t.conta!.id, t.valor);
+              } else if (t.tipo == 'receita' && t.conta != null) {
+                await updateAccountBalance(t.conta!.id, -t.valor);
+              } else if (t.tipo == 'transferencia' && t.conta != null && t.contaDestino != null) {
+                await updateAccountBalance(t.conta!.id, t.valor);
+                await updateAccountBalance(t.contaDestino!.id, -t.valor);
+              }
+            }
+
+            // Update row
+            await tablesDB.updateRow(
+              databaseId: '671f6e1600022832cba5',
+              tableId: '671f7a6f000cb3ab17b9',
+              rowId: t.id,
+              data: {
+                'descricao': descricao,
+                'valor': valor,
+                'tipo': tipo,
+                'conta': contaId,
+                'contaDestino': contaDestinoId,
+                'consolidada': consolidada,
+                'categoria': categoriaId,
+              },
+            );
+
+            // Apply new balance
+            if (consolidada) {
+              if (tipo == 'despesa' && contaId != null) {
+                await updateAccountBalance(contaId, -valor);
+              } else if (tipo == 'receita' && contaId != null) {
+                await updateAccountBalance(contaId, valor);
+              } else if (tipo == 'transferencia' && contaId != null && contaDestinoId != null) {
+                await updateAccountBalance(contaId, -valor);
+                await updateAccountBalance(contaDestinoId, valor);
+              }
+            }
+
+            // Update divisions
+            for (final oldDiv in t.divisoes) {
+              await tablesDB.deleteRow(
+                databaseId: '671f6e1600022832cba5',
+                tableId: 'divisao_transacoes',
+                rowId: oldDiv.id,
+              );
+            }
+            for (final divItem in divisao) {
+              final String rUser = divItem['userId'] as String;
+              final double rPeso = (divItem['peso'] as num).toDouble();
+              await tablesDB.createRow(
+                databaseId: '671f6e1600022832cba5',
+                tableId: 'divisao_transacoes',
+                rowId: ID.unique(),
+                data: {'transacao': t.id, 'userId': rUser, 'peso': rPeso},
+              );
+            }
+          }
+        }
+      }
+
+      // 2. Update current transaction
       await tablesDB.updateRow(
         databaseId: '671f6e1600022832cba5',
         tableId: '671f7a6f000cb3ab17b9', // transacoes
@@ -486,6 +644,7 @@ class FinancasController {
           'contaDestino': contaDestinoId,
           'consolidada': consolidada,
           'categoria': categoriaId,
+          'recorrencia': updatedRecId,
         },
       );
 

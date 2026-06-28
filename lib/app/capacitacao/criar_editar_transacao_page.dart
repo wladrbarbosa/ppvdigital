@@ -57,6 +57,7 @@ class _CriarEditarTransacaoPageState extends State<CriarEditarTransacaoPage> {
   final _formKey = GlobalKey<FormState>();
   final _descricaoController = TextEditingController();
   final _valorController = TextEditingController(text: '0.0');
+  bool _isLoading = false;
 
   String _tipo = 'despesa'; // despesa, receita, transferencia
   DateTime _dataCompetencia = DateTime.now();
@@ -144,8 +145,48 @@ class _CriarEditarTransacaoPageState extends State<CriarEditarTransacaoPage> {
     }
   }
 
+  Future<String?> _showSaveRecurrenceDialog(BuildContext context) async {
+    return await showDialog<String>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Editar transação recorrente'),
+        content: const Text(
+          'Esta transação é recorrente. Como deseja aplicar as alterações?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop('only_current'),
+            child: const Text('Apenas esta'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop('current_and_future'),
+            child: const Text('Esta e futuras'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop('all'),
+            child: const Text('Todas'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(null),
+            child: const Text('Cancelar', style: TextStyle(color: Colors.grey)),
+          ),
+        ],
+      ),
+    );
+  }
+
   Future<void> _save() async {
     if (!_formKey.currentState!.validate()) return;
+
+    String? optionRecorrencia;
+    if (widget.editingItem != null && widget.editingItem!.recorrencia != null) {
+      optionRecorrencia = await _showSaveRecurrenceDialog(context);
+      if (optionRecorrencia == null) return; // Cancelled
+    }
+
+    setState(() {
+      _isLoading = true;
+    });
 
     final String descricao = _descricaoController.text.trim();
     final double valor = double.parse(_valorController.text);
@@ -163,6 +204,7 @@ class _CriarEditarTransacaoPageState extends State<CriarEditarTransacaoPage> {
         consolidada: _consolidada,
         categoriaId: _selectedCategoriaId,
         divisao: _divisoes,
+        optionRecorrencia: optionRecorrencia,
       );
     } else {
       final int freq = int.tryParse(_frequenciaController.text) ?? 1;
@@ -185,6 +227,10 @@ class _CriarEditarTransacaoPageState extends State<CriarEditarTransacaoPage> {
         divisao: _divisoes,
       );
     }
+
+    setState(() {
+      _isLoading = false;
+    });
 
     if (success && mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -258,10 +304,18 @@ class _CriarEditarTransacaoPageState extends State<CriarEditarTransacaoPage> {
 
     if (!mounted) return;
 
+    setState(() {
+      _isLoading = true;
+    });
+
     final bool success = await Core.financasController.deleteTransaction(
       transacao: widget.editingItem!,
       deleteOption: option,
     );
+
+    setState(() {
+      _isLoading = false;
+    });
 
     if (success && mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -684,8 +738,17 @@ class _CriarEditarTransacaoPageState extends State<CriarEditarTransacaoPage> {
               children: [
                 if (widget.editingItem != null)
                   ElevatedButton.icon(
-                    onPressed: _delete,
-                    icon: const Icon(Icons.delete, color: Colors.white),
+                    onPressed: _isLoading ? null : _delete,
+                    icon: _isLoading
+                        ? const SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              valueColor: AlwaysStoppedAnimation(Colors.white),
+                            ),
+                          )
+                        : const Icon(Icons.delete, color: Colors.white),
                     label: const Text('Excluir'),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.red,
@@ -696,14 +759,20 @@ class _CriarEditarTransacaoPageState extends State<CriarEditarTransacaoPage> {
                   const Spacer(),
                 const SizedBox(width: 8),
                 ElevatedButton(
-                  onPressed: _save,
+                  onPressed: _isLoading ? null : _save,
                   style: ElevatedButton.styleFrom(
                     padding: const EdgeInsets.symmetric(
                       horizontal: 24,
                       vertical: 12,
                     ),
                   ),
-                  child: const Text('Salvar'),
+                  child: _isLoading
+                      ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Text('Salvar'),
                 ),
               ],
             ),

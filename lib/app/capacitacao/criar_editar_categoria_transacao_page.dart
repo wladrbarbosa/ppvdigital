@@ -57,6 +57,7 @@ class _CriarEditarCategoriaTransacaoPageState
     extends State<CriarEditarCategoriaTransacaoPage> {
   final _formKey = GlobalKey<FormState>();
   final _nomeController = TextEditingController();
+  bool _isLoading = false;
 
   Color _selectedColor = Colors.blue;
   String _selectedIcon = 'monetization_on';
@@ -106,6 +107,10 @@ class _CriarEditarCategoriaTransacaoPageState
   Future<void> _save() async {
     if (!_formKey.currentState!.validate()) return;
 
+    setState(() {
+      _isLoading = true;
+    });
+
     final String nome = _nomeController.text.trim();
     final String hexColor = _selectedColor.toHex(leadingHashSign: false);
 
@@ -124,6 +129,10 @@ class _CriarEditarCategoriaTransacaoPageState
         hexColor,
       );
     }
+
+    setState(() {
+      _isLoading = false;
+    });
 
     if (success && mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -163,8 +172,16 @@ class _CriarEditarCategoriaTransacaoPageState
 
     if (confirm != true || !mounted) return;
 
+    setState(() {
+      _isLoading = true;
+    });
+
     final bool success =
         await Core.financasController.deleteCategoria(widget.editingItem!.id);
+
+    setState(() {
+      _isLoading = false;
+    });
 
     if (success && mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -319,8 +336,17 @@ class _CriarEditarCategoriaTransacaoPageState
               children: [
                 if (widget.editingItem != null)
                   ElevatedButton.icon(
-                    onPressed: _delete,
-                    icon: const Icon(Icons.delete, color: Colors.white),
+                    onPressed: _isLoading ? null : _delete,
+                    icon: _isLoading
+                        ? const SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              valueColor: AlwaysStoppedAnimation(Colors.white),
+                            ),
+                          )
+                        : const Icon(Icons.delete, color: Colors.white),
                     label: const Text('Excluir'),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.red,
@@ -331,14 +357,20 @@ class _CriarEditarCategoriaTransacaoPageState
                   const Spacer(),
                 const SizedBox(width: 8),
                 ElevatedButton(
-                  onPressed: _save,
+                  onPressed: _isLoading ? null : _save,
                   style: ElevatedButton.styleFrom(
                     padding: const EdgeInsets.symmetric(
                       horizontal: 24,
                       vertical: 12,
                     ),
                   ),
-                  child: const Text('Salvar'),
+                  child: _isLoading
+                      ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Text('Salvar'),
                 ),
               ],
             ),
