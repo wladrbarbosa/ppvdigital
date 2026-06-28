@@ -6,6 +6,8 @@ import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:liquid_progress_indicator_v2/liquid_progress_indicator.dart';
 import 'package:ppvdigital/app/capacitacao/tarefas_habitos/tarefas_habitos_controller.dart';
 import 'package:ppvdigital/core.dart';
+import 'package:ppvdigital/routes.g.dart';
+import 'package:routefly/routefly.dart';
 
 extension RoundCorrectDouble on double {
   double roundDouble(int places) {
@@ -22,24 +24,25 @@ extension RoundCorrectNum on num {
 }
 
 class ListaHabitosTarefasPage extends StatefulWidget {
-  const ListaHabitosTarefasPage({
-    super.key,
-  });
+  const ListaHabitosTarefasPage({super.key});
 
   @override
-  State<ListaHabitosTarefasPage> createState() => ListaHabitosTarefasPageState();
+  State<ListaHabitosTarefasPage> createState() =>
+      ListaHabitosTarefasPageState();
 }
 
 class ListaHabitosTarefasPageState extends State<ListaHabitosTarefasPage> {
   final double width = 220.0;
   final double height = 120.0;
   static int? qtdItems;
-  int? _selectedItem;
+  late int? _selectedItem;
 
   @override
   void initState() {
     super.initState();
-    TarefasHabitosController.tarefasHabitosFuture = Core.tarefasHabitosController.loadDocuments();
+    TarefasHabitosController.tarefasHabitosFuture = Core
+        .tarefasHabitosController
+        .loadDocuments();
   }
 
   @override
@@ -47,7 +50,8 @@ class ListaHabitosTarefasPageState extends State<ListaHabitosTarefasPage> {
     return FutureBuilder(
       future: TarefasHabitosController.tarefasHabitosFuture,
       builder: (context, snapshot) {
-        if (snapshot.hasData && snapshot.connectionState == ConnectionState.done) {
+        if (snapshot.hasData &&
+            snapshot.connectionState == ConnectionState.done) {
           return Container(
             padding: const EdgeInsets.all(16.0),
             child: AnimatedGrid(
@@ -57,7 +61,8 @@ class ListaHabitosTarefasPageState extends State<ListaHabitosTarefasPage> {
                 mainAxisSpacing: 10.0,
                 crossAxisSpacing: 10.0,
               ),
-              initialItemCount: Core.tarefasHabitosController.tarefasHabitosList.length,
+              initialItemCount:
+                  Core.tarefasHabitosController.tarefasHabitosList.length,
               itemBuilder: (itemContext, index, animation) {
                 return LayoutBuilder(
                   builder: (BuildContext layoutContext, BoxConstraints constraints) {
@@ -67,42 +72,107 @@ class ListaHabitosTarefasPageState extends State<ListaHabitosTarefasPage> {
                       builder: (observerContext) {
                         final List<Widget> children = [];
 
-                        for (int i = 0; i < Core.tarefasHabitosController.tarefasHabitosList[index].tarefasHabitosQtd.length; i++) {
-                          final int greaterMeta = Core.tarefasHabitosController.tarefasHabitosList[index].tarefasHabitosQtd.fold(0, (previousValue, el) => el.metaVezes > previousValue ? el.metaVezes : previousValue,);
-                          final Color? liquidColor = Core.tarefasHabitosController.tarefasHabitosList[index].tarefasHabitosQtd.isNotEmpty
-                            ? Core.tarefasHabitosController.tarefasHabitosList[index].tarefasHabitosQtd[i].categoriasTarefasHabitos?.cor
-                            : null;
+                        for (
+                          int i = 0;
+                          i <
+                              Core
+                                  .tarefasHabitosController
+                                  .tarefasHabitosList[index]
+                                  .tarefasHabitosQtd
+                                  .length;
+                          i++
+                        ) {
+                          final int greaterMeta = Core
+                              .tarefasHabitosController
+                              .tarefasHabitosList[index]
+                              .tarefasHabitosQtd
+                              .fold(
+                                0,
+                                (previousValue, el) =>
+                                    el.metaVezes > previousValue
+                                    ? el.metaVezes
+                                    : previousValue,
+                              );
+                          final Color? liquidColor =
+                              Core
+                                  .tarefasHabitosController
+                                  .tarefasHabitosList[index]
+                                  .tarefasHabitosQtd
+                                  .isNotEmpty
+                              ? Core
+                                    .tarefasHabitosController
+                                    .tarefasHabitosList[index]
+                                    .tarefasHabitosQtd[i]
+                                    .categoriasTarefasHabitos
+                                    ?.cor
+                              : null;
 
-                          children.add(Expanded(
-                            child: LiquidCustomProgressIndicator(
-                              value: Core.tarefasHabitosController.tarefasHabitosList[index].tarefasHabitosQtd[i].vezesPraticado * 1.05 / greaterMeta,
-                              backgroundColor: Colors.transparent,
-                              valueColor: liquidColor != null ? AlwaysStoppedAnimation(liquidColor) : null,
-                              direction: Axis.vertical,
-                              shapePath: Path()
-                                ..addRRect(
-                                  RRect.fromRectAndCorners(
-                                    Rect.fromLTWH(
-                                      i == 0 ? 5 : 0,
-                                      5,
-                                      ((constraints.maxWidth - 10) / Core.tarefasHabitosController.tarefasHabitosList[index].tarefasHabitosQtd.length),
-                                      constraints.maxHeight - 10,
+                          children.add(
+                            Expanded(
+                              child: LiquidCustomProgressIndicator(
+                                value:
+                                    Core
+                                        .tarefasHabitosController
+                                        .tarefasHabitosList[index]
+                                        .tarefasHabitosQtd[i]
+                                        .vezesPraticado *
+                                    1.05 /
+                                    greaterMeta,
+                                backgroundColor: Colors.transparent,
+                                valueColor: liquidColor != null
+                                    ? AlwaysStoppedAnimation(liquidColor)
+                                    : null,
+                                direction: Axis.vertical,
+                                shapePath: Path()
+                                  ..addRRect(
+                                    RRect.fromRectAndCorners(
+                                      Rect.fromLTWH(
+                                        i == 0 ? 5 : 0,
+                                        5,
+                                        ((constraints.maxWidth - 10) /
+                                            Core
+                                                .tarefasHabitosController
+                                                .tarefasHabitosList[index]
+                                                .tarefasHabitosQtd
+                                                .length),
+                                        constraints.maxHeight - 10,
+                                      ),
+                                      topLeft: Radius.circular(i == 0 ? 20 : 0),
+                                      topRight: Radius.circular(
+                                        i ==
+                                                Core
+                                                        .tarefasHabitosController
+                                                        .tarefasHabitosList[index]
+                                                        .tarefasHabitosQtd
+                                                        .length -
+                                                    1
+                                            ? 20
+                                            : 0,
+                                      ),
+                                      bottomLeft: Radius.circular(
+                                        i == 0 ? 20 : 0,
+                                      ),
+                                      bottomRight: Radius.circular(
+                                        i ==
+                                                Core
+                                                        .tarefasHabitosController
+                                                        .tarefasHabitosList[index]
+                                                        .tarefasHabitosQtd
+                                                        .length -
+                                                    1
+                                            ? 20
+                                            : 0,
+                                      ),
                                     ),
-                                    topLeft: Radius.circular(i == 0 ? 20 : 0),
-                                    topRight: Radius.circular(i == Core.tarefasHabitosController.tarefasHabitosList[index].tarefasHabitosQtd.length - 1 ? 20 : 0),
-                                    bottomLeft: Radius.circular(i == 0 ? 20 : 0),
-                                    bottomRight: Radius.circular(i == Core.tarefasHabitosController.tarefasHabitosList[index].tarefasHabitosQtd.length - 1 ? 20 : 0),
                                   ),
-                                ),
+                              ),
                             ),
-                          ),);
+                          );
                         }
-                        
+
                         return Stack(
                           children: [
-                            Row(
-                              children: children,
-                            ),
+                            Row(children: children),
                             Card(
                               clipBehavior: Clip.hardEdge,
                               shape: RoundedRectangleBorder(
@@ -110,7 +180,16 @@ class ListaHabitosTarefasPageState extends State<ListaHabitosTarefasPage> {
                               ),
                               color: Colors.transparent,
                               child: InkWell(
-                                onTap: () async {
+                                onTap: () {
+                                  Routefly.pushNavigate(
+                                    routePaths.capacitacao.criarEditarHabitoTarefa,
+                                    arguments: {
+                                      'lastRoute': Routefly.currentUri.path,
+                                      'tarefaHabito': Core
+                                          .tarefasHabitosController
+                                          .tarefasHabitosList[index],
+                                    },
+                                  );
                                 },
                                 child: Padding(
                                   padding: const EdgeInsets.all(16.0),
@@ -118,27 +197,34 @@ class ListaHabitosTarefasPageState extends State<ListaHabitosTarefasPage> {
                                     children: [
                                       Expanded(
                                         child: Column(
-                                          crossAxisAlignment: CrossAxisAlignment.start,
-                                          mainAxisAlignment: MainAxisAlignment.spaceAround,
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.spaceAround,
                                           children: [
                                             Text(
-                                              Core.tarefasHabitosController.tarefasHabitosList[index].nome,
+                                              Core
+                                                  .tarefasHabitosController
+                                                  .tarefasHabitosList[index]
+                                                  .nome,
                                             ),
                                             Text(
-                                              '${Core.tarefasHabitosController.tarefasHabitosList[index].tarefasHabitosQtd[0].vezesPraticado.roundDouble(2)} vezes',
+                                              '${Core.tarefasHabitosController.tarefasHabitosList[index].tarefasHabitosQtd.firstOrNull?.vezesPraticado.roundDouble(2) ?? 0} vezes',
                                             ),
                                           ],
                                         ),
                                       ),
                                       IconButton(
                                         onPressed: () {
-                                          Core.tarefasHabitosController.incrementQtdHabito(
-                                            Core.tarefasHabitosController.tarefasHabitosList[index].id,
-                                          );
+                                          Core.tarefasHabitosController
+                                              .incrementQtdHabito(
+                                                Core
+                                                    .tarefasHabitosController
+                                                    .tarefasHabitosList[index]
+                                                    .id,
+                                              );
                                         },
-                                        icon: const Icon(
-                                          Icons.add_circle,
-                                        ),
+                                        icon: const Icon(Icons.add_circle),
                                       ),
                                     ],
                                   ),
@@ -154,11 +240,8 @@ class ListaHabitosTarefasPageState extends State<ListaHabitosTarefasPage> {
               },
             ),
           );
-        }
-        else {
-          return const Center(
-            child: CircularProgressIndicator(),
-          );
+        } else {
+          return const Center(child: CircularProgressIndicator());
         }
       },
     );

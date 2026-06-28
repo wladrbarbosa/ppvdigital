@@ -18,35 +18,35 @@ publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 version: 1.0.0+1
 
 environment:
-  sdk: ">=3.7.2 <4.0.0"
+  sdk: ">=3.12.2 <4.0.0"
 
 dependencies:
-  appwrite: 15.0.2
+  appwrite: 25.2.0
   collection: 1.19.1
-  crypto: 3.0.6
-  fl_chart: 0.71.0
+  crypto: 3.0.7
+  fl_chart: 1.2.0
   flutter:
     sdk: flutter
   flutter_animate: 4.5.2
   flutter_animation_progress_bar: 2.3.1
+  flutter_expandable_fab: 2.5.2
   flutter_localizations:
     sdk: flutter
   flutter_mobx: 2.3.0
-  flutter_speed_dial: 7.0.0
   flutter_web_plugins:
     sdk: flutter
-  google_fonts: 6.2.1
-  intl: 0.19.0
+  google_fonts: 8.1.0
+  intl: 0.20.2
   lint: 2.8.0
   liquid_progress_indicator_v2: 0.5.0
-  mobx: 2.5.0
+  mobx: 2.6.0
   routefly:
     git:
       url: 'git@github.com:wladrbarbosa/routefly.git'
       ref: '2f19820cb9494d5d399dd76ff53454b981618305'
   shimmer: 3.0.0
-  syncfusion_flutter_calendar: 29.1.40
-  syncfusion_localizations: 29.1.40
+  syncfusion_flutter_calendar: 33.2.15
+  syncfusion_localizations: 33.2.15
   timeline_tile: 2.0.0
 
 dev_dependencies:

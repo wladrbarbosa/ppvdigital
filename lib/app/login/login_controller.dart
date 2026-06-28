@@ -8,24 +8,27 @@ import 'package:ppvdigital/core.dart';
 import 'package:ppvdigital/routes.g.dart';
 import 'package:routefly/routefly.dart';
 
-enum AuthStatus {
-  uninitialized,
-  authenticated,
-  unauthenticated,
-}
+enum AuthStatus { uninitialized, authenticated, unauthenticated }
 
 class LoginController {
   // Constructor
   LoginController() {
     init();
     loadUser();
-    _status = mobx.ObservableStream<AuthStatus>(_statusStreamController.stream, name: 'status');
+    _status = mobx.ObservableStream<AuthStatus>(
+      _statusStreamController.stream,
+      name: 'status',
+    );
   }
 
-  late final StreamController<AuthStatus> _statusStreamController = StreamController<AuthStatus>();
+  late final StreamController<AuthStatus> _statusStreamController =
+      StreamController<AuthStatus>();
 
   late final Account account;
-  final mobx.Observable<User?> _currentUser = mobx.Observable<User?>(null, name: 'currentUser');
+  final mobx.Observable<User?> _currentUser = mobx.Observable<User?>(
+    null,
+    name: 'currentUser',
+  );
   late final mobx.ObservableStream<AuthStatus> _status;
 
   // Getter methods
@@ -58,15 +61,10 @@ class LoginController {
       } catch (e) {
         _statusStreamController.add(AuthStatus.unauthenticated);
       }
-    },
-    name: 'loadUser',);
+    }, name: 'loadUser');
   }
 
-  Future<User> createUser(
-    String email,
-    String password,
-    String name,
-  ) async {
+  Future<User> createUser(String email, String password, String name) async {
     return await mobx.runInAction(() async {
       final user = await account.create(
         userId: ID.unique(),
@@ -75,8 +73,7 @@ class LoginController {
         name: name,
       );
       return user;
-    },
-    name: 'createUser',);
+    }, name: 'createUser');
   }
 
   Future<Session> createEmailPasswordSession(
@@ -84,45 +81,49 @@ class LoginController {
     String password,
   ) async {
     return await mobx.runInAction(() async {
-      final session =
-          await account.createEmailPasswordSession(email: email, password: password);
+      final session = await account.createEmailPasswordSession(
+        email: email,
+        password: password,
+      );
       _currentUser.value = await account.get();
       _statusStreamController.add(AuthStatus.authenticated);
       return session;
-    },
-    name: 'createEmailPasswordSession',);
+    }, name: 'createEmailPasswordSession');
   }
 
   Future<dynamic> signInWithProvider({required OAuthProvider provider}) async {
     return await mobx.runInAction(() async {
-      final dynamic session = await account.createOAuth2Session(provider: provider);
+      final dynamic session = await account.createOAuth2Session(
+        provider: provider,
+      );
       _currentUser.value = await account.get();
       _statusStreamController.add(AuthStatus.authenticated);
       return session;
-    },
-    name: 'signInWithProvider',);
+    }, name: 'signInWithProvider');
   }
 
   Future<void> signOut() async {
     return await mobx.runInAction(() async {
       await account.deleteSession(sessionId: 'current');
       _statusStreamController.add(AuthStatus.unauthenticated);
-    },
-    name: 'signOut',);
+    }, name: 'signOut');
   }
 
   Future<Preferences> getUserPreferences() async {
     return await account.getPrefs();
   }
 
-  Future<User> updatePreferences({required String bio}) async {
+  Future<User> updatePreferences({required String bio}) {
     return account.updatePrefs(prefs: {'bio': bio});
   }
 
   void checkAuthentication(String currentUri) {
-    final prevRouteIsLoginOrRoot = currentUri.compareTo(routePaths.login) == 0 || currentUri.compareTo(routePaths.path) == 0;
+    final prevRouteIsLoginOrRoot =
+        currentUri.compareTo(routePaths.login) == 0 ||
+        currentUri.compareTo(routePaths.path) == 0;
 
-    if (_status.value != AuthStatus.authenticated && currentUri.compareTo(routePaths.login) != 0) {
+    if (_status.value != AuthStatus.authenticated &&
+        currentUri.compareTo(routePaths.login) != 0) {
       Routefly.navigate(routePaths.login);
     }
 

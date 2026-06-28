@@ -2,10 +2,10 @@ import 'dart:async';
 import 'dart:developer';
 
 import 'package:flutter/material.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:ppvdigital/app/capacitacao/tarefas_habitos/tarefas_habitos_layout.dart';
 import 'package:ppvdigital/app/login/auth_builder.dart';
 import 'package:ppvdigital/core.dart';
+import 'package:ppvdigital/l10n/app_localizations.dart';
 import 'package:ppvdigital/routes.g.dart';
 import 'package:ppvdigital/theme.dart';
 import 'package:ppvdigital/util.dart';
@@ -16,20 +16,26 @@ class RootAppWidget extends StatelessWidget {
   FutureOr<RouteInformation> _guardRoute(RouteInformation routeInformation) {
     log(routeInformation.uri.path);
 
-    if (TarefasPageState.tabController != null && routeInformation.uri.path.contains('/capacitacao/tarefas_habitos')) {
+    if (TarefasPageState.tabController != null &&
+        routeInformation.uri.path.contains('/capacitacao/tarefas_habitos')) {
       if (!TarefasPageState.fromTabClick) {
         switch (routeInformation.uri.path) {
-          case final String url when url == routePaths.capacitacao.tarefasHabitos.calendario:
-            Core.globalKey.currentContext?.findAncestorStateOfType<TarefasPageState>()?.updateTabIndex(1);
-          case final String url when url == routePaths.capacitacao.tarefasHabitos.categorias:
-            Core.globalKey.currentContext?.findAncestorStateOfType<TarefasPageState>()?.updateTabIndex(2);
-          case final String url when url == routePaths.capacitacao.tarefasHabitos.historico:
-            Core.globalKey.currentContext?.findAncestorStateOfType<TarefasPageState>()?.updateTabIndex(3);
+          case final String url
+              when url == routePaths.capacitacao.tarefasHabitos.calendario:
+            Core.globalKey.currentContext
+                ?.findAncestorStateOfType<TarefasPageState>()
+                ?.updateTabIndex(1);
+          case final String url
+              when url == routePaths.capacitacao.tarefasHabitos.categorias:
+            Core.globalKey.currentContext
+                ?.findAncestorStateOfType<TarefasPageState>()
+                ?.updateTabIndex(2);
           default:
-            Core.globalKey.currentContext?.findAncestorStateOfType<TarefasPageState>()?.updateTabIndex(0);
+            Core.globalKey.currentContext
+                ?.findAncestorStateOfType<TarefasPageState>()
+                ?.updateTabIndex(0);
         }
-      }
-      else {
+      } else {
         TarefasPageState.fromTabClick = false;
       }
     }
@@ -39,14 +45,19 @@ class RootAppWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final List<LocalizationsDelegate<dynamic>> appLocalizationDelegates = List.from(AppLocalizations.localizationsDelegates);
+    final List<LocalizationsDelegate<dynamic>> appLocalizationDelegates =
+        List.from(AppLocalizations.localizationsDelegates);
     final brightness = View.of(context).platformDispatcher.platformBrightness;
 
     // Retrieves the default theme for the platform
     //TextTheme textTheme = Theme.of(context).textTheme;
 
     // Use with Google Fonts package to use downloadable fonts
-    final TextTheme textTheme = createTextTheme(context, 'Acme', 'Akaya Kanadaka');
+    final TextTheme textTheme = createTextTheme(
+      context,
+      'Acme',
+      'Akaya Kanadaka',
+    );
     final MaterialTheme theme = MaterialTheme(textTheme);
 
     if (!appLocalizationDelegates.contains(SfGlobalLocalizations.delegate)) {
@@ -56,13 +67,11 @@ class RootAppWidget extends StatelessWidget {
     return MaterialApp.router(
       localizationsDelegates: appLocalizationDelegates,
       supportedLocales: AppLocalizations.supportedLocales,
-      builder: (context, child) => AuthBuilder(child: child!,),
+      builder: (context, child) => AuthBuilder(child: child!),
       routerConfig: Routefly.routerConfig(
         routes: routes,
         initialPath: routePaths.path,
-        middlewares: [
-          _guardRoute,
-        ],
+        middlewares: [_guardRoute],
       ),
       debugShowCheckedModeBanner: false,
       title: 'PPV Digital',

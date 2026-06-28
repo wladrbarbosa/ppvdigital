@@ -1,20 +1,39 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_mobx/flutter_mobx.dart';
+import 'package:ppvdigital/core.dart';
+import 'package:ppvdigital/models/tarefas_habitos_model.dart';
 import 'package:routefly/routefly.dart';
 
 Route routeBuilder(BuildContext context, RouteSettings settings) {
+  final args = settings.arguments;
+  String? lastRoute;
+  TarefaHabitoModel? editingItem;
+
+  if (args is String) {
+    lastRoute = args;
+  } else if (args is Map) {
+    lastRoute = args['lastRoute'] as String?;
+    editingItem = args['tarefaHabito'] as TarefaHabitoModel?;
+  }
+
   return DialogRoute(
     context: context,
     settings: settings,
-    builder: (context)  => PopScope(
-      onPopInvokedWithResult:(didPop, result) {
-        final String? lastRoute = settings.arguments as String?;
-        
+    builder: (context) => PopScope(
+      onPopInvokedWithResult: (didPop, result) {
         if (lastRoute != null) {
           Routefly.navigate(lastRoute);
         }
       },
-      child: const Dialog(
-        child: CriarHabitoTarefaPage(),
+      child: Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        child: Container(
+          constraints: const BoxConstraints(maxWidth: 500),
+          child: CriarHabitoTarefaPage(
+            editingItem: editingItem,
+            lastRoute: lastRoute,
+          ),
+        ),
       ),
     ),
   );
@@ -23,25 +42,431 @@ Route routeBuilder(BuildContext context, RouteSettings settings) {
 class CriarHabitoTarefaPage extends StatefulWidget {
   const CriarHabitoTarefaPage({
     super.key,
-    this.title = 'Capacitação Técnica',
+    this.editingItem,
+    this.lastRoute,
   });
-  
-  final String title;
+
+  final TarefaHabitoModel? editingItem;
+  final String? lastRoute;
 
   @override
-  _CriarHabitoTarefaPageState createState() => _CriarHabitoTarefaPageState();
+  State<CriarHabitoTarefaPage> createState() => _CriarHabitoTarefaPageState();
 }
 
 class _CriarHabitoTarefaPageState extends State<CriarHabitoTarefaPage> {
+  final _formKey = GlobalKey<FormState>();
+  final _nomeController = TextEditingController();
+  final _metaVezesController = TextEditingController(text: '1');
+  final _valorController = TextEditingController(text: '1.0');
+  final _reiniciaEmQtdController = TextEditingController(text: '1');
+
+  String _tipo = 'habito'; // 'habito' or 'tarefa'
+  String? _selectedCategoryId;
+  String _reiniciaEmTipo = 'dias';
+  DateTime? _agendamento;
+
+  @override
+  void initState() {
+    super.initState();
+    Core.categoriasController.loadDocuments();
+
+    if (widget.editingItem != null) {
+      final item = widget.editingItem!;
+      _nomeController.text = item.nome;
+      _tipo = item.tipo;
+      _agendamento = item.agendamento;
+
+      if (item.tarefasHabitosQtd.isNotEmpty) {
+        final qtd = item.tarefasHabitosQtd.first;
+        _metaVezesController.text = qtd.metaVezes.toString();
+        _valorController.text = qtd.valor.toString();
+        _reiniciaEmQtdController.text = qtd.reiniciaEmQtd.toString();
+        _reiniciaEmTipo = qtd.reiniciaEmTipo;
+        _selectedCategoryId = qtd.categoriasTarefasHabitos?.id;
+      }
+    }
+  }
+
+  @override
+  void dispose() {
+    _nomeController.dispose();
+    _metaVezesController.dispose();
+    _valorController.dispose();
+    _reiniciaEmQtdController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _selectAgendamento() async {
+    final DateTime? pickedDate = await showDatePicker(
+      context: context,
+      initialDate: _agendamento ?? DateTime.now(),
+      firstDate: DateTime.now().subtract(const Duration(days: 365)),
+      lastDate: DateTime.now().add(const Duration(days: 365 * 5)),
+    );
+    if (pickedDate == null) return;
+
+    if (!mounted) return;
+    final TimeOfDay? pickedTime = await showTimePicker(
+      context: context,
+      initialTime: TimeOfDay.fromDateTime(_agendamento ?? DateTime.now()),
+    );
+
+    if (pickedTime == null) return;
+
+    setState(() {
+      _agendamento = DateTime(
+        pickedDate.year,
+        pickedDate.month,
+        pickedDate.day,
+        pickedTime.hour,
+        pickedTime.minute,
+      );
+    });
+  }
+
+  Future<void> _save() async {
+    if (!_formKey.currentState!.validate()) return;
+
+    final String nome = _nomeController.text.trim();
+    final int metaVezes = int.parse(_metaVezesController.text);
+    final num valor = num.parse(_valorController.text);
+    final int reiniciaEmQtd = int.parse(_reiniciaEmQtdController.text);
+
+    final bool success;
+    if (widget.editingItem != null) {
+      final String qtdRowId = widget.editingItem!.tarefasHabitosQtd.isNotEmpty
+          ? widget.editingItem!.tarefasHabitosQtd.first.id
+          : '';
+      success = await Core.tarefasHabitosController.updateTarefaHabito(
+        id: widget.editingItem!.id,
+        nome: nome,
+        tipo: _tipo,
+        metaVezes: metaVezes,
+        categoriaId: _selectedCategoryId,
+        valor: valor,
+        reiniciaEmQtd: reiniciaEmQtd,
+        reiniciaEmTipo: _reiniciaEmTipo,
+        agendamento: _agendamento,
+        qtdRowId: qtdRowId,
+      );
+    } else {
+      success = await Core.tarefasHabitosController.createTarefaHabito(
+        nome: nome,
+        tipo: _tipo,
+        metaVezes: metaVezes,
+        categoriaId: _selectedCategoryId,
+        valor: valor,
+        reiniciaEmQtd: reiniciaEmQtd,
+        reiniciaEmTipo: _reiniciaEmTipo,
+        agendamento: _agendamento,
+      );
+    }
+
+    if (success && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Salvo com sucesso!')),
+      );
+      if (widget.lastRoute != null) {
+        Routefly.navigate(widget.lastRoute!);
+      } else {
+        Navigator.of(context).pop();
+      }
+    } else if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Erro ao salvar.')),
+      );
+    }
+  }
+
+  Future<void> _delete() async {
+    final bool? confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Remover registro'),
+        content: const Text('Deseja realmente remover esta tarefa ou hábito?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Cancelar'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Excluir', style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm != true || !mounted) return;
+
+    final String qtdRowId = widget.editingItem!.tarefasHabitosQtd.isNotEmpty
+        ? widget.editingItem!.tarefasHabitosQtd.first.id
+        : '';
+
+    final bool success = await Core.tarefasHabitosController.deleteTarefaHabito(
+      widget.editingItem!.id,
+      qtdRowId,
+    );
+
+    if (success && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Excluído com sucesso!')),
+      );
+      if (widget.lastRoute != null) {
+        Routefly.navigate(widget.lastRoute!);
+      } else {
+        Navigator.of(context).pop();
+      }
+    } else if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Erro ao excluir.')),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Column(
-      children: [
-        Text(
-          'Criar/Editar Tarefa/Hábito',
-          style: Theme.of(context).textTheme.headlineLarge,
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(24.0),
+      child: Form(
+        key: _formKey,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  widget.editingItem == null
+                      ? 'Nova Tarefa/Hábito'
+                      : 'Editar Tarefa/Hábito',
+                  style: const TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.close),
+                  onPressed: () {
+                    if (widget.lastRoute != null) {
+                      Routefly.navigate(widget.lastRoute!);
+                    } else {
+                      Navigator.of(context).pop();
+                    }
+                  },
+                ),
+              ],
+            ),
+            const Divider(),
+            const SizedBox(height: 16),
+            TextFormField(
+              controller: _nomeController,
+              decoration: const InputDecoration(
+                labelText: 'Nome',
+                border: OutlineInputBorder(),
+              ),
+              validator: (value) {
+                if (value == null || value.trim().isEmpty) {
+                  return 'Por favor, insira o nome.';
+                }
+                return null;
+              },
+            ),
+            const SizedBox(height: 16),
+            SegmentedButton<String>(
+              segments: const [
+                ButtonSegment<String>(
+                  value: 'habito',
+                  label: Text('Hábito'),
+                  icon: Icon(Icons.star_outline),
+                ),
+                ButtonSegment<String>(
+                  value: 'tarefa',
+                  label: Text('Tarefa'),
+                  icon: Icon(Icons.task_alt),
+                ),
+              ],
+              selected: {_tipo},
+              onSelectionChanged: (Set<String> newSelection) {
+                setState(() {
+                  _tipo = newSelection.first;
+                });
+              },
+            ),
+            const SizedBox(height: 16),
+            Observer(
+              builder: (context) {
+                final categorias = Core.categoriasController.categoriasList;
+                return DropdownButtonFormField<String>(
+                  initialValue: _selectedCategoryId,
+                  decoration: const InputDecoration(
+                    labelText: 'Categoria (Opcional)',
+                    border: OutlineInputBorder(),
+                  ),
+                  items: [
+                    const DropdownMenuItem<String>(
+                      child: Text('Nenhuma'),
+                    ),
+                    ...categorias.map((cat) {
+                      return DropdownMenuItem<String>(
+                        value: cat.id,
+                        child: Row(
+                          children: [
+                            CircleAvatar(
+                              backgroundColor: cat.cor,
+                              radius: 8,
+                            ),
+                            const SizedBox(width: 8),
+                            Text(cat.nome),
+                          ],
+                        ),
+                      );
+                    }),
+                  ],
+                  onChanged: (val) {
+                    setState(() {
+                      _selectedCategoryId = val;
+                    });
+                  },
+                );
+              },
+            ),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                Expanded(
+                  child: TextFormField(
+                    controller: _metaVezesController,
+                    keyboardType: TextInputType.number,
+                    decoration: const InputDecoration(
+                      labelText: 'Meta (Vezes)',
+                      border: OutlineInputBorder(),
+                    ),
+                    validator: (value) {
+                      if (value == null || value.trim().isEmpty) {
+                        return 'Obrigatório';
+                      }
+                      if (int.tryParse(value) == null) {
+                        return 'Inválido';
+                      }
+                      return null;
+                    },
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: TextFormField(
+                    controller: _valorController,
+                    keyboardType: TextInputType.number,
+                    decoration: const InputDecoration(
+                      labelText: 'Valor por Vez',
+                      border: OutlineInputBorder(),
+                    ),
+                    validator: (value) {
+                      if (value == null || value.trim().isEmpty) {
+                        return 'Obrigatório';
+                      }
+                      if (num.tryParse(value) == null) {
+                        return 'Inválido';
+                      }
+                      return null;
+                    },
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                Expanded(
+                  child: TextFormField(
+                    controller: _reiniciaEmQtdController,
+                    keyboardType: TextInputType.number,
+                    decoration: const InputDecoration(
+                      labelText: 'Reinicia a cada',
+                      border: OutlineInputBorder(),
+                    ),
+                    validator: (value) {
+                      if (value == null || value.trim().isEmpty) {
+                        return 'Obrigatório';
+                      }
+                      if (int.tryParse(value) == null) {
+                        return 'Inválido';
+                      }
+                      return null;
+                    },
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: DropdownButtonFormField<String>(
+                    initialValue: _reiniciaEmTipo,
+                    decoration: const InputDecoration(
+                      labelText: 'Tipo Período',
+                      border: OutlineInputBorder(),
+                    ),
+                    items: const [
+                      DropdownMenuItem(value: 'dias', child: Text('Dias')),
+                      DropdownMenuItem(value: 'semanas', child: Text('Semanas')),
+                      DropdownMenuItem(value: 'meses', child: Text('Meses')),
+                      DropdownMenuItem(value: 'anos', child: Text('Anos')),
+                    ],
+                    onChanged: (val) {
+                      if (val != null) {
+                        setState(() {
+                          _reiniciaEmTipo = val;
+                        });
+                      }
+                    },
+                  ),
+                ),
+              ],
+            ),
+            if (_tipo == 'tarefa') ...[
+              const SizedBox(height: 16),
+              OutlinedButton.icon(
+                onPressed: _selectAgendamento,
+                icon: const Icon(Icons.calendar_month),
+                label: Text(
+                  _agendamento == null
+                      ? 'Agendar data/hora'
+                      : 'Agendado: ${_agendamento!.day}/${_agendamento!.month}/${_agendamento!.year} às ${_agendamento!.hour}:${_agendamento!.minute.toString().padLeft(2, '0')}',
+                ),
+              ),
+            ],
+            const SizedBox(height: 24),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                if (widget.editingItem != null)
+                  ElevatedButton.icon(
+                    onPressed: _delete,
+                    icon: const Icon(Icons.delete, color: Colors.white),
+                    label: const Text('Excluir'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.red,
+                      foregroundColor: Colors.white,
+                    ),
+                  )
+                else
+                  const Spacer(),
+                const SizedBox(width: 8),
+                ElevatedButton(
+                  onPressed: _save,
+                  style: ElevatedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 24,
+                      vertical: 12,
+                    ),
+                  ),
+                  child: const Text('Salvar'),
+                ),
+              ],
+            ),
+          ],
         ),
-      ],
+      ),
     );
   }
 }

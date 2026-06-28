@@ -18,22 +18,36 @@ extension HistoricoTransformMap on Map<String, dynamic> {
       tipo: this['tipo'] as String,
       agendamento: DateTime.tryParse((this['agendamento'] as String?) ?? ''),
       concluida: this['concluida'] as bool,
-      tarefasHabitosQtd: (this['tarefasHabitosQtds'] as List<dynamic>?).toTarefaHabitoQtdModelList(),
+      tarefasHabitosQtd: (this['tarefasHabitosQtds'] as List<dynamic>?)
+          .toTarefaHabitoQtdModelList(),
     );
   }
 }
 
-extension HistoricoTransformDocumentList on List<Document> {
+extension HistoricoTransformDocumentList on List<Row> {
   List<HistoricoItemModel> toHistoricoModelList() {
     final List<HistoricoItemModel> temp = [];
 
-    void addToList(Document e1) {
-      temp.add(HistoricoItemModel(
-        id: e1.$id,
-        usuario: e1.data['usuario'] as String,
-        createdAt: DateTime.parse((e1.data[r'$createdAt'] as String?) ?? ''),
-        tarefasEHabitos: (e1.data['tarefasEHabitos'] as Map<String, dynamic>).toTarefasHabitosModel(),
-      ),);
+    void addToList(Row e1) {
+      final Map<String, dynamic> rawTarefaMap =
+          e1.data['tarefasEHabitos'] as Map<String, dynamic>;
+      final String tarefaId = rawTarefaMap[r'$id'] as String;
+
+      final cachedTarefa = Core.tarefasHabitosController.tarefasHabitosList
+          .cast<TarefaHabitoModel?>()
+          .firstWhere(
+            (el) => el?.id == tarefaId,
+            orElse: () => null,
+          );
+
+      temp.add(
+        HistoricoItemModel(
+          id: e1.$id,
+          usuario: e1.data['usuario'] as String,
+          createdAt: DateTime.parse((e1.data[r'$createdAt'] as String?) ?? ''),
+          tarefasEHabitos: cachedTarefa ?? rawTarefaMap.toTarefasHabitosModel(),
+        ),
+      );
     }
 
     forEach(addToList);
@@ -49,7 +63,8 @@ class HistoricoController {
   }
 
   late final Databases databases;
-  final mobx.ObservableList<HistoricoItemModel> _historicoList = mobx.ObservableList<HistoricoItemModel>(name: 'tarefasHabitosList');
+  final mobx.ObservableList<HistoricoItemModel> _historicoList =
+      mobx.ObservableList<HistoricoItemModel>(name: 'tarefasHabitosList');
   List<HistoricoItemModel> get historicoList => _historicoList.toList();
   static Future<void>? historicoFuture;
 
@@ -65,47 +80,92 @@ class HistoricoController {
           await Core.loginController.loadUser();
         }
 
-        final DocumentList historicoDocs = await databases.listDocuments(
+        if (Core.tarefasHabitosController.tarefasHabitosList.isEmpty) {
+          await Core.tarefasHabitosController.loadDocuments();
+        }
+
+        final TablesDB tablesDB = TablesDB(databases.client);
+        final RowList historicoDocs = await tablesDB.listRows(
           databaseId: '671f6e1600022832cba5',
-          collectionId: '6741f10d000d985e4af9',
+          tableId: '6741f10d000d985e4af9',
           queries: [
-            Query.equal('usuario', [Core.loginController.currentUser?.$id ?? '']),
+            Query.equal('usuario', [
+              Core.loginController.currentUser?.$id ?? '',
+            ]),
+            Query.select([
+              '*',
+              'tarefasEHabitos.*',
+              'tarefasEHabitos.tarefasHabitosQtds.*',
+              'tarefasEHabitos.tarefasHabitosQtds.categoriasTarefasHabitos.*',
+            ]),
             Query.limit(5000),
           ],
         );
 
         _historicoList.clear();
-        _historicoList.addAll(historicoDocs.documents.toHistoricoModelList());
-        ListaHabitosTarefasPageState.qtdItems = Core.tarefasHabitosController.tarefasHabitosList.length;
+        _historicoList.addAll(historicoDocs.rows.toHistoricoModelList());
+        ListaHabitosTarefasPageState.qtdItems =
+            Core.tarefasHabitosController.tarefasHabitosList.length;
         return true;
-      } on AppwriteException catch(e) {
+      } on AppwriteException catch (e) {
+        log(e.toString());
+        return false;
+      } on Exception catch (e) {
         log(e.toString());
         return false;
       }
-    },
-    name: 'loadDocuments',);
+    }, name: 'loadDocuments');
   }
 
   Future<void> updateQtdHabito(String documentId, int newQtd) async {
     log('Começo');
     try {
-      mobx.runInAction(() async {
-        final List<HistoricoItemModel> temp = List<HistoricoItemModel>.from(_historicoList.toList());
-        final HistoricoItemModel found = temp.singleWhere((el) => el.id == documentId,);
+      mobx.runInAction(() {
+        final List<HistoricoItemModel> temp = List<HistoricoItemModel>.from(
+          _historicoList.toList(),
+        );
+        final HistoricoItemModel found = temp.singleWhere(
+          (el) => el.id == documentId,
+        );
         _historicoList.setAll(0, temp);
-        databases.createDocument(
+        final TablesDB tablesDB = TablesDB(databases.client);
+        tablesDB.createRow(
           databaseId: '671f6e1600022832cba5',
-          collectionId: '6741f10d000d985e4af9',
-          documentId: ID.unique(),
+          tableId: '6741f10d000d985e4af9',
+          rowId: ID.unique(),
           data: {
             'tarefasEHabitos': found.id,
             'usuario': Core.loginController.currentUser?.$id ?? '',
           },
         );
-      },
-      name: 'addQtdHabito',);
-    } on AppwriteException catch(e) {
+      }, name: 'addQtdHabito');
+    } on AppwriteException catch (e) {
       log(e.toString());
+    }
+  }
+
+  Future<bool> deleteHistoricoItem(String documentId) async {
+    try {
+      final TablesDB tablesDB = TablesDB(databases.client);
+      await tablesDB.deleteRow(
+        databaseId: '671f6e1600022832cba5',
+        tableId: '6741f10d000d985e4af9',
+        rowId: documentId,
+      );
+
+      mobx.runInAction(() {
+        _historicoList.removeWhere((el) => el.id == documentId);
+      });
+      
+      // Reload main tasks/habits count dynamically
+      await Core.tarefasHabitosController.loadDocuments();
+      return true;
+    } on AppwriteException catch (e) {
+      log(e.toString());
+      return false;
+    } catch (e) {
+      log(e.toString());
+      return false;
     }
   }
 }
