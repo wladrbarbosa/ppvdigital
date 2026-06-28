@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:ppvdigital/app/capacitacao/tarefas_habitos/tarefas_habitos_controller.dart';
+import 'package:ppvdigital/app/capacitacao/financas/financas_controller.dart';
 import 'package:ppvdigital/routes.g.dart';
 import 'package:routefly/routefly.dart';
 
@@ -49,20 +50,26 @@ class _CapacitacaoPageState extends State<CapacitacaoPage> {
               ),
             ),
             Card(
-              child: Padding(
-                padding: const EdgeInsets.all(32.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      'Finanças',
-                      style: Theme.of(context).textTheme.headlineLarge,
-                    ),
-                    const Text(
-                      'Controle os seus gastos e ganhos',
-                    ),
-                  ],
+              child: InkWell(
+                onTap: () {
+                  FinancasController.financasFuture = null;
+                  Routefly.navigate(routePaths.capacitacao.financas);
+                },
+                child: Padding(
+                  padding: const EdgeInsets.all(32.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        'Finanças',
+                        style: Theme.of(context).textTheme.headlineLarge,
+                      ),
+                      const Text(
+                        'Controle os seus gastos e ganhos',
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),

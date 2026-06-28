@@ -73,15 +73,21 @@ class TarefasPageState extends State<TarefasPage>
       key: Core.globalKey,
       child: Scaffold(
         appBar: AppBar(
-          bottom: TabBar(
-            controller: tabController,
-            tabs: const [
-              Tab(text: 'Tarefas/Hábitos'),
-              Tab(text: 'Calendário'),
-              Tab(text: 'Categorias'),
-            ],
-          ),
           title: const Text('Tarefas e Hábitos'),
+        ),
+        bottomNavigationBar: Material(
+          color: Theme.of(context).cardColor,
+          elevation: 8,
+          child: SafeArea(
+            child: TabBar(
+              controller: tabController,
+              tabs: const [
+                Tab(icon: Icon(Icons.task), text: 'Tarefas/Hábitos'),
+                Tab(icon: Icon(Icons.calendar_month), text: 'Calendário'),
+                Tab(icon: Icon(Icons.category), text: 'Categorias'),
+              ],
+            ),
+          ),
         ),
         body: RouterOutlet(
           defaultWidget: ListaHabitosTarefasPage(key: GlobalKey()),

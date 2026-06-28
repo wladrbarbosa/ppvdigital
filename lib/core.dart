@@ -4,6 +4,7 @@ import 'package:ppvdigital/app/capacitacao/tarefas_habitos/calendario_controller
 import 'package:ppvdigital/app/capacitacao/tarefas_habitos/categorias_controller.dart';
 import 'package:ppvdigital/app/capacitacao/tarefas_habitos/historico_controller.dart';
 import 'package:ppvdigital/app/capacitacao/tarefas_habitos/tarefas_habitos_controller.dart';
+import 'package:ppvdigital/app/capacitacao/financas/financas_controller.dart';
 import 'package:ppvdigital/app/capacitacao/tarefas_habitos/tarefas_habitos_layout.dart';
 import 'package:ppvdigital/app/login/login_controller.dart';
 
@@ -42,5 +43,6 @@ class Core {
   static HistoricoController historicoController = HistoricoController();
   static CalendarioController calendarioController = CalendarioController();
   static CategoriasController categoriasController = CategoriasController();
+  static FinancasController financasController = FinancasController();
   static GlobalKey<TarefasPageState> globalKey = GlobalKey<TarefasPageState>();
 }
