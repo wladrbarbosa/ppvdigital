@@ -388,7 +388,6 @@ class FinancasController {
           : 1;
 
       if (recorrente) {
-        final String txId = (await tablesDB.createTransaction()).$id;
         final List<Map<String, dynamic>> ops = [];
 
         for (int i = 1; i <= loopLimit; i++) {
@@ -476,20 +475,19 @@ class FinancasController {
           }
         }
 
-        // Send operations in blocks of 100
+        // Send operations in blocks of 100, each inside its own transaction
         for (int j = 0; j < ops.length; j += 100) {
           final chunk = ops.sublist(j, j + 100 > ops.length ? ops.length : j + 100);
+          final String txId = (await tablesDB.createTransaction()).$id;
           await tablesDB.createOperations(
             transactionId: txId,
             operations: chunk,
           );
+          await tablesDB.updateTransaction(
+            transactionId: txId,
+            commit: true,
+          );
         }
-
-        // Commit transaction
-        await tablesDB.updateTransaction(
-          transactionId: txId,
-          commit: true,
-        );
       } else {
         // Single non-recurrent transaction (normal flow)
         final String tRowId = ID.unique();
