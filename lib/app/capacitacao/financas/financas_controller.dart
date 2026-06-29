@@ -875,16 +875,13 @@ class FinancasController {
 
       // Execute all operations in batches of 100, each inside its own transaction
       for (int j = 0; j < ops.length; j += 100) {
-        final chunk = ops.sublist(j, j + 100 > ops.length ? ops.length : j + 100);
+        final chunk = ops.sublist(
+          j,
+          j + 100 > ops.length ? ops.length : j + 100,
+        );
         final String txId = (await tablesDB.createTransaction()).$id;
-        await tablesDB.createOperations(
-          transactionId: txId,
-          operations: chunk,
-        );
-        await tablesDB.updateTransaction(
-          transactionId: txId,
-          commit: true,
-        );
+        await tablesDB.createOperations(transactionId: txId, operations: chunk);
+        await tablesDB.updateTransaction(transactionId: txId, commit: true);
       }
 
       await loadDocuments();
@@ -973,16 +970,13 @@ class FinancasController {
 
       // Execute all operations in batches of 100, each inside its own transaction
       for (int j = 0; j < ops.length; j += 100) {
-        final chunk = ops.sublist(j, j + 100 > ops.length ? ops.length : j + 100);
+        final chunk = ops.sublist(
+          j,
+          j + 100 > ops.length ? ops.length : j + 100,
+        );
         final String txId = (await tablesDB.createTransaction()).$id;
-        await tablesDB.createOperations(
-          transactionId: txId,
-          operations: chunk,
-        );
-        await tablesDB.updateTransaction(
-          transactionId: txId,
-          commit: true,
-        );
+        await tablesDB.createOperations(transactionId: txId, operations: chunk);
+        await tablesDB.updateTransaction(transactionId: txId, commit: true);
       }
 
       await loadDocuments();

@@ -682,27 +682,55 @@ class _FinancasLayoutState extends State<FinancasLayout> {
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
       child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 4.0),
+        padding: const EdgeInsets.symmetric(vertical: 4.0, horizontal: 8.0),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            IconButton(
-              icon: const Icon(Icons.chevron_left),
-              onPressed: () {
-                setState(() {
-                  _selectedMonth = DateTime(
-                    _selectedMonth.year,
-                    _selectedMonth.month - 1,
-                    1,
-                  );
-                });
-              },
+            Row(
+              children: [
+                IconButton(
+                  tooltip: 'Mês anterior',
+                  icon: const Icon(Icons.chevron_left),
+                  onPressed: () {
+                    setState(() {
+                      _selectedMonth = DateTime(
+                        _selectedMonth.year,
+                        _selectedMonth.month - 1,
+                        1,
+                      );
+                    });
+                  },
+                ),
+                IconButton(
+                  tooltip: 'Mês atual',
+                  icon: const Icon(Icons.today, color: Colors.blue),
+                  onPressed: () {
+                    setState(() {
+                      _selectedMonth = DateTime.now();
+                    });
+                  },
+                ),
+              ],
             ),
-            Text(
-              capitalized,
-              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+            InkWell(
+              onTap: () => _mostrarSeletorMesAno(context),
+              borderRadius: BorderRadius.circular(8),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 6.0),
+                child: Row(
+                  children: [
+                    Text(
+                      capitalized,
+                      style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                    ),
+                    const SizedBox(width: 4),
+                    const Icon(Icons.arrow_drop_down, size: 20),
+                  ],
+                ),
+              ),
             ),
             IconButton(
+              tooltip: 'Próximo mês',
               icon: const Icon(Icons.chevron_right),
               onPressed: () {
                 setState(() {
@@ -717,6 +745,110 @@ class _FinancasLayoutState extends State<FinancasLayout> {
           ],
         ),
       ),
+    );
+  }
+
+  void _mostrarSeletorMesAno(BuildContext context) {
+    int tempYear = _selectedMonth.year;
+    final List<String> meses = [
+      'Jan',
+      'Fev',
+      'Mar',
+      'Abr',
+      'Mai',
+      'Jun',
+      'Jul',
+      'Ago',
+      'Set',
+      'Out',
+      'Nov',
+      'Dez'
+    ];
+
+    showDialog(
+      context: context,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            return AlertDialog(
+              title: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.chevron_left),
+                    onPressed: () {
+                      setDialogState(() {
+                        tempYear--;
+                      });
+                    },
+                  ),
+                  Text(
+                    tempYear.toString(),
+                    style: const TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.chevron_right),
+                    onPressed: () {
+                      setDialogState(() {
+                        tempYear++;
+                      });
+                    },
+                  ),
+                ],
+              ),
+              content: SizedBox(
+                width: 300,
+                height: 200,
+                child: GridView.builder(
+                  shrinkWrap: true,
+                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 4,
+                    mainAxisSpacing: 8,
+                    crossAxisSpacing: 8,
+                    childAspectRatio: 1.5,
+                  ),
+                  itemCount: 12,
+                  itemBuilder: (context, index) {
+                    final monthIndex = index + 1;
+                    final isSelected = _selectedMonth.year == tempYear &&
+                        _selectedMonth.month == monthIndex;
+                    return InkWell(
+                      onTap: () {
+                        setState(() {
+                          _selectedMonth = DateTime(tempYear, monthIndex, 1);
+                        });
+                        Navigator.of(context).pop();
+                      },
+                      borderRadius: BorderRadius.circular(8),
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: isSelected
+                              ? Theme.of(context).primaryColor
+                              : Colors.transparent,
+                          border: Border.all(
+                            color: isSelected
+                                ? Theme.of(context).primaryColor
+                                : Colors.grey.withOpacity(0.3),
+                          ),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        alignment: Alignment.center,
+                        child: Text(
+                          meses[index],
+                          style: TextStyle(
+                            fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                            color: isSelected ? Colors.white : null,
+                          ),
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
+            );
+          },
+        );
+      },
     );
   }
 
