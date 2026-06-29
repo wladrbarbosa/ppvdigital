@@ -3,26 +3,26 @@ import 'dart:convert';
 class DivisaoTransacaoModel {
   final String id;
   final String transacaoId;
-  final String userId;
+  final String contatoResponsavel;
   final double peso;
 
   DivisaoTransacaoModel({
     required this.id,
     required this.transacaoId,
-    required this.userId,
+    required this.contatoResponsavel,
     required this.peso,
   });
 
   DivisaoTransacaoModel copyWith({
     String? id,
     String? transacaoId,
-    String? userId,
+    String? contatoResponsavel,
     double? peso,
   }) {
     return DivisaoTransacaoModel(
       id: id ?? this.id,
       transacaoId: transacaoId ?? this.transacaoId,
-      userId: userId ?? this.userId,
+      contatoResponsavel: contatoResponsavel ?? this.contatoResponsavel,
       peso: peso ?? this.peso,
     );
   }
@@ -30,7 +30,7 @@ class DivisaoTransacaoModel {
   Map<String, dynamic> toMap() {
     return <String, dynamic>{
       'transacao': transacaoId,
-      'userId': userId,
+      'contatoResponsavel': contatoResponsavel,
       'peso': peso,
     };
   }
@@ -45,10 +45,18 @@ class DivisaoTransacaoModel {
       tId = (tVal[r'$id'] ?? tVal['id'] ?? '') as String;
     }
 
+    String contatoId = '';
+    final dynamic cVal = map['contatoResponsavel'];
+    if (cVal is String) {
+      contatoId = cVal;
+    } else if (cVal is Map) {
+      contatoId = (cVal[r'$id'] ?? cVal['id'] ?? '') as String;
+    }
+
     return DivisaoTransacaoModel(
       id: map[r'$id'] as String? ?? map['id'] as String? ?? '',
       transacaoId: tId,
-      userId: map['userId'] as String? ?? '',
+      contatoResponsavel: contatoId,
       peso: (map['peso'] as num?)?.toDouble() ?? 1.0,
     );
   }
@@ -62,7 +70,7 @@ class DivisaoTransacaoModel {
 
   @override
   String toString() {
-    return 'DivisaoTransacaoModel(id: $id, transacaoId: $transacaoId, userId: $userId, peso: $peso)';
+    return 'DivisaoTransacaoModel(id: $id, transacaoId: $transacaoId, contatoResponsavel: $contatoResponsavel, peso: $peso)';
   }
 
   @override
@@ -70,12 +78,12 @@ class DivisaoTransacaoModel {
     if (identical(this, other)) return true;
     return other.id == id &&
         other.transacaoId == transacaoId &&
-        other.userId == userId &&
+        other.contatoResponsavel == contatoResponsavel &&
         other.peso == peso;
   }
 
   @override
   int get hashCode {
-    return id.hashCode ^ transacaoId.hashCode ^ userId.hashCode ^ peso.hashCode;
+    return id.hashCode ^ transacaoId.hashCode ^ contatoResponsavel.hashCode ^ peso.hashCode;
   }
 }

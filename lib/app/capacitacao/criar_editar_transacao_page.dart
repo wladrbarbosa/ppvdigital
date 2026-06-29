@@ -40,17 +40,14 @@ Route routeBuilder(BuildContext context, RouteSettings settings) {
 }
 
 class CriarEditarTransacaoPage extends StatefulWidget {
-  const CriarEditarTransacaoPage({
-    super.key,
-    this.editingItem,
-    this.lastRoute,
-  });
+  const CriarEditarTransacaoPage({super.key, this.editingItem, this.lastRoute});
 
   final TransacaoModel? editingItem;
   final String? lastRoute;
 
   @override
-  State<CriarEditarTransacaoPage> createState() => _CriarEditarTransacaoPageState();
+  State<CriarEditarTransacaoPage> createState() =>
+      _CriarEditarTransacaoPageState();
 }
 
 class _CriarEditarTransacaoPageState extends State<CriarEditarTransacaoPage> {
@@ -64,6 +61,8 @@ class _CriarEditarTransacaoPageState extends State<CriarEditarTransacaoPage> {
   String? _selectedContaId;
   String? _selectedContaDestinoId;
   String? _selectedCategoriaId;
+  String? _selectedDevedorContatoId;
+  String? _selectedCredorContatoId;
   bool _consolidada = false;
 
   // Recurrencia fields
@@ -104,12 +103,14 @@ class _CriarEditarTransacaoPageState extends State<CriarEditarTransacaoPage> {
       _selectedContaId = t.conta?.id;
       _selectedContaDestinoId = t.contaDestino?.id;
       _selectedCategoriaId = t.categoria?.id;
+      _selectedDevedorContatoId = t.devedorContato?.id;
+      _selectedCredorContatoId = t.credorContato?.id;
       _consolidada = t.consolidada;
 
       // Divisions
       for (final div in t.divisoes) {
         _divisoes.add({
-          'userId': div.userId,
+          'contatoResponsavel': div.contatoResponsavel,
           'peso': div.peso,
         });
       }
@@ -200,11 +201,15 @@ class _CriarEditarTransacaoPageState extends State<CriarEditarTransacaoPage> {
         tipo: _tipo,
         dataCompetencia: _dataCompetencia,
         contaId: _selectedContaId,
-        contaDestinoId: _tipo == 'transferencia' ? _selectedContaDestinoId : null,
+        contaDestinoId: _tipo == 'transferencia'
+            ? _selectedContaDestinoId
+            : null,
         consolidada: _consolidada,
         categoriaId: _selectedCategoriaId,
         divisao: _divisoes,
         optionRecorrencia: optionRecorrencia,
+        devedorContatoId: _selectedDevedorContatoId,
+        credorContatoId: _selectedCredorContatoId,
       );
     } else {
       final int freq = int.tryParse(_frequenciaController.text) ?? 1;
@@ -216,7 +221,9 @@ class _CriarEditarTransacaoPageState extends State<CriarEditarTransacaoPage> {
         tipo: _tipo,
         dataCompetencia: _dataCompetencia,
         contaId: _selectedContaId,
-        contaDestinoId: _tipo == 'transferencia' ? _selectedContaDestinoId : null,
+        contaDestinoId: _tipo == 'transferencia'
+            ? _selectedContaDestinoId
+            : null,
         consolidada: _consolidada,
         categoriaId: _selectedCategoriaId,
         recorrente: _recorrente,
@@ -225,6 +232,8 @@ class _CriarEditarTransacaoPageState extends State<CriarEditarTransacaoPage> {
         frequencia: freq,
         totalParcelas: parcelas,
         divisao: _divisoes,
+        devedorContatoId: _selectedDevedorContatoId,
+        credorContatoId: _selectedCredorContatoId,
       );
     }
 
@@ -257,7 +266,8 @@ class _CriarEditarTransacaoPageState extends State<CriarEditarTransacaoPage> {
         builder: (context) => AlertDialog(
           title: const Text('Remover transação recorrente'),
           content: const Text(
-              'Esta transação faz parte de uma recorrência. Como deseja prosseguir?'),
+            'Esta transação faz parte de uma recorrência. Como deseja prosseguir?',
+          ),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop('only_current'),
@@ -273,7 +283,10 @@ class _CriarEditarTransacaoPageState extends State<CriarEditarTransacaoPage> {
             ),
             TextButton(
               onPressed: () => Navigator.of(context).pop(null),
-              child: const Text('Cancelar', style: TextStyle(color: Colors.grey)),
+              child: const Text(
+                'Cancelar',
+                style: TextStyle(color: Colors.grey),
+              ),
             ),
           ],
         ),
@@ -335,10 +348,7 @@ class _CriarEditarTransacaoPageState extends State<CriarEditarTransacaoPage> {
 
   void _addResponsavel() {
     setState(() {
-      _divisoes.add({
-        'userId': '',
-        'peso': 1.0,
-      });
+      _divisoes.add({'contatoResponsavel': '', 'peso': 1.0});
     });
   }
 
@@ -362,7 +372,9 @@ class _CriarEditarTransacaoPageState extends State<CriarEditarTransacaoPage> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  widget.editingItem == null ? 'Nova Transação' : 'Editar Transação',
+                  widget.editingItem == null
+                      ? 'Nova Transação'
+                      : 'Editar Transação',
                   style: const TextStyle(
                     fontSize: 20,
                     fontWeight: FontWeight.bold,
@@ -401,7 +413,9 @@ class _CriarEditarTransacaoPageState extends State<CriarEditarTransacaoPage> {
                 Expanded(
                   child: TextFormField(
                     controller: _valorController,
-                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                    keyboardType: const TextInputType.numberWithOptions(
+                      decimal: true,
+                    ),
                     decoration: const InputDecoration(
                       labelText: 'Valor (R\$)',
                       border: OutlineInputBorder(),
@@ -426,9 +440,18 @@ class _CriarEditarTransacaoPageState extends State<CriarEditarTransacaoPage> {
                       border: OutlineInputBorder(),
                     ),
                     items: const [
-                      DropdownMenuItem(value: 'despesa', child: Text('Despesa')),
-                      DropdownMenuItem(value: 'receita', child: Text('Receita')),
-                      DropdownMenuItem(value: 'transferencia', child: Text('Transferência')),
+                      DropdownMenuItem(
+                        value: 'despesa',
+                        child: Text('Despesa'),
+                      ),
+                      DropdownMenuItem(
+                        value: 'receita',
+                        child: Text('Receita'),
+                      ),
+                      DropdownMenuItem(
+                        value: 'transferencia',
+                        child: Text('Transferência'),
+                      ),
                     ],
                     onChanged: (val) {
                       if (val != null) {
@@ -478,13 +501,17 @@ class _CriarEditarTransacaoPageState extends State<CriarEditarTransacaoPage> {
                 return DropdownButtonFormField<String>(
                   initialValue: _selectedContaId,
                   decoration: InputDecoration(
-                    labelText: _tipo == 'transferencia' ? 'Conta de Origem' : 'Conta',
+                    labelText: _tipo == 'transferencia'
+                        ? 'Conta de Origem'
+                        : 'Conta',
                     border: const OutlineInputBorder(),
                   ),
                   items: accounts.map((c) {
                     return DropdownMenuItem(
                       value: c.id,
-                      child: Text('${c.name} (Saldo: R\$ ${c.saldoAtual.toStringAsFixed(2)})'),
+                      child: Text(
+                        '${c.name} (Saldo: R\$ ${c.saldoAtual.toStringAsFixed(2)})',
+                      ),
                     );
                   }).toList(),
                   onChanged: (val) {
@@ -515,7 +542,9 @@ class _CriarEditarTransacaoPageState extends State<CriarEditarTransacaoPage> {
                     items: accounts.map((c) {
                       return DropdownMenuItem(
                         value: c.id,
-                        child: Text('${c.name} (Saldo: R\$ ${c.saldoAtual.toStringAsFixed(2)})'),
+                        child: Text(
+                          '${c.name} (Saldo: R\$ ${c.saldoAtual.toStringAsFixed(2)})',
+                        ),
                       );
                     }).toList(),
                     onChanged: (val) {
@@ -544,11 +573,10 @@ class _CriarEditarTransacaoPageState extends State<CriarEditarTransacaoPage> {
                     border: OutlineInputBorder(),
                   ),
                   items: [
-                    const DropdownMenuItem<String>(
-                      child: Text('Nenhuma'),
-                    ),
+                    const DropdownMenuItem<String>(child: Text('Nenhuma')),
                     ...categories.map((cat) {
-                      final IconData icon = _presetIcons[cat.icone] ?? Icons.category;
+                      final IconData icon =
+                          _presetIcons[cat.icone] ?? Icons.category;
                       return DropdownMenuItem(
                         value: cat.id,
                         child: Row(
@@ -564,6 +592,60 @@ class _CriarEditarTransacaoPageState extends State<CriarEditarTransacaoPage> {
                   onChanged: (val) {
                     setState(() {
                       _selectedCategoriaId = val;
+                    });
+                  },
+                );
+              },
+            ),
+            const SizedBox(height: 16),
+            Observer(
+              builder: (context) {
+                final contatos = Core.financasController.contatosList;
+                return DropdownButtonFormField<String>(
+                  value: _selectedDevedorContatoId,
+                  decoration: const InputDecoration(
+                    labelText: 'Devedor Contato (Opcional)',
+                    border: OutlineInputBorder(),
+                  ),
+                  items: [
+                    const DropdownMenuItem<String>(
+                      value: null,
+                      child: Text('Nenhum'),
+                    ),
+                    ...contatos.map((c) {
+                      return DropdownMenuItem(value: c.id, child: Text(c.nome));
+                    }),
+                  ],
+                  onChanged: (val) {
+                    setState(() {
+                      _selectedDevedorContatoId = val;
+                    });
+                  },
+                );
+              },
+            ),
+            const SizedBox(height: 16),
+            Observer(
+              builder: (context) {
+                final contatos = Core.financasController.contatosList;
+                return DropdownButtonFormField<String>(
+                  value: _selectedCredorContatoId,
+                  decoration: const InputDecoration(
+                    labelText: 'Credor Contato (Opcional)',
+                    border: OutlineInputBorder(),
+                  ),
+                  items: [
+                    const DropdownMenuItem<String>(
+                      value: null,
+                      child: Text('Nenhum'),
+                    ),
+                    ...contatos.map((c) {
+                      return DropdownMenuItem(value: c.id, child: Text(c.nome));
+                    }),
+                  ],
+                  onChanged: (val) {
+                    setState(() {
+                      _selectedCredorContatoId = val;
                     });
                   },
                 );
@@ -603,7 +685,8 @@ class _CriarEditarTransacaoPageState extends State<CriarEditarTransacaoPage> {
                           border: OutlineInputBorder(),
                         ),
                         validator: (value) {
-                          if (_recorrente && (value == null || int.tryParse(value) == null)) {
+                          if (_recorrente &&
+                              (value == null || int.tryParse(value) == null)) {
                             return 'Frequência inválida.';
                           }
                           return null;
@@ -620,7 +703,10 @@ class _CriarEditarTransacaoPageState extends State<CriarEditarTransacaoPage> {
                         ),
                         items: const [
                           DropdownMenuItem(value: 'dia', child: Text('Dias')),
-                          DropdownMenuItem(value: 'semana', child: Text('Semanas')),
+                          DropdownMenuItem(
+                            value: 'semana',
+                            child: Text('Semanas'),
+                          ),
                           DropdownMenuItem(value: 'mês', child: Text('Meses')),
                           DropdownMenuItem(value: 'ano', child: Text('Anos')),
                         ],
@@ -644,7 +730,10 @@ class _CriarEditarTransacaoPageState extends State<CriarEditarTransacaoPage> {
                             border: OutlineInputBorder(),
                           ),
                           validator: (value) {
-                            if (_recorrente && !_recorrenciaIndeterminada && (value == null || int.tryParse(value) == null)) {
+                            if (_recorrente &&
+                                !_recorrenciaIndeterminada &&
+                                (value == null ||
+                                    int.tryParse(value) == null)) {
                               return 'Parcelas inválidas.';
                             }
                             return null;
@@ -685,20 +774,39 @@ class _CriarEditarTransacaoPageState extends State<CriarEditarTransacaoPage> {
                     children: [
                       Expanded(
                         flex: 3,
-                        child: TextFormField(
-                          initialValue: div['userId'] as String,
-                          decoration: const InputDecoration(
-                            labelText: 'ID do Usuário',
-                            border: OutlineInputBorder(),
-                          ),
-                          onChanged: (val) {
-                            div['userId'] = val.trim();
-                          },
-                          validator: (value) {
-                            if (value == null || value.trim().isEmpty) {
-                              return 'Necessário';
-                            }
-                            return null;
+                        child: Observer(
+                          builder: (context) {
+                            final contatos =
+                                Core.financasController.contatosList;
+                            return DropdownButtonFormField<String?>(
+                              value:
+                                  (div['contatoResponsavel'] == null ||
+                                      (div['contatoResponsavel'] as String)
+                                          .isEmpty)
+                                  ? null
+                                  : div['contatoResponsavel'] as String?,
+                              decoration: const InputDecoration(
+                                labelText: 'Responsável',
+                                border: OutlineInputBorder(),
+                              ),
+                              items: contatos.map((c) {
+                                return DropdownMenuItem(
+                                  value: c.id,
+                                  child: Text(c.nome),
+                                );
+                              }).toList(),
+                              onChanged: (val) {
+                                setState(() {
+                                  div['contatoResponsavel'] = val ?? '';
+                                });
+                              },
+                              validator: (value) {
+                                if (value == null || value.trim().isEmpty) {
+                                  return 'Selecione';
+                                }
+                                return null;
+                              },
+                            );
                           },
                         ),
                       ),
@@ -707,7 +815,9 @@ class _CriarEditarTransacaoPageState extends State<CriarEditarTransacaoPage> {
                         flex: 2,
                         child: TextFormField(
                           initialValue: div['peso'].toString(),
-                          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                          keyboardType: const TextInputType.numberWithOptions(
+                            decimal: true,
+                          ),
                           decoration: const InputDecoration(
                             labelText: 'Peso',
                             border: OutlineInputBorder(),
@@ -716,7 +826,8 @@ class _CriarEditarTransacaoPageState extends State<CriarEditarTransacaoPage> {
                             div['peso'] = double.tryParse(val) ?? 1.0;
                           },
                           validator: (value) {
-                            if (value == null || double.tryParse(value) == null) {
+                            if (value == null ||
+                                double.tryParse(value) == null) {
                               return 'Peso inválido';
                             }
                             return null;
@@ -724,7 +835,10 @@ class _CriarEditarTransacaoPageState extends State<CriarEditarTransacaoPage> {
                         ),
                       ),
                       IconButton(
-                        icon: const Icon(Icons.remove_circle, color: Colors.red),
+                        icon: const Icon(
+                          Icons.remove_circle,
+                          color: Colors.red,
+                        ),
                         onPressed: () => _removeResponsavel(index),
                       ),
                     ],

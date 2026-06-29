@@ -13,8 +13,8 @@ void main() {
         dataCompetencia: DateTime(2026, 6, 28),
         consolidada: true,
         divisoes: [
-          DivisaoTransacaoModel(id: 'd1', transacaoId: 't1', userId: 'userA', peso: 2.0),
-          DivisaoTransacaoModel(id: 'd2', transacaoId: 't1', userId: 'userB', peso: 1.0),
+          DivisaoTransacaoModel(id: 'd1', transacaoId: 't1', contatoResponsavel: 'userA', peso: 2.0),
+          DivisaoTransacaoModel(id: 'd2', transacaoId: 't1', contatoResponsavel: 'userB', peso: 1.0),
         ],
       );
 
@@ -22,10 +22,10 @@ void main() {
       // userA weight is 2.0, so share is 2/3 of 1500 = 1000
       // userB weight is 1.0, so share is 1/3 of 1500 = 500
 
-      double calcularValorDivisao(TransacaoModel transaction, String userId) {
+      double calcularValorDivisao(TransacaoModel transaction, String contatoId) {
         if (transaction.divisoes.isEmpty) return transaction.valor;
         final double totalPeso = transaction.divisoes.fold(0.0, (sum, div) => sum + div.peso);
-        final userDiv = transaction.divisoes.where((div) => div.userId == userId);
+        final userDiv = transaction.divisoes.where((div) => div.contatoResponsavel == contatoId);
         if (userDiv.isEmpty) return 0.0;
         final double userPeso = userDiv.first.peso;
         return transaction.valor * (userPeso / totalPeso);

@@ -9,6 +9,7 @@ import 'package:ppvdigital/models/categoria_transacao_model.dart';
 import 'package:ppvdigital/models/transacao_recorrencia_model.dart';
 import 'package:ppvdigital/models/divisao_transacao_model.dart';
 import 'package:ppvdigital/models/transacao_model.dart';
+import 'package:ppvdigital/models/contato_model.dart';
 
 class FinancasController {
   FinancasController() {
@@ -24,6 +25,10 @@ class FinancasController {
   final mobx.ObservableList<CategoriaTransacaoModel> _categoriasList =
       mobx.ObservableList<CategoriaTransacaoModel>(name: 'categoriasList');
   List<CategoriaTransacaoModel> get categoriasList => _categoriasList.toList();
+
+  final mobx.ObservableList<ContatoModel> _contatosList =
+      mobx.ObservableList<ContatoModel>(name: 'contatosList');
+  List<ContatoModel> get contatosList => _contatosList.toList();
 
   final mobx.ObservableList<TransacaoModel> _transacoesList =
       mobx.ObservableList<TransacaoModel>(name: 'transacoesList');
@@ -46,6 +51,22 @@ class FinancasController {
           await Core.loginController.loadUser();
         }
         final String user = Core.loginController.currentUser?.$id ?? '';
+
+        // 0. Load contatos
+        final contatosDocs = await databases.listDocuments(
+          databaseId: '671f6e1600022832cba5',
+          collectionId: 'contatos',
+          queries: [
+            Query.equal('ownerId', [user]),
+            Query.limit(5000),
+          ],
+        );
+        _contatosList.clear();
+        _contatosList.addAll(
+          contatosDocs.documents.map((d) => ContatoModel.fromMap(d.data)),
+        );
+
+        final List<String> userContatoIds = _contatosList.map((c) => c.id).toList();
 
         // 1. Load accounts
         final accountsDocs = await databases.listDocuments(
@@ -90,6 +111,8 @@ class FinancasController {
                 'contaDestino.*',
                 'categoria.*',
                 'recorrencia.*',
+                'devedorContato.*',
+                'credorContato.*',
               ]),
               Query.limit(5000),
             ],
@@ -110,6 +133,8 @@ class FinancasController {
                 'contaDestino.*',
                 'categoria.*',
                 'recorrencia.*',
+                'devedorContato.*',
+                'credorContato.*',
               ]),
               Query.limit(5000),
             ],
@@ -121,27 +146,31 @@ class FinancasController {
           }
         }
 
-        // Query divisions where user participates
-        final divDocs = await databases.listDocuments(
-          databaseId: '671f6e1600022832cba5',
-          collectionId: 'divisao_transacoes',
-          queries: [
-            Query.equal('userId', [user]),
-            Query.select([
-              '*',
-              'transacao.*',
-              'transacao.conta.*',
-              'transacao.contaDestino.*',
-              'transacao.categoria.*',
-              'transacao.recorrencia.*',
-            ]),
-            Query.limit(5000),
-          ],
-        );
+        // Query divisions where user's contacts participate
         _divisoesList.clear();
-        _divisoesList.addAll(
-          divDocs.documents.map((d) => DivisaoTransacaoModel.fromMap(d.data)),
-        );
+        if (userContatoIds.isNotEmpty) {
+          final divDocs = await databases.listDocuments(
+            databaseId: '671f6e1600022832cba5',
+            collectionId: 'divisao_transacoes',
+            queries: [
+              Query.equal('contatoResponsavel', userContatoIds),
+              Query.select([
+                '*',
+                'transacao.*',
+                'transacao.conta.*',
+                'transacao.contaDestino.*',
+                'transacao.categoria.*',
+                'transacao.recorrencia.*',
+                'transacao.devedorContato.*',
+                'transacao.credorContato.*',
+              ]),
+              Query.limit(5000),
+            ],
+          );
+          _divisoesList.addAll(
+            divDocs.documents.map((d) => DivisaoTransacaoModel.fromMap(d.data)),
+          );
+        }
 
         // Fetch divisions for loaded transactions to show in UI
         if (loadedTrans.isNotEmpty) {
@@ -326,7 +355,9 @@ class FinancasController {
     int frequencia = 1,
     int totalParcelas = 1,
     DateTime? fimRecorrencia,
-    List<Map<String, dynamic>> divisao = const [], // List of {userId, peso}
+    List<Map<String, dynamic>> divisao = const [], // List of {contatoResponsavel, peso}
+    String? devedorContatoId,
+    String? credorContatoId,
   }) async {
     try {
       final TablesDB tablesDB = TablesDB(databases.client);
@@ -399,6 +430,8 @@ class FinancasController {
             'consolidada': consolidada,
             'categoria': categoriaId,
             'recorrencia': recId,
+            'devedorContato': devedorContatoId,
+            'credorContato': credorContatoId,
           },
         );
 
@@ -418,13 +451,13 @@ class FinancasController {
 
         // Create division rows
         for (final divItem in divisao) {
-          final String rUser = divItem['userId'] as String;
+          final String rContato = divItem['contatoResponsavel'] as String;
           final double rPeso = (divItem['peso'] as num).toDouble();
           await tablesDB.createRow(
             databaseId: '671f6e1600022832cba5',
             tableId: 'divisao_transacoes',
             rowId: ID.unique(),
-            data: {'transacao': tRow.$id, 'userId': rUser, 'peso': rPeso},
+            data: {'transacao': tRow.$id, 'contatoResponsavel': rContato, 'peso': rPeso},
           );
         }
       }
@@ -447,8 +480,10 @@ class FinancasController {
     required String? contaDestinoId,
     required bool consolidada,
     required String? categoriaId,
-    required List<Map<String, dynamic>> divisao,
+    required List<Map<String, dynamic>> divisao, // List of {contatoResponsavel, peso}
     String? optionRecorrencia, // 'only_current', 'current_and_future', 'all'
+    String? devedorContatoId,
+    String? credorContatoId,
   }) async {
     try {
       final TablesDB tablesDB = TablesDB(databases.client);
@@ -473,6 +508,7 @@ class FinancasController {
         }
       }
 
+      final delta = dataCompetencia.difference(original.dataCompetencia);
       String? updatedRecId = original.recorrencia?.id;
 
       if (original.recorrencia != null && optionRecorrencia != null) {
@@ -514,6 +550,8 @@ class FinancasController {
               }
             }
 
+            final newDate = t.dataCompetencia.add(delta);
+
             // Update row
             await tablesDB.updateRow(
               databaseId: '671f6e1600022832cba5',
@@ -523,11 +561,14 @@ class FinancasController {
                 'descricao': descricao,
                 'valor': valor,
                 'tipo': tipo,
+                'dataCompetencia': newDate.toIso8601String(),
                 'conta': contaId,
                 'contaDestino': contaDestinoId,
                 'consolidada': consolidada,
                 'categoria': categoriaId,
                 'recorrencia': updatedRecId,
+                'devedorContato': devedorContatoId,
+                'credorContato': credorContatoId,
               },
             );
 
@@ -552,13 +593,13 @@ class FinancasController {
               );
             }
             for (final divItem in divisao) {
-              final String rUser = divItem['userId'] as String;
+              final String rContato = divItem['contatoResponsavel'] as String;
               final double rPeso = (divItem['peso'] as num).toDouble();
               await tablesDB.createRow(
                 databaseId: '671f6e1600022832cba5',
                 tableId: 'divisao_transacoes',
                 rowId: ID.unique(),
-                data: {'transacao': t.id, 'userId': rUser, 'peso': rPeso},
+                data: {'transacao': t.id, 'contatoResponsavel': rContato, 'peso': rPeso},
               );
             }
           }
@@ -580,6 +621,8 @@ class FinancasController {
               }
             }
 
+            final newDate = t.dataCompetencia.add(delta);
+
             // Update row
             await tablesDB.updateRow(
               databaseId: '671f6e1600022832cba5',
@@ -589,10 +632,13 @@ class FinancasController {
                 'descricao': descricao,
                 'valor': valor,
                 'tipo': tipo,
+                'dataCompetencia': newDate.toIso8601String(),
                 'conta': contaId,
                 'contaDestino': contaDestinoId,
                 'consolidada': consolidada,
                 'categoria': categoriaId,
+                'devedorContato': devedorContatoId,
+                'credorContato': credorContatoId,
               },
             );
 
@@ -617,13 +663,13 @@ class FinancasController {
               );
             }
             for (final divItem in divisao) {
-              final String rUser = divItem['userId'] as String;
+              final String rContato = divItem['contatoResponsavel'] as String;
               final double rPeso = (divItem['peso'] as num).toDouble();
               await tablesDB.createRow(
                 databaseId: '671f6e1600022832cba5',
                 tableId: 'divisao_transacoes',
                 rowId: ID.unique(),
-                data: {'transacao': t.id, 'userId': rUser, 'peso': rPeso},
+                data: {'transacao': t.id, 'contatoResponsavel': rContato, 'peso': rPeso},
               );
             }
           }
@@ -645,6 +691,8 @@ class FinancasController {
           'consolidada': consolidada,
           'categoria': categoriaId,
           'recorrencia': updatedRecId,
+          'devedorContato': devedorContatoId,
+          'credorContato': credorContatoId,
         },
       );
 
@@ -672,13 +720,13 @@ class FinancasController {
       }
 
       for (final divItem in divisao) {
-        final String rUser = divItem['userId'] as String;
+        final String rContato = divItem['contatoResponsavel'] as String;
         final double rPeso = (divItem['peso'] as num).toDouble();
         await tablesDB.createRow(
           databaseId: '671f6e1600022832cba5',
           tableId: 'divisao_transacoes',
           rowId: ID.unique(),
-          data: {'transacao': id, 'userId': rUser, 'peso': rPeso},
+          data: {'transacao': id, 'contatoResponsavel': rContato, 'peso': rPeso},
         );
       }
 
@@ -765,6 +813,83 @@ class FinancasController {
       return true;
     } catch (e) {
       log('Error deleting transaction: $e');
+      return false;
+    }
+  }
+
+  Future<bool> createContato({
+    required String nome,
+    String? telefone,
+    String? email,
+    String? userId,
+  }) async {
+    try {
+      if (Core.loginController.currentUser == null) {
+        await Core.loginController.loadUser();
+      }
+      final String user = Core.loginController.currentUser?.$id ?? '';
+      final TablesDB tablesDB = TablesDB(databases.client);
+
+      await tablesDB.createRow(
+        databaseId: '671f6e1600022832cba5',
+        tableId: 'contatos',
+        rowId: ID.unique(),
+        data: {
+          'ownerId': user,
+          'nome': nome,
+          'telefone': telefone,
+          'email': email,
+          'userId': userId,
+        },
+      );
+      await loadDocuments();
+      return true;
+    } catch (e) {
+      log('Error creating contact: $e');
+      return false;
+    }
+  }
+
+  Future<bool> updateContato({
+    required String id,
+    required String nome,
+    String? telefone,
+    String? email,
+    String? userId,
+  }) async {
+    try {
+      final TablesDB tablesDB = TablesDB(databases.client);
+      await tablesDB.updateRow(
+        databaseId: '671f6e1600022832cba5',
+        tableId: 'contatos',
+        rowId: id,
+        data: {
+          'nome': nome,
+          'telefone': telefone,
+          'email': email,
+          'userId': userId,
+        },
+      );
+      await loadDocuments();
+      return true;
+    } catch (e) {
+      log('Error updating contact: $e');
+      return false;
+    }
+  }
+
+  Future<bool> deleteContato(String id) async {
+    try {
+      final TablesDB tablesDB = TablesDB(databases.client);
+      await tablesDB.deleteRow(
+        databaseId: '671f6e1600022832cba5',
+        tableId: 'contatos',
+        rowId: id,
+      );
+      await loadDocuments();
+      return true;
+    } catch (e) {
+      log('Error deleting contact: $e');
       return false;
     }
   }

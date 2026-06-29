@@ -3,6 +3,7 @@ import 'package:ppvdigital/models/conta_model.dart';
 import 'package:ppvdigital/models/categoria_transacao_model.dart';
 import 'package:ppvdigital/models/transacao_recorrencia_model.dart';
 import 'package:ppvdigital/models/divisao_transacao_model.dart';
+import 'package:ppvdigital/models/contato_model.dart';
 
 class TransacaoModel {
   final String id;
@@ -16,6 +17,8 @@ class TransacaoModel {
   final CategoriaTransacaoModel? categoria;
   final TransacaoRecorrenciaModel? recorrencia;
   final List<DivisaoTransacaoModel> divisoes;
+  final ContatoModel? devedorContato;
+  final ContatoModel? credorContato;
 
   TransacaoModel({
     required this.id,
@@ -29,6 +32,8 @@ class TransacaoModel {
     this.categoria,
     this.recorrencia,
     required this.divisoes,
+    this.devedorContato,
+    this.credorContato,
   });
 
   TransacaoModel copyWith({
@@ -43,6 +48,8 @@ class TransacaoModel {
     CategoriaTransacaoModel? categoria,
     TransacaoRecorrenciaModel? recorrencia,
     List<DivisaoTransacaoModel>? divisoes,
+    ContatoModel? devedorContato,
+    ContatoModel? credorContato,
   }) {
     return TransacaoModel(
       id: id ?? this.id,
@@ -56,6 +63,8 @@ class TransacaoModel {
       categoria: categoria ?? this.categoria,
       recorrencia: recorrencia ?? this.recorrencia,
       divisoes: divisoes ?? this.divisoes,
+      devedorContato: devedorContato ?? this.devedorContato,
+      credorContato: credorContato ?? this.credorContato,
     );
   }
 
@@ -70,6 +79,8 @@ class TransacaoModel {
       'consolidada': consolidada,
       'categoria': categoria?.id,
       'recorrencia': recorrencia?.id,
+      'devedorContato': devedorContato?.id,
+      'credorContato': credorContato?.id,
     };
   }
 
@@ -109,6 +120,18 @@ class TransacaoModel {
       }
     }
 
+    ContatoModel? parsedDevedorContato;
+    final dynamic rawDevedor = map['devedorContato'];
+    if (rawDevedor is Map<String, dynamic>) {
+      parsedDevedorContato = ContatoModel.fromMap(rawDevedor);
+    }
+
+    ContatoModel? parsedCredorContato;
+    final dynamic rawCredor = map['credorContato'];
+    if (rawCredor is Map<String, dynamic>) {
+      parsedCredorContato = ContatoModel.fromMap(rawCredor);
+    }
+
     return TransacaoModel(
       id: map[r'$id'] as String? ?? map['id'] as String? ?? '',
       descricao: map['descricao'] as String? ?? '',
@@ -121,6 +144,8 @@ class TransacaoModel {
       categoria: parsedCategoria,
       recorrencia: parsedRecorrencia,
       divisoes: parsedDivisoes,
+      devedorContato: parsedDevedorContato,
+      credorContato: parsedCredorContato,
     );
   }
 
@@ -131,7 +156,7 @@ class TransacaoModel {
 
   @override
   String toString() {
-    return 'TransacaoModel(id: $id, descricao: $descricao, valor: $valor, tipo: $tipo, dataCompetencia: $dataCompetencia, contaDestino: $contaDestino, conta: $conta, consolidada: $consolidada, categoria: $categoria, recorrencia: $recorrencia, divisoes: $divisoes)';
+    return 'TransacaoModel(id: $id, descricao: $descricao, valor: $valor, tipo: $tipo, dataCompetencia: $dataCompetencia, contaDestino: $contaDestino, conta: $conta, consolidada: $consolidada, categoria: $categoria, recorrencia: $recorrencia, divisoes: $divisoes, devedorContato: $devedorContato, credorContato: $credorContato)';
   }
 
   @override
@@ -146,7 +171,9 @@ class TransacaoModel {
         other.conta == conta &&
         other.consolidada == consolidada &&
         other.categoria == categoria &&
-        other.recorrencia == recorrencia;
+        other.recorrencia == recorrencia &&
+        other.devedorContato == devedorContato &&
+        other.credorContato == credorContato;
   }
 
   @override
@@ -160,6 +187,8 @@ class TransacaoModel {
         conta.hashCode ^
         consolidada.hashCode ^
         categoria.hashCode ^
-        recorrencia.hashCode;
+        recorrencia.hashCode ^
+        devedorContato.hashCode ^
+        credorContato.hashCode;
   }
 }

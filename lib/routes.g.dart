@@ -6,16 +6,17 @@ import 'app/app_page.dart' as a0;
 import 'app/capacitacao/capacitacao_page.dart' as a1;
 import 'app/capacitacao/criar_editar_categoria_page.dart' as a2;
 import 'app/capacitacao/criar_editar_categoria_transacao_page.dart' as a3;
-import 'app/capacitacao/criar_editar_conta_page.dart' as a4;
-import 'app/capacitacao/criar_editar_habito_tarefa_page.dart' as a5;
-import 'app/capacitacao/criar_editar_transacao_page.dart' as a6;
-import 'app/capacitacao/financas/financas_layout.dart' as a7;
-import 'app/capacitacao/tarefas_habitos/calendario_page.dart' as a8;
-import 'app/capacitacao/tarefas_habitos/categorias_page.dart' as a9;
-import 'app/capacitacao/tarefas_habitos/lista_habitos_tarefas_page.dart' as a10;
-import 'app/capacitacao/tarefas_habitos/tarefas_habitos_layout.dart' as a11;
-import 'app/home/home_page.dart' as a12;
-import 'app/login/login_page.dart' as a13;
+import 'app/capacitacao/criar_editar_conta_page.dart' as a5;
+import 'app/capacitacao/criar_editar_contato_page.dart' as a4;
+import 'app/capacitacao/criar_editar_habito_tarefa_page.dart' as a6;
+import 'app/capacitacao/criar_editar_transacao_page.dart' as a7;
+import 'app/capacitacao/financas/financas_layout.dart' as a8;
+import 'app/capacitacao/tarefas_habitos/calendario_page.dart' as a9;
+import 'app/capacitacao/tarefas_habitos/categorias_page.dart' as a10;
+import 'app/capacitacao/tarefas_habitos/lista_habitos_tarefas_page.dart' as a11;
+import 'app/capacitacao/tarefas_habitos/tarefas_habitos_layout.dart' as a12;
+import 'app/home/home_page.dart' as a13;
+import 'app/login/login_page.dart' as a14;
 
 List<RouteEntity> get routes => [
   RouteEntity(
@@ -45,39 +46,44 @@ List<RouteEntity> get routes => [
     routeBuilder: a3.routeBuilder,
   ),
   RouteEntity(
+    key: '/capacitacao/criar_editar_contato',
+    uri: Uri.parse('/capacitacao/criar_editar_contato'),
+    routeBuilder: a4.routeBuilder,
+  ),
+  RouteEntity(
     key: '/capacitacao/criar_editar_conta',
     uri: Uri.parse('/capacitacao/criar_editar_conta'),
-    routeBuilder: a4.routeBuilder,
+    routeBuilder: a5.routeBuilder,
   ),
   RouteEntity(
     key: '/capacitacao/criar_editar_habito_tarefa',
     uri: Uri.parse('/capacitacao/criar_editar_habito_tarefa'),
-    routeBuilder: a5.routeBuilder,
+    routeBuilder: a6.routeBuilder,
   ),
   RouteEntity(
     key: '/capacitacao/criar_editar_transacao',
     uri: Uri.parse('/capacitacao/criar_editar_transacao'),
-    routeBuilder: a6.routeBuilder,
+    routeBuilder: a7.routeBuilder,
   ),
   RouteEntity(
     key: '/capacitacao/financas',
     uri: Uri.parse('/capacitacao/financas'),
     routeBuilder: (ctx, settings) =>
-        Routefly.defaultRouteBuilder(ctx, settings, const a7.FinancasLayout()),
+        Routefly.defaultRouteBuilder(ctx, settings, const a8.FinancasLayout()),
   ),
   RouteEntity(
     key: '/capacitacao/tarefas_habitos/calendario',
     parent: '/capacitacao/tarefas_habitos',
     uri: Uri.parse('/capacitacao/tarefas_habitos/calendario'),
     routeBuilder: (ctx, settings) =>
-        Routefly.defaultRouteBuilder(ctx, settings, const a8.CalendarioPage()),
+        Routefly.defaultRouteBuilder(ctx, settings, const a9.CalendarioPage()),
   ),
   RouteEntity(
     key: '/capacitacao/tarefas_habitos/categorias',
     parent: '/capacitacao/tarefas_habitos',
     uri: Uri.parse('/capacitacao/tarefas_habitos/categorias'),
     routeBuilder: (ctx, settings) =>
-        Routefly.defaultRouteBuilder(ctx, settings, const a9.CategoriasPage()),
+        Routefly.defaultRouteBuilder(ctx, settings, const a10.CategoriasPage()),
   ),
   RouteEntity(
     key: '/capacitacao/tarefas_habitos/lista_habitos_tarefas',
@@ -86,26 +92,26 @@ List<RouteEntity> get routes => [
     routeBuilder: (ctx, settings) => Routefly.defaultRouteBuilder(
       ctx,
       settings,
-      const a10.ListaHabitosTarefasPage(),
+      const a11.ListaHabitosTarefasPage(),
     ),
   ),
   RouteEntity(
     key: '/capacitacao/tarefas_habitos',
     uri: Uri.parse('/capacitacao/tarefas_habitos'),
     routeBuilder: (ctx, settings) =>
-        Routefly.defaultRouteBuilder(ctx, settings, const a11.TarefasPage()),
+        Routefly.defaultRouteBuilder(ctx, settings, const a12.TarefasPage()),
   ),
   RouteEntity(
     key: '/home',
     uri: Uri.parse('/home'),
     routeBuilder: (ctx, settings) =>
-        Routefly.defaultRouteBuilder(ctx, settings, const a12.HomePage()),
+        Routefly.defaultRouteBuilder(ctx, settings, const a13.HomePage()),
   ),
   RouteEntity(
     key: '/login',
     uri: Uri.parse('/login'),
     routeBuilder: (ctx, settings) =>
-        Routefly.defaultRouteBuilder(ctx, settings, const a13.LoginPage()),
+        Routefly.defaultRouteBuilder(ctx, settings, const a14.LoginPage()),
   ),
 ];
 
@@ -116,6 +122,7 @@ const routePaths = (
     criarEditarCategoria: '/capacitacao/criar_editar_categoria',
     criarEditarCategoriaTransacao:
         '/capacitacao/criar_editar_categoria_transacao',
+    criarEditarContato: '/capacitacao/criar_editar_contato',
     criarEditarConta: '/capacitacao/criar_editar_conta',
     criarEditarHabitoTarefa: '/capacitacao/criar_editar_habito_tarefa',
     criarEditarTransacao: '/capacitacao/criar_editar_transacao',

@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import 'package:ppvdigital/app/capacitacao/financas/financas_controller.dart';
 import 'package:ppvdigital/core.dart';
 import 'package:ppvdigital/models/transacao_model.dart';
+import 'package:ppvdigital/models/contato_model.dart';
 import 'package:ppvdigital/routes.g.dart';
 import 'package:routefly/routefly.dart';
 
@@ -42,9 +43,15 @@ class _FinancasLayoutState extends State<FinancasLayout> {
   double _calcularValorDivisao(TransacaoModel t, String activeUserId) {
     if (t.divisoes.isEmpty) return t.valor;
     final double totalPeso = t.divisoes.fold(0.0, (sum, div) => sum + div.peso);
-    final userDiv = t.divisoes.where((div) => div.userId == activeUserId);
+    final userDiv = t.divisoes.where((div) {
+      final contact = Core.financasController.contatosList.firstWhere(
+        (c) => c.id == div.contatoResponsavel,
+        orElse: () => ContatoModel(id: '', ownerId: '', nome: ''),
+      );
+      return contact.userId == activeUserId;
+    });
     if (userDiv.isEmpty) return 0.0;
-    final double userPeso = userDiv.first.peso;
+    final double userPeso = userDiv.fold(0.0, (sum, div) => sum + div.peso);
     return t.valor * (userPeso / totalPeso);
   }
 
@@ -86,7 +93,7 @@ class _FinancasLayoutState extends State<FinancasLayout> {
     final String activeUser = Core.loginController.currentUser?.$id ?? '';
 
     return DefaultTabController(
-      length: 3,
+      length: 4,
       child: Scaffold(
         appBar: AppBar(title: const Text('Finanças')),
         bottomNavigationBar: Material(
@@ -98,6 +105,7 @@ class _FinancasLayoutState extends State<FinancasLayout> {
                 Tab(icon: Icon(Icons.swap_horiz), text: 'Transações'),
                 Tab(icon: Icon(Icons.account_balance_wallet), text: 'Contas'),
                 Tab(icon: Icon(Icons.category), text: 'Categorias'),
+                Tab(icon: Icon(Icons.people), text: 'Contatos'),
               ],
             ),
           ),
@@ -174,6 +182,7 @@ class _FinancasLayoutState extends State<FinancasLayout> {
                         _buildMonthSelector(),
                         Expanded(
                           child: ListView.builder(
+                            padding: const EdgeInsets.only(bottom: 80.0),
                             itemCount: grouped.length,
                             itemBuilder: (context, index) {
                               final dateKey = grouped.keys.elementAt(index);
@@ -360,7 +369,12 @@ class _FinancasLayoutState extends State<FinancasLayout> {
                       );
                     }
                     return GridView.builder(
-                      padding: const EdgeInsets.all(16.0),
+                      padding: const EdgeInsets.only(
+                        left: 16.0,
+                        right: 16.0,
+                        top: 16.0,
+                        bottom: 80.0,
+                      ),
                       gridDelegate:
                           const SliverGridDelegateWithMaxCrossAxisExtent(
                             maxCrossAxisExtent: 220,
@@ -443,7 +457,12 @@ class _FinancasLayoutState extends State<FinancasLayout> {
                       );
                     }
                     return GridView.builder(
-                      padding: const EdgeInsets.all(16.0),
+                      padding: const EdgeInsets.only(
+                        left: 16.0,
+                        right: 16.0,
+                        top: 16.0,
+                        bottom: 80.0,
+                      ),
                       gridDelegate:
                           const SliverGridDelegateWithMaxCrossAxisExtent(
                             maxCrossAxisExtent: 180,
@@ -514,13 +533,70 @@ class _FinancasLayoutState extends State<FinancasLayout> {
                     );
                   },
                 ),
+                // 4. Contacts Tab
+                Observer(
+                  builder: (context) {
+                    final contatos = Core.financasController.contatosList;
+                    if (contatos.isEmpty) {
+                      return const Center(
+                        child: Text('Nenhum contato cadastrado.'),
+                      );
+                    }
+                    return ListView.builder(
+                      padding: const EdgeInsets.fromLTRB(16.0, 16.0, 16.0, 80.0),
+                      itemCount: contatos.length,
+                      itemBuilder: (context, index) {
+                        final c = contatos[index];
+                        return Card(
+                          margin: const EdgeInsets.only(bottom: 12),
+                          elevation: 1,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: ListTile(
+                            leading: CircleAvatar(
+                              backgroundColor: Theme.of(context).colorScheme.primary.withOpacity(0.1),
+                              child: Text(
+                                c.nome.isNotEmpty ? c.nome.substring(0, 1).toUpperCase() : '?',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  color: Theme.of(context).colorScheme.primary,
+                                ),
+                              ),
+                            ),
+                            title: Text(
+                              c.nome,
+                              style: const TextStyle(fontWeight: FontWeight.bold),
+                            ),
+                            subtitle: Text(
+                              '${c.email ?? 'Sem email'} • ${c.telefone ?? 'Sem telefone'}',
+                              style: const TextStyle(fontSize: 12),
+                            ),
+                            trailing: IconButton(
+                              icon: const Icon(Icons.edit),
+                              onPressed: () {
+                                Routefly.pushNavigate(
+                                  routePaths.capacitacao.criarEditarContato,
+                                  arguments: {
+                                    'lastRoute': Routefly.currentUri.path,
+                                    'contato': c,
+                                  },
+                                );
+                              },
+                            ),
+                          ),
+                        );
+                      },
+                    );
+                  },
+                ),
               ],
             );
           },
         ),
         floatingActionButtonLocation: ExpandableFab.location,
         floatingActionButton: ExpandableFab(
-          distance: 180,
+          distance: 240,
           children: [
             FloatingActionButton.extended(
               heroTag: 'financas_transacao_fab',
@@ -554,6 +630,18 @@ class _FinancasLayoutState extends State<FinancasLayout> {
               onPressed: () {
                 Routefly.pushNavigate(
                   routePaths.capacitacao.criarEditarCategoriaTransacao,
+                  arguments: Routefly.currentUri.path,
+                );
+              },
+            ),
+            FloatingActionButton.extended(
+              heroTag: 'financas_contato_fab',
+              tooltip: 'Novo Contato',
+              label: const Text('Contato'),
+              icon: const Icon(Icons.person_add),
+              onPressed: () {
+                Routefly.pushNavigate(
+                  routePaths.capacitacao.criarEditarContato,
                   arguments: Routefly.currentUri.path,
                 );
               },
