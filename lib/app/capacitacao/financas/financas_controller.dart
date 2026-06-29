@@ -1,15 +1,15 @@
 import 'dart:async';
 import 'dart:developer';
+
 import 'package:appwrite/appwrite.dart';
 import 'package:appwrite/models.dart';
 import 'package:mobx/mobx.dart' as mobx;
 import 'package:ppvdigital/core.dart';
-import 'package:ppvdigital/models/conta_model.dart';
 import 'package:ppvdigital/models/categoria_transacao_model.dart';
-import 'package:ppvdigital/models/transacao_recorrencia_model.dart';
+import 'package:ppvdigital/models/conta_model.dart';
+import 'package:ppvdigital/models/contato_model.dart';
 import 'package:ppvdigital/models/divisao_transacao_model.dart';
 import 'package:ppvdigital/models/transacao_model.dart';
-import 'package:ppvdigital/models/contato_model.dart';
 
 class FinancasController {
   FinancasController() {
@@ -51,11 +51,12 @@ class FinancasController {
           await Core.loginController.loadUser();
         }
         final String user = Core.loginController.currentUser?.$id ?? '';
+        final TablesDB tablesDB = TablesDB(databases.client);
 
         // 0. Load contatos
-        final contatosDocs = await databases.listDocuments(
+        final contatosDocs = await tablesDB.listRows(
           databaseId: '671f6e1600022832cba5',
-          collectionId: 'contatos',
+          tableId: 'contatos',
           queries: [
             Query.equal('ownerId', [user]),
             Query.limit(5000),
@@ -63,35 +64,37 @@ class FinancasController {
         );
         _contatosList.clear();
         _contatosList.addAll(
-          contatosDocs.documents.map((d) => ContatoModel.fromMap(d.data)),
+          contatosDocs.rows.map((d) => ContatoModel.fromMap(d.data)),
         );
 
-        final List<String> userContatoIds = _contatosList.map((c) => c.id).toList();
+        final List<String> userContatoIds = _contatosList
+            .map((c) => c.id)
+            .toList();
 
         // 1. Load accounts
-        final accountsDocs = await databases.listDocuments(
+        final accountsDocs = await tablesDB.listRows(
           databaseId: '671f6e1600022832cba5',
-          collectionId: '671f7aa70014dda7507c', // contas
+          tableId: '671f7aa70014dda7507c', // contas
           queries: [
             Query.equal('userId', [user]),
           ],
         );
         _contasList.clear();
         _contasList.addAll(
-          accountsDocs.documents.map((d) => ContaModel.fromMap(d.data)),
+          accountsDocs.rows.map((d) => ContaModel.fromMap(d.data)),
         );
 
         // 2. Load categories
-        final catDocs = await databases.listDocuments(
+        final catDocs = await tablesDB.listRows(
           databaseId: '671f6e1600022832cba5',
-          collectionId: 'categorias_transacoes',
+          tableId: 'categorias_transacoes',
           queries: [
             Query.equal('userId', [user]),
           ],
         );
         _categoriasList.clear();
         _categoriasList.addAll(
-          catDocs.documents.map((d) => CategoriaTransacaoModel.fromMap(d.data)),
+          catDocs.rows.map((d) => CategoriaTransacaoModel.fromMap(d.data)),
         );
 
         // 3. Load transactions
@@ -100,9 +103,9 @@ class FinancasController {
 
         if (contaIds.isNotEmpty) {
           // Query transactions where conta is one of the user's accounts
-          final transDocs1 = await databases.listDocuments(
+          final transDocs1 = await tablesDB.listRows(
             databaseId: '671f6e1600022832cba5',
-            collectionId: '671f7a6f000cb3ab17b9', // transacoes
+            tableId: '671f7a6f000cb3ab17b9', // transacoes
             queries: [
               Query.equal('conta', contaIds),
               Query.select([
@@ -117,14 +120,14 @@ class FinancasController {
               Query.limit(5000),
             ],
           );
-          for (final doc in transDocs1.documents) {
+          for (final doc in transDocs1.rows) {
             loadedTrans.add(TransacaoModel.fromMap(doc.data));
           }
 
           // Query transactions where contaDestino is one of the user's accounts (incoming transfers)
-          final transDocs2 = await databases.listDocuments(
+          final transDocs2 = await tablesDB.listRows(
             databaseId: '671f6e1600022832cba5',
-            collectionId: '671f7a6f000cb3ab17b9',
+            tableId: '671f7a6f000cb3ab17b9',
             queries: [
               Query.equal('contaDestino', contaIds),
               Query.select([
@@ -139,7 +142,7 @@ class FinancasController {
               Query.limit(5000),
             ],
           );
-          for (final doc in transDocs2.documents) {
+          for (final doc in transDocs2.rows) {
             if (!loadedTrans.any((t) => t.id == doc.$id)) {
               loadedTrans.add(TransacaoModel.fromMap(doc.data));
             }
@@ -149,9 +152,9 @@ class FinancasController {
         // Query divisions where user's contacts participate
         _divisoesList.clear();
         if (userContatoIds.isNotEmpty) {
-          final divDocs = await databases.listDocuments(
+          final divDocs = await tablesDB.listRows(
             databaseId: '671f6e1600022832cba5',
-            collectionId: 'divisao_transacoes',
+            tableId: 'divisao_transacoes',
             queries: [
               Query.equal('contatoResponsavel', userContatoIds),
               Query.select([
@@ -168,7 +171,7 @@ class FinancasController {
             ],
           );
           _divisoesList.addAll(
-            divDocs.documents.map((d) => DivisaoTransacaoModel.fromMap(d.data)),
+            divDocs.rows.map((d) => DivisaoTransacaoModel.fromMap(d.data)),
           );
         }
 
@@ -177,15 +180,15 @@ class FinancasController {
           final List<String> loadedTransIds = loadedTrans
               .map((t) => t.id)
               .toList();
-          final allDivsDocs = await databases.listDocuments(
+          final allDivsDocs = await tablesDB.listRows(
             databaseId: '671f6e1600022832cba5',
-            collectionId: 'divisao_transacoes',
+            tableId: 'divisao_transacoes',
             queries: [
               Query.equal('transacao', loadedTransIds),
               Query.limit(5000),
             ],
           );
-          final List<DivisaoTransacaoModel> allDivs = allDivsDocs.documents
+          final List<DivisaoTransacaoModel> allDivs = allDivsDocs.rows
               .map((d) => DivisaoTransacaoModel.fromMap(d.data))
               .toList();
 
@@ -355,7 +358,8 @@ class FinancasController {
     int frequencia = 1,
     int totalParcelas = 1,
     DateTime? fimRecorrencia,
-    List<Map<String, dynamic>> divisao = const [], // List of {contatoResponsavel, peso}
+    List<Map<String, dynamic>> divisao =
+        const [], // List of {contatoResponsavel, peso}
     String? devedorContatoId,
     String? credorContatoId,
   }) async {
@@ -383,9 +387,12 @@ class FinancasController {
           ? (recorrenciaIndeterminada ? 24 : totalParcelas)
           : 1;
 
-      for (int i = 1; i <= loopLimit; i++) {
-        DateTime date = dataCompetencia;
-        if (recorrente) {
+      if (recorrente) {
+        final String txId = (await tablesDB.createTransaction()).$id;
+        final List<Map<String, dynamic>> ops = [];
+
+        for (int i = 1; i <= loopLimit; i++) {
+          DateTime date = dataCompetencia;
           if (tipoRecorrencia == 'dia') {
             date = dataCompetencia.add(Duration(days: (i - 1) * frequencia));
           } else if (tipoRecorrencia == 'semana') {
@@ -409,33 +416,101 @@ class FinancasController {
               dataCompetencia.minute,
             );
           }
+
+          final String descFinal = recorrente && !recorrenciaIndeterminada
+              ? '$descricao (Parcela $i/$totalParcelas)'
+              : descricao;
+
+          final String tRowId = ID.unique();
+
+          // Stage transaction creation
+          ops.add({
+            'action': 'create',
+            'databaseId': '671f6e1600022832cba5',
+            'tableId': '671f7a6f000cb3ab17b9',
+            'rowId': tRowId,
+            'data': {
+              'descricao': descFinal,
+              'valor': valor,
+              'tipo': tipo,
+              'dataCompetencia': date.toIso8601String(),
+              'conta': contaId,
+              'contaDestino': contaDestinoId,
+              'consolidada': consolidada,
+              'categoria': categoriaId,
+              'recorrencia': recId,
+              'devedorContato': devedorContatoId,
+              'credorContato': credorContatoId,
+            },
+          });
+
+          // Adjust account balance if consolidated
+          if (consolidada) {
+            if (tipo == 'despesa' && contaId != null) {
+              await updateAccountBalance(contaId, -valor);
+            } else if (tipo == 'receita' && contaId != null) {
+              await updateAccountBalance(contaId, valor);
+            } else if (tipo == 'transferencia' &&
+                contaId != null &&
+                contaDestinoId != null) {
+              await updateAccountBalance(contaId, -valor);
+              await updateAccountBalance(contaDestinoId, valor);
+            }
+          }
+
+          // Stage division creation
+          for (final divItem in divisao) {
+            final String rContato = divItem['contatoResponsavel'] as String;
+            final double rPeso = (divItem['peso'] as num).toDouble();
+            ops.add({
+              'action': 'create',
+              'databaseId': '671f6e1600022832cba5',
+              'tableId': 'divisao_transacoes',
+              'rowId': ID.unique(),
+              'data': {
+                'transacao': tRowId,
+                'contatoResponsavel': rContato,
+                'peso': rPeso,
+              },
+            });
+          }
         }
 
-        final String descFinal = recorrente && !recorrenciaIndeterminada
-            ? '$descricao (Parcela $i/$totalParcelas)'
-            : descricao;
+        // Send operations in blocks of 100
+        for (int j = 0; j < ops.length; j += 100) {
+          final chunk = ops.sublist(j, j + 100 > ops.length ? ops.length : j + 100);
+          await tablesDB.createOperations(
+            transactionId: txId,
+            operations: chunk,
+          );
+        }
 
-        // Create transaction document
-        final Row tRow = await tablesDB.createRow(
+        // Commit transaction
+        await tablesDB.updateTransaction(
+          transactionId: txId,
+          commit: true,
+        );
+      } else {
+        // Single non-recurrent transaction (normal flow)
+        final String tRowId = ID.unique();
+        await tablesDB.createRow(
           databaseId: '671f6e1600022832cba5',
-          tableId: '671f7a6f000cb3ab17b9', // transacoes
-          rowId: ID.unique(),
+          tableId: '671f7a6f000cb3ab17b9',
+          rowId: tRowId,
           data: {
-            'descricao': descFinal,
+            'descricao': descricao,
             'valor': valor,
             'tipo': tipo,
-            'dataCompetencia': date.toIso8601String(),
+            'dataCompetencia': dataCompetencia.toIso8601String(),
             'conta': contaId,
             'contaDestino': contaDestinoId,
             'consolidada': consolidada,
             'categoria': categoriaId,
-            'recorrencia': recId,
             'devedorContato': devedorContatoId,
             'credorContato': credorContatoId,
           },
         );
 
-        // Adjust account balance if consolidated
         if (consolidada) {
           if (tipo == 'despesa' && contaId != null) {
             await updateAccountBalance(contaId, -valor);
@@ -449,7 +524,6 @@ class FinancasController {
           }
         }
 
-        // Create division rows
         for (final divItem in divisao) {
           final String rContato = divItem['contatoResponsavel'] as String;
           final double rPeso = (divItem['peso'] as num).toDouble();
@@ -457,7 +531,11 @@ class FinancasController {
             databaseId: '671f6e1600022832cba5',
             tableId: 'divisao_transacoes',
             rowId: ID.unique(),
-            data: {'transacao': tRow.$id, 'contatoResponsavel': rContato, 'peso': rPeso},
+            data: {
+              'transacao': tRowId,
+              'contatoResponsavel': rContato,
+              'peso': rPeso,
+            },
           );
         }
       }
@@ -480,7 +558,8 @@ class FinancasController {
     required String? contaDestinoId,
     required bool consolidada,
     required String? categoriaId,
-    required List<Map<String, dynamic>> divisao, // List of {contatoResponsavel, peso}
+    required List<Map<String, dynamic>>
+    divisao, // List of {contatoResponsavel, peso}
     String? optionRecorrencia, // 'only_current', 'current_and_future', 'all'
     String? devedorContatoId,
     String? credorContatoId,
@@ -532,10 +611,16 @@ class FinancasController {
           updatedRecId = newRecRow.$id;
 
           // update other future transactions in series
-          final allRecTrans = transacoesList.where((t) => t.recorrencia?.id == original.recorrencia!.id).toList();
-          final futureTrans = allRecTrans.where((t) =>
-            t.id != original.id && t.dataCompetencia.isAfter(original.dataCompetencia)
-          ).toList();
+          final allRecTrans = transacoesList
+              .where((t) => t.recorrencia?.id == original.recorrencia!.id)
+              .toList();
+          final futureTrans = allRecTrans
+              .where(
+                (t) =>
+                    t.id != original.id &&
+                    t.dataCompetencia.isAfter(original.dataCompetencia),
+              )
+              .toList();
 
           for (final t in futureTrans) {
             // Revert balance if consolidated
@@ -544,7 +629,9 @@ class FinancasController {
                 await updateAccountBalance(t.conta!.id, t.valor);
               } else if (t.tipo == 'receita' && t.conta != null) {
                 await updateAccountBalance(t.conta!.id, -t.valor);
-              } else if (t.tipo == 'transferencia' && t.conta != null && t.contaDestino != null) {
+              } else if (t.tipo == 'transferencia' &&
+                  t.conta != null &&
+                  t.contaDestino != null) {
                 await updateAccountBalance(t.conta!.id, t.valor);
                 await updateAccountBalance(t.contaDestino!.id, -t.valor);
               }
@@ -578,7 +665,9 @@ class FinancasController {
                 await updateAccountBalance(contaId, -valor);
               } else if (tipo == 'receita' && contaId != null) {
                 await updateAccountBalance(contaId, valor);
-              } else if (tipo == 'transferencia' && contaId != null && contaDestinoId != null) {
+              } else if (tipo == 'transferencia' &&
+                  contaId != null &&
+                  contaDestinoId != null) {
                 await updateAccountBalance(contaId, -valor);
                 await updateAccountBalance(contaDestinoId, valor);
               }
@@ -599,14 +688,22 @@ class FinancasController {
                 databaseId: '671f6e1600022832cba5',
                 tableId: 'divisao_transacoes',
                 rowId: ID.unique(),
-                data: {'transacao': t.id, 'contatoResponsavel': rContato, 'peso': rPeso},
+                data: {
+                  'transacao': t.id,
+                  'contatoResponsavel': rContato,
+                  'peso': rPeso,
+                },
               );
             }
           }
         } else if (optionRecorrencia == 'all') {
           // update all other transactions in series
-          final allRecTrans = transacoesList.where((t) => t.recorrencia?.id == original.recorrencia!.id).toList();
-          final otherTrans = allRecTrans.where((t) => t.id != original.id).toList();
+          final allRecTrans = transacoesList
+              .where((t) => t.recorrencia?.id == original.recorrencia!.id)
+              .toList();
+          final otherTrans = allRecTrans
+              .where((t) => t.id != original.id)
+              .toList();
 
           for (final t in otherTrans) {
             // Revert balance if consolidated
@@ -615,7 +712,9 @@ class FinancasController {
                 await updateAccountBalance(t.conta!.id, t.valor);
               } else if (t.tipo == 'receita' && t.conta != null) {
                 await updateAccountBalance(t.conta!.id, -t.valor);
-              } else if (t.tipo == 'transferencia' && t.conta != null && t.contaDestino != null) {
+              } else if (t.tipo == 'transferencia' &&
+                  t.conta != null &&
+                  t.contaDestino != null) {
                 await updateAccountBalance(t.conta!.id, t.valor);
                 await updateAccountBalance(t.contaDestino!.id, -t.valor);
               }
@@ -648,7 +747,9 @@ class FinancasController {
                 await updateAccountBalance(contaId, -valor);
               } else if (tipo == 'receita' && contaId != null) {
                 await updateAccountBalance(contaId, valor);
-              } else if (tipo == 'transferencia' && contaId != null && contaDestinoId != null) {
+              } else if (tipo == 'transferencia' &&
+                  contaId != null &&
+                  contaDestinoId != null) {
                 await updateAccountBalance(contaId, -valor);
                 await updateAccountBalance(contaDestinoId, valor);
               }
@@ -669,7 +770,11 @@ class FinancasController {
                 databaseId: '671f6e1600022832cba5',
                 tableId: 'divisao_transacoes',
                 rowId: ID.unique(),
-                data: {'transacao': t.id, 'contatoResponsavel': rContato, 'peso': rPeso},
+                data: {
+                  'transacao': t.id,
+                  'contatoResponsavel': rContato,
+                  'peso': rPeso,
+                },
               );
             }
           }
@@ -726,7 +831,11 @@ class FinancasController {
           databaseId: '671f6e1600022832cba5',
           tableId: 'divisao_transacoes',
           rowId: ID.unique(),
-          data: {'transacao': id, 'contatoResponsavel': rContato, 'peso': rPeso},
+          data: {
+            'transacao': id,
+            'contatoResponsavel': rContato,
+            'peso': rPeso,
+          },
         );
       }
 
