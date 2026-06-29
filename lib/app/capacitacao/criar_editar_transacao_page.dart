@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
+import 'package:ppvdigital/app/capacitacao/financas/financas_controller.dart';
 import 'package:ppvdigital/core.dart';
 import 'package:ppvdigital/models/transacao_model.dart';
 import 'package:routefly/routefly.dart';
@@ -95,6 +96,11 @@ class _CriarEditarTransacaoPageState extends State<CriarEditarTransacaoPage> {
     // Load accounts and categories just to make sure they are loaded
     Core.financasController.loadDocuments();
 
+    if (widget.editingItem == null &&
+        FinancasController.defaultDataCompetencia != null) {
+      _dataCompetencia = FinancasController.defaultDataCompetencia!;
+    }
+
     if (widget.editingItem != null) {
       final t = widget.editingItem!;
       _descricaoController.text = t.descricao;
@@ -112,9 +118,12 @@ class _CriarEditarTransacaoPageState extends State<CriarEditarTransacaoPage> {
       if (t.recorrencia != null) {
         _recorrente = true;
         _recorrenciaIndeterminada = t.recorrencia!.totalParcelas == null;
-        _frequenciaController.text = (t.recorrencia!.frequencia ?? 1).toString();
-        _totalParcelasController.text = (t.recorrencia!.totalParcelas ?? 12).toString();
-        _parcelaInicioController.text = (t.recorrencia!.parcelaInicio ?? 1).toString();
+        _frequenciaController.text = (t.recorrencia!.frequencia ?? 1)
+            .toString();
+        _totalParcelasController.text = (t.recorrencia!.totalParcelas ?? 12)
+            .toString();
+        _parcelaInicioController.text = (t.recorrencia!.parcelaInicio ?? 1)
+            .toString();
         _tipoRecorrencia = t.recorrencia!.tipoRecorrencia;
       }
 
@@ -887,10 +896,7 @@ class _CriarEditarTransacaoPageState extends State<CriarEditarTransacaoPage> {
                 ),
                 items: const [
                   DropdownMenuItem(value: 'dia', child: Text('Dias')),
-                  DropdownMenuItem(
-                    value: 'semana',
-                    child: Text('Semanas'),
-                  ),
+                  DropdownMenuItem(value: 'semana', child: Text('Semanas')),
                   DropdownMenuItem(value: 'mês', child: Text('Meses')),
                   DropdownMenuItem(value: 'ano', child: Text('Anos')),
                 ],

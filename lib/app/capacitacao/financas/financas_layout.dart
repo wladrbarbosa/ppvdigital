@@ -16,10 +16,13 @@ class FinancasLayout extends StatefulWidget {
   State<FinancasLayout> createState() => _FinancasLayoutState();
 }
 
-class _FinancasLayoutState extends State<FinancasLayout> {
+class _FinancasLayoutState extends State<FinancasLayout>
+    with SingleTickerProviderStateMixin {
   bool _mostrarDivisoes = false;
   DateTime _selectedMonth = DateTime.now();
   bool _somarAcumulado = false;
+  final Set<String> _selectedContas = {};
+  late final TabController _tabController;
 
   final Map<String, IconData> _presetIcons = {
     'monetization_on': Icons.monetization_on,
@@ -37,7 +40,17 @@ class _FinancasLayoutState extends State<FinancasLayout> {
   @override
   void initState() {
     super.initState();
+    _tabController = TabController(length: 4, vsync: this);
+    _tabController.addListener(() {
+      setState(() {});
+    });
     FinancasController.financasFuture = Core.financasController.loadDocuments();
+  }
+
+  @override
+  void dispose() {
+    _tabController.dispose();
+    super.dispose();
   }
 
   double _calcularValorDivisao(TransacaoModel t, String activeUserId) {
@@ -72,18 +85,7 @@ class _FinancasLayoutState extends State<FinancasLayout> {
   double _calcularTotalDia(List<TransacaoModel> dayTrans, String activeUserId) {
     double total = 0.0;
     for (final t in dayTrans) {
-      final double val = _mostrarDivisoes
-          ? _calcularValorDivisao(t, activeUserId)
-          : t.valor;
-
-      if (t.tipo == 'receita') {
-        total += val;
-      } else if (t.tipo == 'despesa') {
-        total -= val;
-      } else if (t.tipo == 'transferencia' && !_mostrarDivisoes) {
-        // Transfers don't change net total if both accounts owned,
-        // but if we show it, it is neutral.
-      }
+      total += _calcularImpactoTransacao(t, activeUserId, _selectedContas);
     }
     return total;
   }
@@ -92,33 +94,50 @@ class _FinancasLayoutState extends State<FinancasLayout> {
   Widget build(BuildContext context) {
     final String activeUser = Core.loginController.currentUser?.$id ?? '';
 
-    return DefaultTabController(
-      length: 4,
-      child: Scaffold(
-        appBar: AppBar(title: const Text('Finanças')),
-        bottomNavigationBar: Material(
-          color: Theme.of(context).cardColor,
-          elevation: 8,
-          child: SafeArea(
-            child: const TabBar(
-              tabs: [
-                Tab(icon: Icon(Icons.swap_horiz), text: 'Transações'),
-                Tab(icon: Icon(Icons.account_balance_wallet), text: 'Contas'),
-                Tab(icon: Icon(Icons.category), text: 'Categorias'),
-                Tab(icon: Icon(Icons.people), text: 'Contatos'),
-              ],
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Finanças'),
+        actions: [
+          if (_tabController.index == 0)
+            Builder(
+              builder: (context) {
+                return IconButton(
+                  icon: const Icon(Icons.filter_list),
+                  tooltip: 'Filtros e Opções',
+                  onPressed: () {
+                    Scaffold.of(context).openEndDrawer();
+                  },
+                );
+              },
             ),
+        ],
+      ),
+      endDrawer: _buildEndDrawer(context),
+      bottomNavigationBar: Material(
+        color: Theme.of(context).cardColor,
+        elevation: 8,
+        child: SafeArea(
+          child: TabBar(
+            controller: _tabController,
+            tabs: const [
+              Tab(icon: Icon(Icons.swap_horiz), text: 'Transações'),
+              Tab(icon: Icon(Icons.account_balance_wallet), text: 'Contas'),
+              Tab(icon: Icon(Icons.category), text: 'Categorias'),
+              Tab(icon: Icon(Icons.people), text: 'Contatos'),
+            ],
           ),
         ),
-        body: FutureBuilder(
-          future: FinancasController.financasFuture,
-          builder: (context, snapshot) {
-            if (snapshot.connectionState == ConnectionState.waiting) {
-              return const Center(child: CircularProgressIndicator());
-            }
+      ),
+      body: FutureBuilder(
+        future: FinancasController.financasFuture,
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          }
 
-            return TabBarView(
-              children: [
+          return TabBarView(
+            controller: _tabController,
+            children: [
                 // 1. Transactions Tab
                 Observer(
                   builder: (context) {
@@ -141,8 +160,27 @@ class _FinancasLayoutState extends State<FinancasLayout> {
                       displayTransList = allTrans;
                     }
 
+                    // Apply account filter
+                    List<TransacaoModel> accountFilteredList = [];
+                    if (_selectedContas.isEmpty) {
+                      accountFilteredList = displayTransList;
+                    } else {
+                      accountFilteredList = displayTransList.where((t) {
+                        if (t.tipo == 'transferencia') {
+                          final bool origemSel = t.conta != null &&
+                              _selectedContas.contains(t.conta!.id);
+                          final bool destinoSel = t.contaDestino != null &&
+                              _selectedContas.contains(t.contaDestino!.id);
+                          return origemSel || destinoSel;
+                        } else {
+                          return t.conta != null &&
+                              _selectedContas.contains(t.conta!.id);
+                        }
+                      }).toList();
+                    }
+
                     // Apply Month filter
-                    final filteredTransList = displayTransList
+                    final filteredTransList = accountFilteredList
                         .where(
                           (t) =>
                               t.dataCompetencia.year == _selectedMonth.year &&
@@ -153,8 +191,6 @@ class _FinancasLayoutState extends State<FinancasLayout> {
                     if (filteredTransList.isEmpty) {
                       return Column(
                         children: [
-                          _buildDivisoesToggle(),
-                          _buildAcumuladoToggle(),
                           _buildMonthSelector(),
                           const Expanded(
                             child: Center(
@@ -171,14 +207,12 @@ class _FinancasLayoutState extends State<FinancasLayout> {
                     final Map<String, double> saldosDiarios =
                         _calcularSaldosDiarios(
                           grouped,
-                          displayTransList,
+                          accountFilteredList,
                           activeUser,
                         );
 
                     return Column(
                       children: [
-                        _buildDivisoesToggle(),
-                        _buildAcumuladoToggle(),
                         _buildMonthSelector(),
                         Expanded(
                           child: ListView.builder(
@@ -656,31 +690,152 @@ class _FinancasLayoutState extends State<FinancasLayout> {
             ),
           ],
         ),
+      );
+    }
+
+  Widget _buildEndDrawer(BuildContext context) {
+    return Drawer(
+      child: SafeArea(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            const Padding(
+              padding: EdgeInsets.all(16.0),
+              child: Text(
+                'Filtros e Opções',
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+              ),
+            ),
+            const Divider(),
+            Expanded(
+              child: ListView(
+                children: [
+                  SwitchListTile(
+                    title: const Text('Ver transações que participo em divisões'),
+                    value: _mostrarDivisoes,
+                    onChanged: (val) {
+                      setState(() {
+                        _mostrarDivisoes = val;
+                      });
+                    },
+                  ),
+                  SwitchListTile(
+                    title: const Text('Somar saldo acumulado dos meses passados'),
+                    value: _somarAcumulado,
+                    onChanged: (val) {
+                      setState(() {
+                        _somarAcumulado = val;
+                      });
+                    },
+                  ),
+                  const Divider(),
+                  const Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+                    child: Text(
+                      'Filtrar por Conta(s)',
+                      style: TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                  Observer(
+                    builder: (context) {
+                      final accounts = Core.financasController.contasList;
+                      if (accounts.isEmpty) {
+                        return const Padding(
+                          padding: EdgeInsets.symmetric(horizontal: 16.0),
+                          child: Text('Nenhuma conta cadastrada para filtrar.'),
+                        );
+                      }
+                      return Column(
+                        children: accounts.map((account) {
+                          final isChecked = _selectedContas.contains(account.id);
+                          return CheckboxListTile(
+                            title: Text(account.name),
+                            subtitle: Text('Saldo: R\$ ${account.saldoAtual.toStringAsFixed(2)}'),
+                            value: isChecked,
+                            onChanged: (val) {
+                              setState(() {
+                                if (val == true) {
+                                  _selectedContas.add(account.id);
+                                } else {
+                                  _selectedContas.remove(account.id);
+                                }
+                              });
+                            },
+                          );
+                        }).toList(),
+                      );
+                    },
+                  ),
+                ],
+              ),
+            ),
+            const Divider(),
+            Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: () {
+                        setState(() {
+                          _selectedContas.clear();
+                          _mostrarDivisoes = false;
+                          _somarAcumulado = false;
+                        });
+                      },
+                      child: const Text('Limpar Filtros'),
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: () {
+                        Navigator.of(context).pop();
+                      },
+                      child: const Text('Fechar'),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
 
-  Widget _buildDivisoesToggle() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          const Text(
-            'Ver transações que participo em divisões',
-            style: TextStyle(fontWeight: FontWeight.w500),
-          ),
-          Switch(
-            value: _mostrarDivisoes,
-            onChanged: (val) {
-              setState(() {
-                _mostrarDivisoes = val;
-              });
-            },
-          ),
-        ],
-      ),
-    );
+  double _calcularImpactoTransacao(
+    TransacaoModel t,
+    String activeUserId,
+    Set<String> filteredContasIds,
+  ) {
+    final double val = _mostrarDivisoes
+        ? _calcularValorDivisao(t, activeUserId)
+        : t.valor;
+
+    if (t.tipo == 'receita') {
+      return val;
+    } else if (t.tipo == 'despesa') {
+      return -val;
+    } else if (t.tipo == 'transferencia') {
+      if (_mostrarDivisoes) {
+        return 0.0;
+      }
+      if (filteredContasIds.isEmpty) {
+        return 0.0;
+      }
+      final bool origemSel =
+          t.conta != null && filteredContasIds.contains(t.conta!.id);
+      final bool destinoSel =
+          t.contaDestino != null && filteredContasIds.contains(t.contaDestino!.id);
+
+      if (origemSel && !destinoSel) {
+        return -val;
+      } else if (destinoSel && !origemSel) {
+        return val;
+      }
+    }
+    return 0.0;
   }
 
   Widget _buildMonthSelector() {
@@ -869,32 +1024,10 @@ class _FinancasLayoutState extends State<FinancasLayout> {
     );
   }
 
-  Widget _buildAcumuladoToggle() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          const Text(
-            'Somar saldo acumulado dos meses passados',
-            style: TextStyle(fontWeight: FontWeight.w500),
-          ),
-          Switch(
-            value: _somarAcumulado,
-            onChanged: (val) {
-              setState(() {
-                _somarAcumulado = val;
-              });
-            },
-          ),
-        ],
-      ),
-    );
-  }
-
   double _calcularSaldoAcumuladoAnterior(
     List<TransacaoModel> allTrans,
     String activeUserId,
+    Set<String> filteredContasIds,
   ) {
     final firstDayOfSelectedMonth = DateTime(
       _selectedMonth.year,
@@ -904,15 +1037,20 @@ class _FinancasLayoutState extends State<FinancasLayout> {
     double total = 0.0;
     for (final t in allTrans) {
       if (t.dataCompetencia.isBefore(firstDayOfSelectedMonth)) {
-        final double val = _mostrarDivisoes
-            ? _calcularValorDivisao(t, activeUserId)
-            : t.valor;
-
-        if (t.tipo == 'receita') {
-          total += val;
-        } else if (t.tipo == 'despesa') {
-          total -= val;
+        if (filteredContasIds.isNotEmpty) {
+          if (t.tipo == 'transferencia') {
+            final bool origemSel =
+                t.conta != null && filteredContasIds.contains(t.conta!.id);
+            final bool destinoSel = t.contaDestino != null &&
+                filteredContasIds.contains(t.contaDestino!.id);
+            if (!origemSel && !destinoSel) continue;
+          } else {
+            if (t.conta == null || !filteredContasIds.contains(t.conta!.id)) {
+              continue;
+            }
+          }
         }
+        total += _calcularImpactoTransacao(t, activeUserId, filteredContasIds);
       }
     }
     return total;
@@ -925,7 +1063,11 @@ class _FinancasLayoutState extends State<FinancasLayout> {
   ) {
     final Map<String, double> saldos = {};
     final double acumuladoAnterior = _somarAcumulado
-        ? _calcularSaldoAcumuladoAnterior(allTrans, activeUserId)
+        ? _calcularSaldoAcumuladoAnterior(
+            allTrans,
+            activeUserId,
+            _selectedContas,
+          )
         : 0.0;
 
     // Sort keys ascending (chronological order)

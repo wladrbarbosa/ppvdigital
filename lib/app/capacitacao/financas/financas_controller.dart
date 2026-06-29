@@ -39,6 +39,7 @@ class FinancasController {
   List<DivisaoTransacaoModel> get divisoesList => _divisoesList.toList();
 
   static Future<void>? financasFuture;
+  static DateTime? defaultDataCompetencia;
 
   void init() {
     databases = Databases(Core.client);
@@ -564,6 +565,7 @@ class FinancasController {
         }
       }
 
+      FinancasController.defaultDataCompetencia = dataCompetencia;
       await loadDocuments();
       return true;
     } catch (e) {
