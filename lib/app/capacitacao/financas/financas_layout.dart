@@ -543,7 +543,12 @@ class _FinancasLayoutState extends State<FinancasLayout> {
                       );
                     }
                     return ListView.builder(
-                      padding: const EdgeInsets.fromLTRB(16.0, 16.0, 16.0, 80.0),
+                      padding: const EdgeInsets.fromLTRB(
+                        16.0,
+                        16.0,
+                        16.0,
+                        80.0,
+                      ),
                       itemCount: contatos.length,
                       itemBuilder: (context, index) {
                         final c = contatos[index];
@@ -555,9 +560,13 @@ class _FinancasLayoutState extends State<FinancasLayout> {
                           ),
                           child: ListTile(
                             leading: CircleAvatar(
-                              backgroundColor: Theme.of(context).colorScheme.primary.withOpacity(0.1),
+                              backgroundColor: Theme.of(
+                                context,
+                              ).colorScheme.primary.withOpacity(0.1),
                               child: Text(
-                                c.nome.isNotEmpty ? c.nome.substring(0, 1).toUpperCase() : '?',
+                                c.nome.isNotEmpty
+                                    ? c.nome.substring(0, 1).toUpperCase()
+                                    : '?',
                                 style: TextStyle(
                                   fontWeight: FontWeight.bold,
                                   color: Theme.of(context).colorScheme.primary,
@@ -566,7 +575,9 @@ class _FinancasLayoutState extends State<FinancasLayout> {
                             ),
                             title: Text(
                               c.nome,
-                              style: const TextStyle(fontWeight: FontWeight.bold),
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                              ),
                             ),
                             subtitle: Text(
                               '${c.email ?? 'Sem email'} • ${c.telefone ?? 'Sem telefone'}',
@@ -716,12 +727,18 @@ class _FinancasLayoutState extends State<FinancasLayout> {
               onTap: () => _mostrarSeletorMesAno(context),
               borderRadius: BorderRadius.circular(8),
               child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 6.0),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12.0,
+                  vertical: 6.0,
+                ),
                 child: Row(
                   children: [
                     Text(
                       capitalized,
-                      style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                     const SizedBox(width: 4),
                     const Icon(Icons.arrow_drop_down, size: 20),
@@ -762,7 +779,7 @@ class _FinancasLayoutState extends State<FinancasLayout> {
       'Set',
       'Out',
       'Nov',
-      'Dez'
+      'Dez',
     ];
 
     showDialog(
@@ -810,7 +827,8 @@ class _FinancasLayoutState extends State<FinancasLayout> {
                   itemCount: 12,
                   itemBuilder: (context, index) {
                     final monthIndex = index + 1;
-                    final isSelected = _selectedMonth.year == tempYear &&
+                    final isSelected =
+                        _selectedMonth.year == tempYear &&
                         _selectedMonth.month == monthIndex;
                     return InkWell(
                       onTap: () {
@@ -836,7 +854,9 @@ class _FinancasLayoutState extends State<FinancasLayout> {
                         child: Text(
                           meses[index],
                           style: TextStyle(
-                            fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                            fontWeight: isSelected
+                                ? FontWeight.bold
+                                : FontWeight.normal,
                             color: isSelected ? Colors.white : null,
                           ),
                         ),

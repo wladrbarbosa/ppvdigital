@@ -381,6 +381,7 @@ class FinancasController {
     String tipoRecorrencia = 'mês',
     int frequencia = 1,
     int totalParcelas = 1,
+    int parcelaInicio = 1,
     DateTime? fimRecorrencia,
     List<Map<String, dynamic>> divisao =
         const [], // List of {contatoResponsavel, peso}
@@ -400,15 +401,16 @@ class FinancasController {
             'tipoRecorrencia': tipoRecorrencia,
             'frequencia': frequencia,
             'totalParcelas': recorrenciaIndeterminada ? null : totalParcelas,
-            'parcelaInicio': recorrenciaIndeterminada ? null : 1,
+            'parcelaInicio': recorrenciaIndeterminada ? null : parcelaInicio,
             'fimRecorrencia': fimRecorrencia?.toIso8601String(),
           },
         );
         recId = recRow.$id;
       }
 
+      final int remainingParcels = totalParcelas - parcelaInicio + 1;
       final int loopLimit = recorrente
-          ? (recorrenciaIndeterminada ? 24 : totalParcelas)
+          ? (recorrenciaIndeterminada ? 24 : remainingParcels)
           : 1;
 
       if (recorrente) {
@@ -441,7 +443,7 @@ class FinancasController {
           }
 
           final String descFinal = recorrente && !recorrenciaIndeterminada
-              ? '$descricao (Parcela $i/$totalParcelas)'
+              ? '$descricao (Parcela ${parcelaInicio + i - 1}/$totalParcelas)'
               : descricao;
 
           final String tRowId = ID.unique();
@@ -585,6 +587,7 @@ class FinancasController {
     String? optionRecorrencia, // 'only_current', 'current_and_future', 'all'
     String? devedorContatoId,
     String? credorContatoId,
+    int? parcelaInicio,
   }) async {
     try {
       final TablesDB tablesDB = TablesDB(databases.client);
@@ -627,7 +630,7 @@ class FinancasController {
               'tipoRecorrencia': originalRec.tipoRecorrencia,
               'frequencia': originalRec.frequencia,
               'totalParcelas': originalRec.totalParcelas,
-              'parcelaInicio': originalRec.parcelaInicio,
+              'parcelaInicio': parcelaInicio ?? originalRec.parcelaInicio,
               'fimRecorrencia': originalRec.fimRecorrencia?.toIso8601String(),
             },
           );
@@ -724,6 +727,16 @@ class FinancasController {
             }
           }
         } else if (optionRecorrencia == 'all') {
+          if (parcelaInicio != null) {
+            await tablesDB.updateRow(
+              databaseId: '671f6e1600022832cba5',
+              tableId: 'transacao_recorrencia',
+              rowId: original.recorrencia!.id,
+              data: {
+                'parcelaInicio': parcelaInicio,
+              },
+            );
+          }
           // update all other transactions in series
           final allRecTrans = transacoesList
               .where((t) => t.recorrencia?.id == original.recorrencia!.id)

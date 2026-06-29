@@ -70,6 +70,7 @@ class _CriarEditarTransacaoPageState extends State<CriarEditarTransacaoPage> {
   bool _recorrenciaIndeterminada = false;
   final _frequenciaController = TextEditingController(text: '1');
   final _totalParcelasController = TextEditingController(text: '12');
+  final _parcelaInicioController = TextEditingController(text: '1');
   String _tipoRecorrencia = 'mês';
 
   // Divisao / Responsibles list
@@ -107,6 +108,16 @@ class _CriarEditarTransacaoPageState extends State<CriarEditarTransacaoPage> {
       _selectedCredorContatoId = t.credorContato?.id;
       _consolidada = t.consolidada;
 
+      // Recurrence
+      if (t.recorrencia != null) {
+        _recorrente = true;
+        _recorrenciaIndeterminada = t.recorrencia!.totalParcelas == null;
+        _frequenciaController.text = (t.recorrencia!.frequencia ?? 1).toString();
+        _totalParcelasController.text = (t.recorrencia!.totalParcelas ?? 12).toString();
+        _parcelaInicioController.text = (t.recorrencia!.parcelaInicio ?? 1).toString();
+        _tipoRecorrencia = t.recorrencia!.tipoRecorrencia;
+      }
+
       // Divisions
       for (final div in t.divisoes) {
         _divisoes.add({
@@ -123,6 +134,7 @@ class _CriarEditarTransacaoPageState extends State<CriarEditarTransacaoPage> {
     _valorController.dispose();
     _frequenciaController.dispose();
     _totalParcelasController.dispose();
+    _parcelaInicioController.dispose();
     super.dispose();
   }
 
@@ -210,10 +222,12 @@ class _CriarEditarTransacaoPageState extends State<CriarEditarTransacaoPage> {
         optionRecorrencia: optionRecorrencia,
         devedorContatoId: _selectedDevedorContatoId,
         credorContatoId: _selectedCredorContatoId,
+        parcelaInicio: int.tryParse(_parcelaInicioController.text) ?? 1,
       );
     } else {
       final int freq = int.tryParse(_frequenciaController.text) ?? 1;
       final int parcelas = int.tryParse(_totalParcelasController.text) ?? 1;
+      final int startParcel = int.tryParse(_parcelaInicioController.text) ?? 1;
 
       success = await Core.financasController.createTransacao(
         descricao: descricao,
@@ -231,6 +245,7 @@ class _CriarEditarTransacaoPageState extends State<CriarEditarTransacaoPage> {
         tipoRecorrencia: _tipoRecorrencia,
         frequencia: freq,
         totalParcelas: parcelas,
+        parcelaInicio: startParcel,
         divisao: _divisoes,
         devedorContatoId: _selectedDevedorContatoId,
         credorContatoId: _selectedCredorContatoId,
@@ -664,86 +679,19 @@ class _CriarEditarTransacaoPageState extends State<CriarEditarTransacaoPage> {
               ),
               if (_recorrente) ...[
                 const SizedBox(height: 8),
-                SwitchListTile(
-                  title: const Text('Recorrência indeterminada (Infinita)'),
-                  value: _recorrenciaIndeterminada,
-                  onChanged: (val) {
-                    setState(() {
-                      _recorrenciaIndeterminada = val;
-                    });
-                  },
-                ),
-                const SizedBox(height: 8),
-                Row(
-                  children: [
-                    Expanded(
-                      child: TextFormField(
-                        controller: _frequenciaController,
-                        keyboardType: TextInputType.number,
-                        decoration: const InputDecoration(
-                          labelText: 'Frequência',
-                          border: OutlineInputBorder(),
-                        ),
-                        validator: (value) {
-                          if (_recorrente &&
-                              (value == null || int.tryParse(value) == null)) {
-                            return 'Frequência inválida.';
-                          }
-                          return null;
-                        },
-                      ),
-                    ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: DropdownButtonFormField<String>(
-                        initialValue: _tipoRecorrencia,
-                        decoration: const InputDecoration(
-                          labelText: 'Período',
-                          border: OutlineInputBorder(),
-                        ),
-                        items: const [
-                          DropdownMenuItem(value: 'dia', child: Text('Dias')),
-                          DropdownMenuItem(
-                            value: 'semana',
-                            child: Text('Semanas'),
-                          ),
-                          DropdownMenuItem(value: 'mês', child: Text('Meses')),
-                          DropdownMenuItem(value: 'ano', child: Text('Anos')),
-                        ],
-                        onChanged: (val) {
-                          if (val != null) {
-                            setState(() {
-                              _tipoRecorrencia = val;
-                            });
-                          }
-                        },
-                      ),
-                    ),
-                    if (!_recorrenciaIndeterminada) ...[
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: TextFormField(
-                          controller: _totalParcelasController,
-                          keyboardType: TextInputType.number,
-                          decoration: const InputDecoration(
-                            labelText: 'Nº Parcelas',
-                            border: OutlineInputBorder(),
-                          ),
-                          validator: (value) {
-                            if (_recorrente &&
-                                !_recorrenciaIndeterminada &&
-                                (value == null ||
-                                    int.tryParse(value) == null)) {
-                              return 'Parcelas inválidas.';
-                            }
-                            return null;
-                          },
-                        ),
-                      ),
-                    ],
-                  ],
-                ),
+                _buildRecurrenceFields(),
               ],
+            ] else if (widget.editingItem!.recorrencia != null) ...[
+              const SizedBox(height: 16),
+              const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 16.0),
+                child: Text(
+                  'Recorrência',
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                ),
+              ),
+              const SizedBox(height: 8),
+              _buildRecurrenceFields(),
             ],
             const SizedBox(height: 16),
             const Divider(),
@@ -893,6 +841,115 @@ class _CriarEditarTransacaoPageState extends State<CriarEditarTransacaoPage> {
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildRecurrenceFields() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SwitchListTile(
+          title: const Text('Recorrência indeterminada (Infinita)'),
+          value: _recorrenciaIndeterminada,
+          onChanged: (val) {
+            setState(() {
+              _recorrenciaIndeterminada = val;
+            });
+          },
+        ),
+        const SizedBox(height: 8),
+        Row(
+          children: [
+            Expanded(
+              child: TextFormField(
+                controller: _frequenciaController,
+                keyboardType: TextInputType.number,
+                decoration: const InputDecoration(
+                  labelText: 'Frequência',
+                  border: OutlineInputBorder(),
+                ),
+                validator: (value) {
+                  if (_recorrente &&
+                      (value == null || int.tryParse(value) == null)) {
+                    return 'Frequência inválida.';
+                  }
+                  return null;
+                },
+              ),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: DropdownButtonFormField<String>(
+                value: _tipoRecorrencia,
+                decoration: const InputDecoration(
+                  labelText: 'Período',
+                  border: OutlineInputBorder(),
+                ),
+                items: const [
+                  DropdownMenuItem(value: 'dia', child: Text('Dias')),
+                  DropdownMenuItem(
+                    value: 'semana',
+                    child: Text('Semanas'),
+                  ),
+                  DropdownMenuItem(value: 'mês', child: Text('Meses')),
+                  DropdownMenuItem(value: 'ano', child: Text('Anos')),
+                ],
+                onChanged: (val) {
+                  if (val != null) {
+                    setState(() {
+                      _tipoRecorrencia = val;
+                    });
+                  }
+                },
+              ),
+            ),
+          ],
+        ),
+        if (!_recorrenciaIndeterminada) ...[
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              Expanded(
+                child: TextFormField(
+                  controller: _totalParcelasController,
+                  keyboardType: TextInputType.number,
+                  decoration: const InputDecoration(
+                    labelText: 'Nº Parcelas',
+                    border: OutlineInputBorder(),
+                  ),
+                  validator: (value) {
+                    if (_recorrente &&
+                        !_recorrenciaIndeterminada &&
+                        (value == null || int.tryParse(value) == null)) {
+                      return 'Parcelas inválidas.';
+                    }
+                    return null;
+                  },
+                ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: TextFormField(
+                  controller: _parcelaInicioController,
+                  keyboardType: TextInputType.number,
+                  decoration: const InputDecoration(
+                    labelText: 'Parcela Inicial',
+                    border: OutlineInputBorder(),
+                  ),
+                  validator: (value) {
+                    if (_recorrente &&
+                        !_recorrenciaIndeterminada &&
+                        (value == null || int.tryParse(value) == null)) {
+                      return 'Parcela inicial inválida.';
+                    }
+                    return null;
+                  },
+                ),
+              ),
+            ],
+          ),
+        ],
+      ],
     );
   }
 }
