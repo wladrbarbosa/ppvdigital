@@ -197,9 +197,8 @@ class _FinancasLayoutState extends State<FinancasLayout> {
                                 dayTrans,
                                 activeUser,
                               );
-                              final double saldoExibido = _somarAcumulado
-                                  ? (saldosDiarios[dateKey] ?? 0.0)
-                                  : dayTotal;
+                              final double saldoExibido =
+                                  saldosDiarios[dateKey] ?? 0.0;
 
                               return Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -222,9 +221,7 @@ class _FinancasLayoutState extends State<FinancasLayout> {
                                           ),
                                         ),
                                         Text(
-                                          _somarAcumulado
-                                              ? 'Saldo acumulado: R\$ ${saldoExibido.toStringAsFixed(2)}'
-                                              : 'Saldo do dia: R\$ ${saldoExibido.toStringAsFixed(2)}',
+                                          'Saldo acumulado: R\$ ${saldoExibido.toStringAsFixed(2)}',
                                           style: TextStyle(
                                             fontWeight: FontWeight.bold,
                                             color: saldoExibido >= 0
@@ -927,10 +924,9 @@ class _FinancasLayoutState extends State<FinancasLayout> {
     String activeUserId,
   ) {
     final Map<String, double> saldos = {};
-    final double acumuladoAnterior = _calcularSaldoAcumuladoAnterior(
-      allTrans,
-      activeUserId,
-    );
+    final double acumuladoAnterior = _somarAcumulado
+        ? _calcularSaldoAcumuladoAnterior(allTrans, activeUserId)
+        : 0.0;
 
     // Sort keys ascending (chronological order)
     final List<String> sortedDateKeys = grouped.keys.toList()
