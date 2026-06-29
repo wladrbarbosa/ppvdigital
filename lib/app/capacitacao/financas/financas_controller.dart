@@ -207,13 +207,12 @@ class FinancasController {
             final allDivsDocs = await tablesDB.listRows(
               databaseId: '671f6e1600022832cba5',
               tableId: 'divisao_transacoes',
-              queries: [
-                Query.equal('transacao', chunkIds),
-                Query.limit(5000),
-              ],
+              queries: [Query.equal('transacao', chunkIds), Query.limit(5000)],
             );
             allDivs.addAll(
-              allDivsDocs.rows.map((d) => DivisaoTransacaoModel.fromMap(d.data)),
+              allDivsDocs.rows.map(
+                (d) => DivisaoTransacaoModel.fromMap(d.data),
+              ),
             );
           }
 
@@ -589,6 +588,7 @@ class FinancasController {
   }) async {
     try {
       final TablesDB tablesDB = TablesDB(databases.client);
+      final List<Map<String, dynamic>> ops = [];
 
       // Find original transaction to check if consolidated state or amount changed
       final original = transacoesList.firstWhere((t) => t.id == id);
@@ -662,12 +662,13 @@ class FinancasController {
 
             final newDate = t.dataCompetencia.add(delta);
 
-            // Update row
-            await tablesDB.updateRow(
-              databaseId: '671f6e1600022832cba5',
-              tableId: '671f7a6f000cb3ab17b9',
-              rowId: t.id,
-              data: {
+            // Stage transaction update
+            ops.add({
+              'action': 'update',
+              'databaseId': '671f6e1600022832cba5',
+              'tableId': '671f7a6f000cb3ab17b9',
+              'rowId': t.id,
+              'data': {
                 'descricao': descricao,
                 'valor': valor,
                 'tipo': tipo,
@@ -680,7 +681,7 @@ class FinancasController {
                 'devedorContato': devedorContatoId,
                 'credorContato': credorContatoId,
               },
-            );
+            });
 
             // Apply new balance
             if (consolidada) {
@@ -696,27 +697,30 @@ class FinancasController {
               }
             }
 
-            // Update divisions
+            // Stage division deletes
             for (final oldDiv in t.divisoes) {
-              await tablesDB.deleteRow(
-                databaseId: '671f6e1600022832cba5',
-                tableId: 'divisao_transacoes',
-                rowId: oldDiv.id,
-              );
+              ops.add({
+                'action': 'delete',
+                'databaseId': '671f6e1600022832cba5',
+                'tableId': 'divisao_transacoes',
+                'rowId': oldDiv.id,
+              });
             }
+            // Stage division creates
             for (final divItem in divisao) {
               final String rContato = divItem['contatoResponsavel'] as String;
               final double rPeso = (divItem['peso'] as num).toDouble();
-              await tablesDB.createRow(
-                databaseId: '671f6e1600022832cba5',
-                tableId: 'divisao_transacoes',
-                rowId: ID.unique(),
-                data: {
+              ops.add({
+                'action': 'create',
+                'databaseId': '671f6e1600022832cba5',
+                'tableId': 'divisao_transacoes',
+                'rowId': ID.unique(),
+                'data': {
                   'transacao': t.id,
                   'contatoResponsavel': rContato,
                   'peso': rPeso,
                 },
-              );
+              });
             }
           }
         } else if (optionRecorrencia == 'all') {
@@ -745,12 +749,13 @@ class FinancasController {
 
             final newDate = t.dataCompetencia.add(delta);
 
-            // Update row
-            await tablesDB.updateRow(
-              databaseId: '671f6e1600022832cba5',
-              tableId: '671f7a6f000cb3ab17b9',
-              rowId: t.id,
-              data: {
+            // Stage transaction update
+            ops.add({
+              'action': 'update',
+              'databaseId': '671f6e1600022832cba5',
+              'tableId': '671f7a6f000cb3ab17b9',
+              'rowId': t.id,
+              'data': {
                 'descricao': descricao,
                 'valor': valor,
                 'tipo': tipo,
@@ -762,7 +767,7 @@ class FinancasController {
                 'devedorContato': devedorContatoId,
                 'credorContato': credorContatoId,
               },
-            );
+            });
 
             // Apply new balance
             if (consolidada) {
@@ -778,38 +783,42 @@ class FinancasController {
               }
             }
 
-            // Update divisions
+            // Stage division deletes
             for (final oldDiv in t.divisoes) {
-              await tablesDB.deleteRow(
-                databaseId: '671f6e1600022832cba5',
-                tableId: 'divisao_transacoes',
-                rowId: oldDiv.id,
-              );
+              ops.add({
+                'action': 'delete',
+                'databaseId': '671f6e1600022832cba5',
+                'tableId': 'divisao_transacoes',
+                'rowId': oldDiv.id,
+              });
             }
+            // Stage division creates
             for (final divItem in divisao) {
               final String rContato = divItem['contatoResponsavel'] as String;
               final double rPeso = (divItem['peso'] as num).toDouble();
-              await tablesDB.createRow(
-                databaseId: '671f6e1600022832cba5',
-                tableId: 'divisao_transacoes',
-                rowId: ID.unique(),
-                data: {
+              ops.add({
+                'action': 'create',
+                'databaseId': '671f6e1600022832cba5',
+                'tableId': 'divisao_transacoes',
+                'rowId': ID.unique(),
+                'data': {
                   'transacao': t.id,
                   'contatoResponsavel': rContato,
                   'peso': rPeso,
                 },
-              );
+              });
             }
           }
         }
       }
 
-      // 2. Update current transaction
-      await tablesDB.updateRow(
-        databaseId: '671f6e1600022832cba5',
-        tableId: '671f7a6f000cb3ab17b9', // transacoes
-        rowId: id,
-        data: {
+      // 2. Stage current transaction update
+      ops.add({
+        'action': 'update',
+        'databaseId': '671f6e1600022832cba5',
+        'tableId': '671f7a6f000cb3ab17b9', // transacoes
+        'rowId': id,
+        'data': {
           'descricao': descricao,
           'valor': valor,
           'tipo': tipo,
@@ -822,9 +831,9 @@ class FinancasController {
           'devedorContato': devedorContatoId,
           'credorContato': credorContatoId,
         },
-      );
+      });
 
-      // 3. Apply new balance effects if consolidated
+      // Apply new balance effects if consolidated
       if (consolidada) {
         if (tipo == 'despesa' && contaId != null) {
           await updateAccountBalance(contaId, -valor);
@@ -838,27 +847,43 @@ class FinancasController {
         }
       }
 
-      // 4. Update division rows (delete old and write new)
+      // 4. Stage division rows (delete old and write new)
       for (final oldDiv in original.divisoes) {
-        await tablesDB.deleteRow(
-          databaseId: '671f6e1600022832cba5',
-          tableId: 'divisao_transacoes',
-          rowId: oldDiv.id,
-        );
+        ops.add({
+          'action': 'delete',
+          'databaseId': '671f6e1600022832cba5',
+          'tableId': 'divisao_transacoes',
+          'rowId': oldDiv.id,
+        });
       }
 
       for (final divItem in divisao) {
         final String rContato = divItem['contatoResponsavel'] as String;
         final double rPeso = (divItem['peso'] as num).toDouble();
-        await tablesDB.createRow(
-          databaseId: '671f6e1600022832cba5',
-          tableId: 'divisao_transacoes',
-          rowId: ID.unique(),
-          data: {
+        ops.add({
+          'action': 'create',
+          'databaseId': '671f6e1600022832cba5',
+          'tableId': 'divisao_transacoes',
+          'rowId': ID.unique(),
+          'data': {
             'transacao': id,
             'contatoResponsavel': rContato,
             'peso': rPeso,
           },
+        });
+      }
+
+      // Execute all operations in batches of 100, each inside its own transaction
+      for (int j = 0; j < ops.length; j += 100) {
+        final chunk = ops.sublist(j, j + 100 > ops.length ? ops.length : j + 100);
+        final String txId = (await tablesDB.createTransaction()).$id;
+        await tablesDB.createOperations(
+          transactionId: txId,
+          operations: chunk,
+        );
+        await tablesDB.updateTransaction(
+          transactionId: txId,
+          commit: true,
         );
       }
 
@@ -901,14 +926,17 @@ class FinancasController {
         }
       }
 
+      final List<Map<String, dynamic>> ops = [];
+
       for (final t in toDelete) {
         // Delete all division records
         for (final div in t.divisoes) {
-          await tablesDB.deleteRow(
-            databaseId: '671f6e1600022832cba5',
-            tableId: 'divisao_transacoes',
-            rowId: div.id,
-          );
+          ops.add({
+            'action': 'delete',
+            'databaseId': '671f6e1600022832cba5',
+            'tableId': 'divisao_transacoes',
+            'rowId': div.id,
+          });
         }
 
         // Adjust balance back if it was consolidated
@@ -925,19 +953,35 @@ class FinancasController {
           }
         }
 
-        // Delete the transaction itself
-        await tablesDB.deleteRow(
-          databaseId: '671f6e1600022832cba5',
-          tableId: '671f7a6f000cb3ab17b9', // transacoes
-          rowId: t.id,
-        );
+        // Stage the transaction itself
+        ops.add({
+          'action': 'delete',
+          'databaseId': '671f6e1600022832cba5',
+          'tableId': '671f7a6f000cb3ab17b9', // transacoes
+          'rowId': t.id,
+        });
       }
 
       if (transacao.recorrencia != null && deleteOption == 'all') {
-        await tablesDB.deleteRow(
-          databaseId: '671f6e1600022832cba5',
-          tableId: 'transacao_recorrencia',
-          rowId: transacao.recorrencia!.id,
+        ops.add({
+          'action': 'delete',
+          'databaseId': '671f6e1600022832cba5',
+          'tableId': 'transacao_recorrencia',
+          'rowId': transacao.recorrencia!.id,
+        });
+      }
+
+      // Execute all operations in batches of 100, each inside its own transaction
+      for (int j = 0; j < ops.length; j += 100) {
+        final chunk = ops.sublist(j, j + 100 > ops.length ? ops.length : j + 100);
+        final String txId = (await tablesDB.createTransaction()).$id;
+        await tablesDB.createOperations(
+          transactionId: txId,
+          operations: chunk,
+        );
+        await tablesDB.updateTransaction(
+          transactionId: txId,
+          commit: true,
         );
       }
 
