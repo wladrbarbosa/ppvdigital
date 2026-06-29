@@ -103,48 +103,60 @@ class FinancasController {
 
         if (contaIds.isNotEmpty) {
           // Query transactions where conta is one of the user's accounts
-          final transDocs1 = await tablesDB.listRows(
-            databaseId: '671f6e1600022832cba5',
-            tableId: '671f7a6f000cb3ab17b9', // transacoes
-            queries: [
-              Query.equal('conta', contaIds),
-              Query.select([
-                '*',
-                'conta.*',
-                'contaDestino.*',
-                'categoria.*',
-                'recorrencia.*',
-                'devedorContato.*',
-                'credorContato.*',
-              ]),
-              Query.limit(5000),
-            ],
-          );
-          for (final doc in transDocs1.rows) {
-            loadedTrans.add(TransacaoModel.fromMap(doc.data));
+          for (int k = 0; k < contaIds.length; k += 100) {
+            final chunkContaIds = contaIds.sublist(
+              k,
+              k + 100 > contaIds.length ? contaIds.length : k + 100,
+            );
+            final transDocs1 = await tablesDB.listRows(
+              databaseId: '671f6e1600022832cba5',
+              tableId: '671f7a6f000cb3ab17b9', // transacoes
+              queries: [
+                Query.equal('conta', chunkContaIds),
+                Query.select([
+                  '*',
+                  'conta.*',
+                  'contaDestino.*',
+                  'categoria.*',
+                  'recorrencia.*',
+                  'devedorContato.*',
+                  'credorContato.*',
+                ]),
+                Query.limit(5000),
+              ],
+            );
+            for (final doc in transDocs1.rows) {
+              loadedTrans.add(TransacaoModel.fromMap(doc.data));
+            }
           }
 
           // Query transactions where contaDestino is one of the user's accounts (incoming transfers)
-          final transDocs2 = await tablesDB.listRows(
-            databaseId: '671f6e1600022832cba5',
-            tableId: '671f7a6f000cb3ab17b9',
-            queries: [
-              Query.equal('contaDestino', contaIds),
-              Query.select([
-                '*',
-                'conta.*',
-                'contaDestino.*',
-                'categoria.*',
-                'recorrencia.*',
-                'devedorContato.*',
-                'credorContato.*',
-              ]),
-              Query.limit(5000),
-            ],
-          );
-          for (final doc in transDocs2.rows) {
-            if (!loadedTrans.any((t) => t.id == doc.$id)) {
-              loadedTrans.add(TransacaoModel.fromMap(doc.data));
+          for (int k = 0; k < contaIds.length; k += 100) {
+            final chunkContaIds = contaIds.sublist(
+              k,
+              k + 100 > contaIds.length ? contaIds.length : k + 100,
+            );
+            final transDocs2 = await tablesDB.listRows(
+              databaseId: '671f6e1600022832cba5',
+              tableId: '671f7a6f000cb3ab17b9',
+              queries: [
+                Query.equal('contaDestino', chunkContaIds),
+                Query.select([
+                  '*',
+                  'conta.*',
+                  'contaDestino.*',
+                  'categoria.*',
+                  'recorrencia.*',
+                  'devedorContato.*',
+                  'credorContato.*',
+                ]),
+                Query.limit(5000),
+              ],
+            );
+            for (final doc in transDocs2.rows) {
+              if (!loadedTrans.any((t) => t.id == doc.$id)) {
+                loadedTrans.add(TransacaoModel.fromMap(doc.data));
+              }
             }
           }
         }
@@ -152,27 +164,33 @@ class FinancasController {
         // Query divisions where user's contacts participate
         _divisoesList.clear();
         if (userContatoIds.isNotEmpty) {
-          final divDocs = await tablesDB.listRows(
-            databaseId: '671f6e1600022832cba5',
-            tableId: 'divisao_transacoes',
-            queries: [
-              Query.equal('contatoResponsavel', userContatoIds),
-              Query.select([
-                '*',
-                'transacao.*',
-                'transacao.conta.*',
-                'transacao.contaDestino.*',
-                'transacao.categoria.*',
-                'transacao.recorrencia.*',
-                'transacao.devedorContato.*',
-                'transacao.credorContato.*',
-              ]),
-              Query.limit(5000),
-            ],
-          );
-          _divisoesList.addAll(
-            divDocs.rows.map((d) => DivisaoTransacaoModel.fromMap(d.data)),
-          );
+          for (int k = 0; k < userContatoIds.length; k += 100) {
+            final chunkIds = userContatoIds.sublist(
+              k,
+              k + 100 > userContatoIds.length ? userContatoIds.length : k + 100,
+            );
+            final divDocs = await tablesDB.listRows(
+              databaseId: '671f6e1600022832cba5',
+              tableId: 'divisao_transacoes',
+              queries: [
+                Query.equal('contatoResponsavel', chunkIds),
+                Query.select([
+                  '*',
+                  'transacao.*',
+                  'transacao.conta.*',
+                  'transacao.contaDestino.*',
+                  'transacao.categoria.*',
+                  'transacao.recorrencia.*',
+                  'transacao.devedorContato.*',
+                  'transacao.credorContato.*',
+                ]),
+                Query.limit(5000),
+              ],
+            );
+            _divisoesList.addAll(
+              divDocs.rows.map((d) => DivisaoTransacaoModel.fromMap(d.data)),
+            );
+          }
         }
 
         // Fetch divisions for loaded transactions to show in UI
@@ -180,17 +198,24 @@ class FinancasController {
           final List<String> loadedTransIds = loadedTrans
               .map((t) => t.id)
               .toList();
-          final allDivsDocs = await tablesDB.listRows(
-            databaseId: '671f6e1600022832cba5',
-            tableId: 'divisao_transacoes',
-            queries: [
-              Query.equal('transacao', loadedTransIds),
-              Query.limit(5000),
-            ],
-          );
-          final List<DivisaoTransacaoModel> allDivs = allDivsDocs.rows
-              .map((d) => DivisaoTransacaoModel.fromMap(d.data))
-              .toList();
+          final List<DivisaoTransacaoModel> allDivs = [];
+          for (int k = 0; k < loadedTransIds.length; k += 100) {
+            final chunkIds = loadedTransIds.sublist(
+              k,
+              k + 100 > loadedTransIds.length ? loadedTransIds.length : k + 100,
+            );
+            final allDivsDocs = await tablesDB.listRows(
+              databaseId: '671f6e1600022832cba5',
+              tableId: 'divisao_transacoes',
+              queries: [
+                Query.equal('transacao', chunkIds),
+                Query.limit(5000),
+              ],
+            );
+            allDivs.addAll(
+              allDivsDocs.rows.map((d) => DivisaoTransacaoModel.fromMap(d.data)),
+            );
+          }
 
           for (int i = 0; i < loadedTrans.length; i++) {
             final t = loadedTrans[i];
@@ -477,16 +502,16 @@ class FinancasController {
 
         // Send operations in blocks of 100, each inside its own transaction
         for (int j = 0; j < ops.length; j += 100) {
-          final chunk = ops.sublist(j, j + 100 > ops.length ? ops.length : j + 100);
+          final chunk = ops.sublist(
+            j,
+            j + 100 > ops.length ? ops.length : j + 100,
+          );
           final String txId = (await tablesDB.createTransaction()).$id;
           await tablesDB.createOperations(
             transactionId: txId,
             operations: chunk,
           );
-          await tablesDB.updateTransaction(
-            transactionId: txId,
-            commit: true,
-          );
+          await tablesDB.updateTransaction(transactionId: txId, commit: true);
         }
       } else {
         // Single non-recurrent transaction (normal flow)
