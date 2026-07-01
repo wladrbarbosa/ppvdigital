@@ -12,7 +12,7 @@ import 'package:ppvdigital/models/tarefas_habitos_model.dart';
 extension HistoricoTransformMap on Map<String, dynamic> {
   TarefaHabitoModel toTarefasHabitosModel() {
     return TarefaHabitoModel(
-      id: this[r'$id'] as String,
+      id: (this[r'$id'] ?? this['id'] ?? '') as String,
       nome: this['nome'] as String,
       usuario: this['usuario'] as String,
       tipo: this['tipo'] as String,
@@ -28,29 +28,44 @@ extension HistoricoTransformDocumentList on List<Row> {
   List<HistoricoItemModel> toHistoricoModelList() {
     final List<HistoricoItemModel> temp = [];
 
-    void addToList(Row e1) {
-      final Map<String, dynamic> rawTarefaMap =
-          e1.data['tarefasEHabitos'] as Map<String, dynamic>;
-      final String tarefaId = rawTarefaMap[r'$id'] as String;
+    for (final e1 in this) {
+      try {
+        final rawTarefaMap = e1.data['tarefasEHabitos'];
+        if (rawTarefaMap == null || rawTarefaMap is! Map) {
+          continue;
+        }
 
-      final cachedTarefa = Core.tarefasHabitosController.tarefasHabitosList
-          .cast<TarefaHabitoModel?>()
-          .firstWhere(
-            (el) => el?.id == tarefaId,
-            orElse: () => null,
-          );
+        final String tarefaId =
+            (rawTarefaMap[r'$id'] ?? rawTarefaMap['id'] ?? '') as String;
+        if (tarefaId.isEmpty) {
+          continue;
+        }
 
-      temp.add(
-        HistoricoItemModel(
-          id: e1.$id,
-          usuario: e1.data['usuario'] as String,
-          createdAt: DateTime.parse((e1.data[r'$createdAt'] as String?) ?? ''),
-          tarefasEHabitos: cachedTarefa ?? rawTarefaMap.toTarefasHabitosModel(),
-        ),
-      );
+        final cachedTarefa = Core.tarefasHabitosController.tarefasHabitosList
+            .cast<TarefaHabitoModel?>()
+            .firstWhere(
+              (el) => el?.id == tarefaId,
+              orElse: () => null,
+            );
+
+        final String? createdAtStr = e1.data[r'$createdAt'] as String?;
+        final DateTime parsedCreatedAt = createdAtStr != null
+            ? (DateTime.tryParse(createdAtStr) ?? DateTime.now())
+            : DateTime.now();
+
+        temp.add(
+          HistoricoItemModel(
+            id: e1.$id,
+            usuario: (e1.data['usuario'] as String?) ?? '',
+            createdAt: parsedCreatedAt,
+            tarefasEHabitos: cachedTarefa ??
+                (rawTarefaMap as Map<String, dynamic>).toTarefasHabitosModel(),
+          ),
+        );
+      } catch (e) {
+        log('Error parsing history item ${e1.$id}: $e');
+      }
     }
-
-    forEach(addToList);
 
     return temp;
   }

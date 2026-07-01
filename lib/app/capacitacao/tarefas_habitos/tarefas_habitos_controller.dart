@@ -19,63 +19,56 @@ extension TarefasHabitosTransformList on List<dynamic>? {
           List<HistoricoItemModel> withPeriodFilter = [];
           DateTime beginning = DateTime.parse(
             ((e2 as Map<String, dynamic>)[r'$createdAt'] as String?) ?? '',
-          );
+          ).toLocal();
           final String reiniciaEmTipo = e2['reiniciaEmTipo'] as String;
           final int reiniciaEmQtd = e2['reiniciaEmQtd'] as int;
           final DateTime now = DateTime.now();
 
           if (tarefaHabitoHistoricoList != null &&
               tarefaHabitoHistoricoList.isNotEmpty) {
-            final Duration beginningNowDiff = DateTime.now().difference(
-              beginning,
-            );
+            final Duration beginningNowDiff = now.difference(beginning);
             late DateTime startPeriod;
 
             switch (reiniciaEmTipo) {
               case 'dias':
-                final Duration durationToStartPeriod = Duration(
-                  days: (beginningNowDiff.inDays ~/ reiniciaEmQtd) + 1,
+                final int blocks = beginningNowDiff.inDays ~/ reiniciaEmQtd;
+                startPeriod = beginning.add(
+                  Duration(days: blocks * reiniciaEmQtd),
                 );
-                beginning = DateTime.utc(
-                  beginning.year,
-                  beginning.month,
-                  beginning.day,
-                );
-                startPeriod = beginning.add(durationToStartPeriod);
+                break;
               case 'semanas':
-                final Duration durationToStartPeriod = Duration(
-                  days:
-                      (beginningNowDiff.inDays ~/ (7 * reiniciaEmQtd)) -
-                      (beginning.weekday - 1),
+                final int blocks =
+                    beginningNowDiff.inDays ~/ (7 * reiniciaEmQtd);
+                startPeriod = beginning.add(
+                  Duration(days: blocks * 7 * reiniciaEmQtd),
                 );
-                beginning = DateTime.utc(
+                break;
+              case 'meses':
+                final int monthDiff =
+                    (now.year - beginning.year) * 12 +
+                    (now.month - beginning.month);
+                final int blocks = monthDiff ~/ reiniciaEmQtd;
+                startPeriod = DateTime(
                   beginning.year,
-                  beginning.month,
+                  beginning.month + (blocks * reiniciaEmQtd),
                   beginning.day,
                 );
-                startPeriod = beginning.add(durationToStartPeriod);
-              case 'meses':
-                final int monthDiff = now.month - beginning.month;
-                startPeriod = DateTime.utc(
-                  beginning.year,
-                  now.month - (monthDiff % reiniciaEmQtd),
-                );
+                break;
               case 'anos':
                 final int yearDiff = now.year - beginning.year;
-                startPeriod = DateTime.utc(
-                  now.year - (yearDiff % reiniciaEmQtd),
-                );
-              default:
-                final Duration durationToStartPeriod = Duration(
-                  hours: beginningNowDiff.inHours % reiniciaEmQtd,
-                );
-                beginning = DateTime.utc(
-                  beginning.year,
+                final int blocks = yearDiff ~/ reiniciaEmQtd;
+                startPeriod = DateTime(
+                  beginning.year + (blocks * reiniciaEmQtd),
                   beginning.month,
                   beginning.day,
-                  beginning.hour,
                 );
-                startPeriod = beginning.add(durationToStartPeriod);
+                break;
+              default:
+                final int blocks = beginningNowDiff.inHours ~/ reiniciaEmQtd;
+                startPeriod = beginning.add(
+                  Duration(hours: blocks * reiniciaEmQtd),
+                );
+                break;
             }
 
             withPeriodFilter = tarefaHabitoHistoricoList.where((el) {
@@ -84,8 +77,7 @@ extension TarefasHabitosTransformList on List<dynamic>? {
             }).toList();
           }
 
-          final String? collectionId =
-              e2[r'$collectionId'] as String?;
+          final String? collectionId = e2[r'$collectionId'] as String?;
           if (collectionId != null) {
             TarefasHabitosController.tarefasHabitosQtdCollectionId =
                 collectionId;
@@ -117,26 +109,30 @@ extension TarefasHabitosTransformDocumentList on List<Row> {
     final List<TarefaHabitoModel> temp = [];
     final TablesDB tablesDB = TablesDB(databases.client);
 
-    await Future.forEach(this, (e1) async {
-      final RowList historicoTarefasHabitos = await tablesDB.listRows(
-        databaseId: '671f6e1600022832cba5',
-        tableId: '6741f10d000d985e4af9',
-        queries: [
-          Query.equal('usuario', Core.loginController.currentUser?.$id ?? ''),
-          Query.equal('tarefasEHabitos', e1.$id),
-          Query.select([
-            '*',
-            'tarefasEHabitos.*',
-            'tarefasEHabitos.tarefasHabitosQtds.*',
-            'tarefasEHabitos.tarefasHabitosQtds.categoriasTarefasHabitos.*',
-          ]),
-          Query.orderDesc(r'$createdAt'),
-          Query.limit(5000),
-        ],
-      );
+    // Query all history items for this user in a single request to avoid relationship filtering limits
+    final RowList res = await tablesDB.listRows(
+      databaseId: '671f6e1600022832cba5',
+      tableId: '6741f10d000d985e4af9',
+      queries: [
+        Query.equal('usuario', Core.loginController.currentUser?.$id ?? ''),
+        Query.select([
+          '*',
+          'tarefasEHabitos.*',
+          'tarefasEHabitos.tarefasHabitosQtds.*',
+          'tarefasEHabitos.tarefasHabitosQtds.categoriasTarefasHabitos.*',
+        ]),
+        Query.orderDesc(r'$createdAt'),
+        Query.limit(5000),
+      ],
+    );
 
-      final List<HistoricoItemModel> tarefaHabitoQtdList =
-          historicoTarefasHabitos.rows.toHistoricoModelList();
+    final List<HistoricoItemModel> allHistoryItems = res.rows
+        .toHistoricoModelList();
+
+    for (final e1 in this) {
+      final List<HistoricoItemModel> tarefaHabitoQtdList = allHistoryItems
+          .where((item) => item.tarefasEHabitos.id == e1.$id)
+          .toList();
 
       temp.add(
         TarefaHabitoModel(
@@ -152,7 +148,7 @@ extension TarefasHabitosTransformDocumentList on List<Row> {
               .toTarefaHabitoQtdModelList(tarefaHabitoQtdList),
         ),
       );
-    });
+    }
 
     return temp;
   }
@@ -264,11 +260,7 @@ class TarefasHabitosController {
   Future<bool> createTarefaHabito({
     required String nome,
     required String tipo,
-    required int metaVezes,
-    required String? categoriaId,
-    required num valor,
-    required int reiniciaEmQtd,
-    required String reiniciaEmTipo,
+    required List<Map<String, dynamic>> metas,
     DateTime? agendamento,
   }) async {
     try {
@@ -279,22 +271,26 @@ class TarefasHabitosController {
       final TablesDB tablesDB = TablesDB(databases.client);
 
       final String qtdCollectionId =
-          tarefasHabitosQtdCollectionId ?? '671f86820005de9756b1';
+          tarefasHabitosQtdCollectionId ?? '674cfd5e001a6582741e';
 
-      final Row qtdRow = await tablesDB.createRow(
-        databaseId: '671f6e1600022832cba5',
-        tableId: qtdCollectionId,
-        rowId: ID.unique(),
-        data: {
-          'metaVezes': metaVezes,
-          'usuario': user,
-          'categoriasTarefasHabitos': categoriaId,
-          'valor': valor,
-          'reiniciaEmQtd': reiniciaEmQtd,
-          'reiniciaEmTipo': reiniciaEmTipo,
-          'dataCriacao': DateTime.now().millisecondsSinceEpoch,
-        },
-      );
+      final List<String> qtdRowIds = [];
+
+      for (final meta in metas) {
+        final Row qtdRow = await tablesDB.createRow(
+          databaseId: '671f6e1600022832cba5',
+          tableId: qtdCollectionId,
+          rowId: ID.unique(),
+          data: {
+            'metaVezes': meta['metaVezes'] as int,
+            'usuario': user,
+            'categoriasTarefasHabitos': meta['categoriaId'] as String?,
+            'valor': meta['valor'] as num,
+            'reiniciaEmQtd': meta['reiniciaEmQtd'] as int,
+            'reiniciaEmTipo': meta['reiniciaEmTipo'] as String,
+          },
+        );
+        qtdRowIds.add(qtdRow.$id);
+      }
 
       await tablesDB.createRow(
         databaseId: '671f6e1600022832cba5',
@@ -306,7 +302,7 @@ class TarefasHabitosController {
           'usuario': user,
           'concluida': false,
           'agendamento': agendamento?.toIso8601String(),
-          'tarefasHabitosQtds': [qtdRow.$id],
+          'tarefasHabitosQtds': qtdRowIds,
         },
       );
 
@@ -322,13 +318,9 @@ class TarefasHabitosController {
     required String id,
     required String nome,
     required String tipo,
-    required int metaVezes,
-    required String? categoriaId,
-    required num valor,
-    required int reiniciaEmQtd,
-    required String reiniciaEmTipo,
+    required List<Map<String, dynamic>> metas,
+    required List<String> allExistingQtdRowIds,
     DateTime? agendamento,
-    required String qtdRowId,
   }) async {
     try {
       if (Core.loginController.currentUser == null) {
@@ -338,21 +330,63 @@ class TarefasHabitosController {
       final TablesDB tablesDB = TablesDB(databases.client);
 
       final String qtdCollectionId =
-          tarefasHabitosQtdCollectionId ?? '671f86820005de9756b1';
+          tarefasHabitosQtdCollectionId ?? '674cfd5e001a6582741e';
 
-      await tablesDB.updateRow(
-        databaseId: '671f6e1600022832cba5',
-        tableId: qtdCollectionId,
-        rowId: qtdRowId,
-        data: {
-          'metaVezes': metaVezes,
-          'usuario': user,
-          'categoriasTarefasHabitos': categoriaId,
-          'valor': valor,
-          'reiniciaEmQtd': reiniciaEmQtd,
-          'reiniciaEmTipo': reiniciaEmTipo,
-        },
-      );
+      final List<String> finalQtdRowIds = [];
+      final List<String> savedQtdRowIds = [];
+
+      for (final meta in metas) {
+        final String? metaId = meta['id'] as String?;
+        if (metaId != null && metaId.isNotEmpty) {
+          // Update existing meta
+          await tablesDB.updateRow(
+            databaseId: '671f6e1600022832cba5',
+            tableId: qtdCollectionId,
+            rowId: metaId,
+            data: {
+              'metaVezes': meta['metaVezes'] as int,
+              'usuario': user,
+              'categoriasTarefasHabitos': meta['categoriaId'] as String?,
+              'valor': meta['valor'] as num,
+              'reiniciaEmQtd': meta['reiniciaEmQtd'] as int,
+              'reiniciaEmTipo': meta['reiniciaEmTipo'] as String,
+            },
+          );
+          finalQtdRowIds.add(metaId);
+          savedQtdRowIds.add(metaId);
+        } else {
+          // Create new meta
+          final Row qtdRow = await tablesDB.createRow(
+            databaseId: '671f6e1600022832cba5',
+            tableId: qtdCollectionId,
+            rowId: ID.unique(),
+            data: {
+              'metaVezes': meta['metaVezes'] as int,
+              'usuario': user,
+              'categoriasTarefasHabitos': meta['categoriaId'] as String?,
+              'valor': meta['valor'] as num,
+              'reiniciaEmQtd': meta['reiniciaEmQtd'] as int,
+              'reiniciaEmTipo': meta['reiniciaEmTipo'] as String,
+            },
+          );
+          finalQtdRowIds.add(qtdRow.$id);
+        }
+      }
+
+      // Delete any existing metas that were removed in the UI
+      for (final existingId in allExistingQtdRowIds) {
+        if (!savedQtdRowIds.contains(existingId)) {
+          try {
+            await tablesDB.deleteRow(
+              databaseId: '671f6e1600022832cba5',
+              tableId: qtdCollectionId,
+              rowId: existingId,
+            );
+          } catch (e) {
+            log('Error deleting obsolete meta row $existingId: $e');
+          }
+        }
+      }
 
       await tablesDB.updateRow(
         databaseId: '671f6e1600022832cba5',
@@ -363,6 +397,7 @@ class TarefasHabitosController {
           'tipo': tipo,
           'usuario': user,
           'agendamento': agendamento?.toIso8601String(),
+          'tarefasHabitosQtds': finalQtdRowIds,
         },
       );
 
@@ -374,18 +409,24 @@ class TarefasHabitosController {
     }
   }
 
-  Future<bool> deleteTarefaHabito(String id, String qtdRowId) async {
+  Future<bool> deleteTarefaHabito(String id, List<String> qtdRowIds) async {
     try {
       final TablesDB tablesDB = TablesDB(databases.client);
 
       final String qtdCollectionId =
-          tarefasHabitosQtdCollectionId ?? '671f86820005de9756b1';
+          tarefasHabitosQtdCollectionId ?? '674cfd5e001a6582741e';
 
-      await tablesDB.deleteRow(
-        databaseId: '671f6e1600022832cba5',
-        tableId: qtdCollectionId,
-        rowId: qtdRowId,
-      );
+      for (final qtdRowId in qtdRowIds) {
+        try {
+          await tablesDB.deleteRow(
+            databaseId: '671f6e1600022832cba5',
+            tableId: qtdCollectionId,
+            rowId: qtdRowId,
+          );
+        } catch (e) {
+          log('Error deleting meta row $qtdRowId: $e');
+        }
+      }
 
       await tablesDB.deleteRow(
         databaseId: '671f6e1600022832cba5',

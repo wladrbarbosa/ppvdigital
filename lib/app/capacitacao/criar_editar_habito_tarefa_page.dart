@@ -4,6 +4,32 @@ import 'package:ppvdigital/core.dart';
 import 'package:ppvdigital/models/tarefas_habitos_model.dart';
 import 'package:routefly/routefly.dart';
 
+class MetaItem {
+  String? id;
+  final TextEditingController metaVezesController;
+  final TextEditingController valorController;
+  final TextEditingController reiniciaEmQtdController;
+  String reiniciaEmTipo;
+  String? selectedCategoryId;
+
+  MetaItem({
+    this.id,
+    required String metaVezes,
+    required String valor,
+    required String reiniciaEmQtd,
+    required this.reiniciaEmTipo,
+    this.selectedCategoryId,
+  })  : metaVezesController = TextEditingController(text: metaVezes),
+        valorController = TextEditingController(text: valor),
+        reiniciaEmQtdController = TextEditingController(text: reiniciaEmQtd);
+
+  void dispose() {
+    metaVezesController.dispose();
+    valorController.dispose();
+    reiniciaEmQtdController.dispose();
+  }
+}
+
 Route routeBuilder(BuildContext context, RouteSettings settings) {
   final args = settings.arguments;
   String? lastRoute;
@@ -56,13 +82,9 @@ class CriarHabitoTarefaPage extends StatefulWidget {
 class _CriarHabitoTarefaPageState extends State<CriarHabitoTarefaPage> {
   final _formKey = GlobalKey<FormState>();
   final _nomeController = TextEditingController();
-  final _metaVezesController = TextEditingController(text: '1');
-  final _valorController = TextEditingController(text: '1.0');
-  final _reiniciaEmQtdController = TextEditingController(text: '1');
+  final List<MetaItem> _metas = [];
 
   String _tipo = 'habito'; // 'habito' or 'tarefa'
-  String? _selectedCategoryId;
-  String _reiniciaEmTipo = 'dias';
   DateTime? _agendamento;
 
   @override
@@ -76,23 +98,34 @@ class _CriarHabitoTarefaPageState extends State<CriarHabitoTarefaPage> {
       _tipo = item.tipo;
       _agendamento = item.agendamento;
 
-      if (item.tarefasHabitosQtd.isNotEmpty) {
-        final qtd = item.tarefasHabitosQtd.first;
-        _metaVezesController.text = qtd.metaVezes.toString();
-        _valorController.text = qtd.valor.toString();
-        _reiniciaEmQtdController.text = qtd.reiniciaEmQtd.toString();
-        _reiniciaEmTipo = qtd.reiniciaEmTipo;
-        _selectedCategoryId = qtd.categoriasTarefasHabitos?.id;
+      for (final qtd in item.tarefasHabitosQtd) {
+        _metas.add(MetaItem(
+          id: qtd.id,
+          metaVezes: qtd.metaVezes.toString(),
+          valor: qtd.valor.toString(),
+          reiniciaEmQtd: qtd.reiniciaEmQtd.toString(),
+          reiniciaEmTipo: qtd.reiniciaEmTipo,
+          selectedCategoryId: qtd.categoriasTarefasHabitos?.id,
+        ));
       }
+    }
+
+    if (_metas.isEmpty) {
+      _metas.add(MetaItem(
+        metaVezes: '1',
+        valor: '1.0',
+        reiniciaEmQtd: '1',
+        reiniciaEmTipo: 'dias',
+      ));
     }
   }
 
   @override
   void dispose() {
     _nomeController.dispose();
-    _metaVezesController.dispose();
-    _valorController.dispose();
-    _reiniciaEmQtdController.dispose();
+    for (final meta in _metas) {
+      meta.dispose();
+    }
     super.dispose();
   }
 
@@ -128,36 +161,36 @@ class _CriarHabitoTarefaPageState extends State<CriarHabitoTarefaPage> {
     if (!_formKey.currentState!.validate()) return;
 
     final String nome = _nomeController.text.trim();
-    final int metaVezes = int.parse(_metaVezesController.text);
-    final num valor = num.parse(_valorController.text);
-    final int reiniciaEmQtd = int.parse(_reiniciaEmQtdController.text);
+    final List<Map<String, dynamic>> metasData = _metas.map((meta) {
+      return {
+        'id': meta.id,
+        'metaVezes': int.parse(meta.metaVezesController.text),
+        'valor': num.parse(meta.valorController.text),
+        'reiniciaEmQtd': int.parse(meta.reiniciaEmQtdController.text),
+        'reiniciaEmTipo': meta.reiniciaEmTipo,
+        'categoriaId': meta.selectedCategoryId,
+      };
+    }).toList();
 
     final bool success;
     if (widget.editingItem != null) {
-      final String qtdRowId = widget.editingItem!.tarefasHabitosQtd.isNotEmpty
-          ? widget.editingItem!.tarefasHabitosQtd.first.id
-          : '';
+      final List<String> allExistingQtdRowIds = widget
+          .editingItem!.tarefasHabitosQtd
+          .map((qtd) => qtd.id)
+          .toList();
       success = await Core.tarefasHabitosController.updateTarefaHabito(
         id: widget.editingItem!.id,
         nome: nome,
         tipo: _tipo,
-        metaVezes: metaVezes,
-        categoriaId: _selectedCategoryId,
-        valor: valor,
-        reiniciaEmQtd: reiniciaEmQtd,
-        reiniciaEmTipo: _reiniciaEmTipo,
+        metas: metasData,
+        allExistingQtdRowIds: allExistingQtdRowIds,
         agendamento: _agendamento,
-        qtdRowId: qtdRowId,
       );
     } else {
       success = await Core.tarefasHabitosController.createTarefaHabito(
         nome: nome,
         tipo: _tipo,
-        metaVezes: metaVezes,
-        categoriaId: _selectedCategoryId,
-        valor: valor,
-        reiniciaEmQtd: reiniciaEmQtd,
-        reiniciaEmTipo: _reiniciaEmTipo,
+        metas: metasData,
         agendamento: _agendamento,
       );
     }
@@ -199,13 +232,14 @@ class _CriarHabitoTarefaPageState extends State<CriarHabitoTarefaPage> {
 
     if (confirm != true || !mounted) return;
 
-    final String qtdRowId = widget.editingItem!.tarefasHabitosQtd.isNotEmpty
-        ? widget.editingItem!.tarefasHabitosQtd.first.id
-        : '';
+    final List<String> allExistingQtdRowIds = widget
+        .editingItem!.tarefasHabitosQtd
+        .map((qtd) => qtd.id)
+        .toList();
 
     final bool success = await Core.tarefasHabitosController.deleteTarefaHabito(
       widget.editingItem!.id,
-      qtdRowId,
+      allExistingQtdRowIds,
     );
 
     if (success && mounted) {
@@ -295,133 +329,201 @@ class _CriarHabitoTarefaPageState extends State<CriarHabitoTarefaPage> {
               },
             ),
             const SizedBox(height: 16),
-            Observer(
-              builder: (context) {
-                final categorias = Core.categoriasController.categoriasList;
-                return DropdownButtonFormField<String>(
-                  initialValue: _selectedCategoryId,
-                  decoration: const InputDecoration(
-                    labelText: 'Categoria (Opcional)',
-                    border: OutlineInputBorder(),
-                  ),
-                  items: [
-                    const DropdownMenuItem<String>(
-                      child: Text('Nenhuma'),
-                    ),
-                    ...categorias.map((cat) {
-                      return DropdownMenuItem<String>(
-                        value: cat.id,
-                        child: Row(
-                          children: [
-                            CircleAvatar(
-                              backgroundColor: cat.cor,
-                              radius: 8,
+            const Text(
+              'Metas',
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 8),
+            ..._metas.asMap().entries.map((entry) {
+              final int idx = entry.key;
+              final MetaItem meta = entry.value;
+
+              return Card(
+                elevation: 1,
+                margin: const EdgeInsets.symmetric(vertical: 8),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  side: BorderSide(color: Colors.grey.shade300),
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            'Meta ${idx + 1}',
+                            style: const TextStyle(fontWeight: FontWeight.bold),
+                          ),
+                          if (_metas.length > 1)
+                            IconButton(
+                              icon: const Icon(Icons.delete_outline,
+                                  color: Colors.red),
+                              onPressed: () {
+                                setState(() {
+                                  meta.dispose();
+                                  _metas.removeAt(idx);
+                                });
+                              },
                             ),
-                            const SizedBox(width: 8),
-                            Text(cat.nome),
-                          ],
-                        ),
-                      );
-                    }),
-                  ],
-                  onChanged: (val) {
-                    setState(() {
-                      _selectedCategoryId = val;
-                    });
-                  },
-                );
-              },
-            ),
-            const SizedBox(height: 16),
-            Row(
-              children: [
-                Expanded(
-                  child: TextFormField(
-                    controller: _metaVezesController,
-                    keyboardType: TextInputType.number,
-                    decoration: const InputDecoration(
-                      labelText: 'Meta (Vezes)',
-                      border: OutlineInputBorder(),
-                    ),
-                    validator: (value) {
-                      if (value == null || value.trim().isEmpty) {
-                        return 'Obrigatório';
-                      }
-                      if (int.tryParse(value) == null) {
-                        return 'Inválido';
-                      }
-                      return null;
-                    },
-                  ),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: TextFormField(
-                    controller: _valorController,
-                    keyboardType: TextInputType.number,
-                    decoration: const InputDecoration(
-                      labelText: 'Valor por Vez',
-                      border: OutlineInputBorder(),
-                    ),
-                    validator: (value) {
-                      if (value == null || value.trim().isEmpty) {
-                        return 'Obrigatório';
-                      }
-                      if (num.tryParse(value) == null) {
-                        return 'Inválido';
-                      }
-                      return null;
-                    },
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            Row(
-              children: [
-                Expanded(
-                  child: TextFormField(
-                    controller: _reiniciaEmQtdController,
-                    keyboardType: TextInputType.number,
-                    decoration: const InputDecoration(
-                      labelText: 'Reinicia a cada',
-                      border: OutlineInputBorder(),
-                    ),
-                    validator: (value) {
-                      if (value == null || value.trim().isEmpty) {
-                        return 'Obrigatório';
-                      }
-                      if (int.tryParse(value) == null) {
-                        return 'Inválido';
-                      }
-                      return null;
-                    },
-                  ),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: DropdownButtonFormField<String>(
-                    initialValue: _reiniciaEmTipo,
-                    decoration: const InputDecoration(
-                      labelText: 'Tipo Período',
-                      border: OutlineInputBorder(),
-                    ),
-                    items: const [
-                      DropdownMenuItem(value: 'dias', child: Text('Dias')),
-                      DropdownMenuItem(value: 'semanas', child: Text('Semanas')),
-                      DropdownMenuItem(value: 'meses', child: Text('Meses')),
-                      DropdownMenuItem(value: 'anos', child: Text('Anos')),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      Observer(
+                        builder: (context) {
+                          final categorias =
+                              Core.categoriasController.categoriasList;
+                          return DropdownButtonFormField<String>(
+                            value: meta.selectedCategoryId,
+                            decoration: const InputDecoration(
+                              labelText: 'Categoria (Opcional)',
+                              border: OutlineInputBorder(),
+                            ),
+                            items: [
+                              const DropdownMenuItem<String>(
+                                value: null,
+                                child: Text('Nenhuma'),
+                              ),
+                              ...categorias.map((cat) {
+                                return DropdownMenuItem<String>(
+                                  value: cat.id,
+                                  child: Row(
+                                    children: [
+                                      CircleAvatar(
+                                        backgroundColor: cat.cor,
+                                        radius: 8,
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Text(cat.nome),
+                                    ],
+                                  ),
+                                );
+                              }),
+                            ],
+                            onChanged: (val) {
+                              setState(() {
+                                meta.selectedCategoryId = val;
+                              });
+                            },
+                          );
+                        },
+                      ),
+                      const SizedBox(height: 12),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: TextFormField(
+                              controller: meta.metaVezesController,
+                              keyboardType: TextInputType.number,
+                              decoration: const InputDecoration(
+                                labelText: 'Meta (Vezes)',
+                                border: OutlineInputBorder(),
+                              ),
+                              validator: (value) {
+                                if (value == null || value.trim().isEmpty) {
+                                  return 'Obrigatório';
+                                }
+                                if (int.tryParse(value) == null) {
+                                  return 'Inválido';
+                                }
+                                return null;
+                              },
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: TextFormField(
+                              controller: meta.valorController,
+                              keyboardType: TextInputType.number,
+                              decoration: const InputDecoration(
+                                labelText: 'Valor por Vez',
+                                border: OutlineInputBorder(),
+                              ),
+                              validator: (value) {
+                                if (value == null || value.trim().isEmpty) {
+                                  return 'Obrigatório';
+                                }
+                                if (num.tryParse(value) == null) {
+                                  return 'Inválido';
+                                }
+                                return null;
+                              },
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: TextFormField(
+                              controller: meta.reiniciaEmQtdController,
+                              keyboardType: TextInputType.number,
+                              decoration: const InputDecoration(
+                                labelText: 'Reinicia a cada',
+                                border: OutlineInputBorder(),
+                              ),
+                              validator: (value) {
+                                if (value == null || value.trim().isEmpty) {
+                                  return 'Obrigatório';
+                                }
+                                if (int.tryParse(value) == null) {
+                                  return 'Inválido';
+                                }
+                                return null;
+                              },
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: DropdownButtonFormField<String>(
+                              value: meta.reiniciaEmTipo,
+                              decoration: const InputDecoration(
+                                labelText: 'Tipo Período',
+                                border: OutlineInputBorder(),
+                              ),
+                              items: const [
+                                DropdownMenuItem(
+                                    value: 'dias', child: Text('Dias')),
+                                DropdownMenuItem(
+                                    value: 'semanas', child: Text('Semanas')),
+                                DropdownMenuItem(
+                                    value: 'meses', child: Text('Meses')),
+                                DropdownMenuItem(
+                                    value: 'anos', child: Text('Anos')),
+                              ],
+                              onChanged: (val) {
+                                if (val != null) {
+                                  setState(() {
+                                    meta.reiniciaEmTipo = val;
+                                  });
+                                }
+                              },
+                            ),
+                          ),
+                        ],
+                      ),
                     ],
-                    onChanged: (val) {
-                      if (val != null) {
-                        setState(() {
-                          _reiniciaEmTipo = val;
-                        });
-                      }
-                    },
                   ),
                 ),
-              ],
+              );
+            }),
+            const SizedBox(height: 8),
+            OutlinedButton.icon(
+              onPressed: () {
+                setState(() {
+                  _metas.add(MetaItem(
+                    metaVezes: '1',
+                    valor: '1.0',
+                    reiniciaEmQtd: '1',
+                    reiniciaEmTipo: 'dias',
+                  ));
+                });
+              },
+              icon: const Icon(Icons.add),
+              label: const Text('Adicionar Outra Meta'),
             ),
             if (_tipo == 'tarefa') ...[
               const SizedBox(height: 16),
