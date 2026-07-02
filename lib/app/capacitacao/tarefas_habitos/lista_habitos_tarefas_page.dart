@@ -37,7 +37,6 @@ class ListaHabitosTarefasPageState extends State<ListaHabitosTarefasPage> {
   final double width = 220.0;
   final double height = 120.0;
   static int? qtdItems;
-  late int? _selectedItem;
 
   @override
   void initState() {
