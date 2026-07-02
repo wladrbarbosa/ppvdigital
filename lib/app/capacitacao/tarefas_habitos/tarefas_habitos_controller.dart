@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:developer';
 import 'package:appwrite/appwrite.dart';
 import 'package:appwrite/models.dart';
+import 'package:flutter/material.dart' hide Row;
 import 'package:mobx/mobx.dart' as mobx;
 import 'package:ppvdigital/app/capacitacao/tarefas_habitos/historico_controller.dart';
 import 'package:ppvdigital/app/capacitacao/tarefas_habitos/lista_habitos_tarefas_page.dart';
@@ -10,6 +11,7 @@ import 'package:ppvdigital/models/categorias_tarefas_habitos_model.dart';
 import 'package:ppvdigital/models/historico_item_model.dart';
 import 'package:ppvdigital/models/tarefas_habitos_model.dart';
 import 'package:ppvdigital/models/tarefas_habitos_qtd_model.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 extension TarefasHabitosTransformList on List<dynamic>? {
   List<TarefaHabitoQtdModel> toTarefaHabitoQtdModelList([
@@ -17,12 +19,22 @@ extension TarefasHabitosTransformList on List<dynamic>? {
   ]) {
     return this?.map<TarefaHabitoQtdModel>((e2) {
           List<HistoricoItemModel> withPeriodFilter = [];
-          DateTime beginning = DateTime.parse(
+          DateTime parsedBeginning = DateTime.parse(
             ((e2 as Map<String, dynamic>)[r'$createdAt'] as String?) ?? '',
           ).toLocal();
+          DateTime beginning = DateTime(
+            parsedBeginning.year,
+            parsedBeginning.month,
+            parsedBeginning.day,
+          );
           final String reiniciaEmTipo = e2['reiniciaEmTipo'] as String;
           final int reiniciaEmQtd = e2['reiniciaEmQtd'] as int;
-          final DateTime now = DateTime.now();
+          final DateTime nowToday = DateTime.now();
+          final DateTime now = DateTime(
+            nowToday.year,
+            nowToday.month,
+            nowToday.day,
+          );
 
           if (tarefaHabitoHistoricoList != null &&
               tarefaHabitoHistoricoList.isNotEmpty) {
@@ -31,49 +43,68 @@ extension TarefasHabitosTransformList on List<dynamic>? {
 
             switch (reiniciaEmTipo) {
               case 'dias':
-                final int blocks = beginningNowDiff.inDays ~/ reiniciaEmQtd;
-                startPeriod = beginning.add(
-                  Duration(days: blocks * reiniciaEmQtd),
+                final Duration durationToStartPeriod = Duration(
+                  days: (beginningNowDiff.inDays ~/ reiniciaEmQtd),
                 );
+                beginning = DateTime(
+                  beginning.year,
+                  beginning.month,
+                  beginning.day,
+                );
+                startPeriod = beginning.add(durationToStartPeriod);
                 break;
               case 'semanas':
-                final int blocks =
-                    beginningNowDiff.inDays ~/ (7 * reiniciaEmQtd);
-                startPeriod = beginning.add(
-                  Duration(days: blocks * 7 * reiniciaEmQtd),
+                final Duration durationToStartPeriod = Duration(
+                  days:
+                      (beginningNowDiff.inDays ~/ (7 * reiniciaEmQtd)) * 7 -
+                      (beginning.weekday - 1),
                 );
+                beginning = DateTime(
+                  beginning.year,
+                  beginning.month,
+                  beginning.day,
+                );
+                startPeriod = beginning.add(durationToStartPeriod);
                 break;
               case 'meses':
                 final int monthDiff =
                     (now.year - beginning.year) * 12 +
                     (now.month - beginning.month);
-                final int blocks = monthDiff ~/ reiniciaEmQtd;
                 startPeriod = DateTime(
                   beginning.year,
-                  beginning.month + (blocks * reiniciaEmQtd),
-                  beginning.day,
+                  now.month - (monthDiff % reiniciaEmQtd),
+                  1,
                 );
                 break;
               case 'anos':
                 final int yearDiff = now.year - beginning.year;
-                final int blocks = yearDiff ~/ reiniciaEmQtd;
                 startPeriod = DateTime(
-                  beginning.year + (blocks * reiniciaEmQtd),
-                  beginning.month,
-                  beginning.day,
+                  now.year - (yearDiff % reiniciaEmQtd),
+                  1,
+                  1,
                 );
                 break;
               default:
-                final int blocks = beginningNowDiff.inHours ~/ reiniciaEmQtd;
-                startPeriod = beginning.add(
-                  Duration(hours: blocks * reiniciaEmQtd),
+                final Duration durationToStartPeriod = Duration(
+                  days: beginningNowDiff.inDays ~/ reiniciaEmQtd,
                 );
+                beginning = DateTime(
+                  beginning.year,
+                  beginning.month,
+                  beginning.day,
+                );
+                startPeriod = beginning.add(durationToStartPeriod);
                 break;
             }
 
             withPeriodFilter = tarefaHabitoHistoricoList.where((el) {
-              return el.createdAt.isAtSameMomentAs(startPeriod) ||
-                  el.createdAt.isAfter(startPeriod);
+              final DateTime elDate = DateTime(
+                el.createdAt.year,
+                el.createdAt.month,
+                el.createdAt.day,
+              );
+              return elDate.isAtSameMomentAs(startPeriod) ||
+                  elDate.isAfter(startPeriod);
             }).toList();
           }
 
@@ -109,7 +140,6 @@ extension TarefasHabitosTransformDocumentList on List<Row> {
     final List<TarefaHabitoModel> temp = [];
     final TablesDB tablesDB = TablesDB(databases.client);
 
-    // Query all history items for this user in a single request to avoid relationship filtering limits
     final RowList res = await tablesDB.listRows(
       databaseId: '671f6e1600022832cba5',
       tableId: '6741f10d000d985e4af9',
@@ -172,6 +202,7 @@ class TarefasHabitosController {
   // Constructor
   TarefasHabitosController() {
     init();
+    loadConfiguredColors();
   }
 
   static String? tarefasHabitosQtdCollectionId;
@@ -182,6 +213,54 @@ class TarefasHabitosController {
   List<TarefaHabitoModel> get tarefasHabitosList =>
       _tarefasHabitosList.toList();
   static Future<void>? tarefasHabitosFuture;
+
+  final mobx.Observable<Color> habitColor = mobx.Observable<Color>(
+    Colors.tealAccent,
+    name: 'habitColor',
+  );
+  final mobx.Observable<Color> taskColor = mobx.Observable<Color>(
+    Colors.blueAccent,
+    name: 'taskColor',
+  );
+
+  Future<void> loadConfiguredColors() async {
+    final prefs = await SharedPreferences.getInstance();
+    final habitColorHex = prefs.getString('pref_habit_color');
+    final taskColorHex = prefs.getString('pref_task_color');
+
+    mobx.runInAction(() {
+      if (habitColorHex != null) {
+        habitColor.value = Color(int.parse(habitColorHex, radix: 16));
+      }
+      if (taskColorHex != null) {
+        taskColor.value = Color(int.parse(taskColorHex, radix: 16));
+      }
+    });
+  }
+
+  Future<void> setHabitColor(Color color) async {
+    mobx.runInAction(() {
+      habitColor.value = color;
+    });
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('pref_habit_color', color.value.toRadixString(16));
+    } catch (e) {
+      log('Error saving habit color: $e');
+    }
+  }
+
+  Future<void> setTaskColor(Color color) async {
+    mobx.runInAction(() {
+      taskColor.value = color;
+    });
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('pref_task_color', color.value.toRadixString(16));
+    } catch (e) {
+      log('Error saving task color: $e');
+    }
+  }
 
   // Initialize the Appwrite client
   void init() {
@@ -373,6 +452,19 @@ class TarefasHabitosController {
         }
       }
 
+      await tablesDB.updateRow(
+        databaseId: '671f6e1600022832cba5',
+        tableId: '671f864f0023d1c27de8',
+        rowId: id,
+        data: {
+          'nome': nome,
+          'tipo': tipo,
+          'usuario': user,
+          'agendamento': agendamento?.toIso8601String(),
+          'tarefasHabitosQtds': finalQtdRowIds,
+        },
+      );
+
       // Delete any existing metas that were removed in the UI
       for (final existingId in allExistingQtdRowIds) {
         if (!savedQtdRowIds.contains(existingId)) {
@@ -387,19 +479,6 @@ class TarefasHabitosController {
           }
         }
       }
-
-      await tablesDB.updateRow(
-        databaseId: '671f6e1600022832cba5',
-        tableId: '671f864f0023d1c27de8',
-        rowId: id,
-        data: {
-          'nome': nome,
-          'tipo': tipo,
-          'usuario': user,
-          'agendamento': agendamento?.toIso8601String(),
-          'tarefasHabitosQtds': finalQtdRowIds,
-        },
-      );
 
       await loadDocuments();
       return true;

@@ -19,9 +19,9 @@ class MetaItem {
     required String reiniciaEmQtd,
     required this.reiniciaEmTipo,
     this.selectedCategoryId,
-  })  : metaVezesController = TextEditingController(text: metaVezes),
-        valorController = TextEditingController(text: valor),
-        reiniciaEmQtdController = TextEditingController(text: reiniciaEmQtd);
+  }) : metaVezesController = TextEditingController(text: metaVezes),
+       valorController = TextEditingController(text: valor),
+       reiniciaEmQtdController = TextEditingController(text: reiniciaEmQtd);
 
   void dispose() {
     metaVezesController.dispose();
@@ -66,11 +66,7 @@ Route routeBuilder(BuildContext context, RouteSettings settings) {
 }
 
 class CriarHabitoTarefaPage extends StatefulWidget {
-  const CriarHabitoTarefaPage({
-    super.key,
-    this.editingItem,
-    this.lastRoute,
-  });
+  const CriarHabitoTarefaPage({super.key, this.editingItem, this.lastRoute});
 
   final TarefaHabitoModel? editingItem;
   final String? lastRoute;
@@ -99,24 +95,30 @@ class _CriarHabitoTarefaPageState extends State<CriarHabitoTarefaPage> {
       _agendamento = item.agendamento;
 
       for (final qtd in item.tarefasHabitosQtd) {
-        _metas.add(MetaItem(
-          id: qtd.id,
-          metaVezes: qtd.metaVezes.toString(),
-          valor: qtd.valor.toString(),
-          reiniciaEmQtd: qtd.reiniciaEmQtd.toString(),
-          reiniciaEmTipo: qtd.reiniciaEmTipo,
-          selectedCategoryId: qtd.categoriasTarefasHabitos?.id,
-        ));
+        _metas.add(
+          MetaItem(
+            id: qtd.id,
+            metaVezes: _tipo == 'tarefa' ? '1' : qtd.metaVezes.toString(),
+            valor: qtd.valor.toString(),
+            reiniciaEmQtd: _tipo == 'tarefa'
+                ? '1'
+                : qtd.reiniciaEmQtd.toString(),
+            reiniciaEmTipo: _tipo == 'tarefa' ? 'dias' : qtd.reiniciaEmTipo,
+            selectedCategoryId: qtd.categoriasTarefasHabitos?.id,
+          ),
+        );
       }
     }
 
     if (_metas.isEmpty) {
-      _metas.add(MetaItem(
-        metaVezes: '1',
-        valor: '1.0',
-        reiniciaEmQtd: '1',
-        reiniciaEmTipo: 'dias',
-      ));
+      _metas.add(
+        MetaItem(
+          metaVezes: '1',
+          valor: '1.0',
+          reiniciaEmQtd: '1',
+          reiniciaEmTipo: 'dias',
+        ),
+      );
     }
   }
 
@@ -175,7 +177,8 @@ class _CriarHabitoTarefaPageState extends State<CriarHabitoTarefaPage> {
     final bool success;
     if (widget.editingItem != null) {
       final List<String> allExistingQtdRowIds = widget
-          .editingItem!.tarefasHabitosQtd
+          .editingItem!
+          .tarefasHabitosQtd
           .map((qtd) => qtd.id)
           .toList();
       success = await Core.tarefasHabitosController.updateTarefaHabito(
@@ -196,18 +199,18 @@ class _CriarHabitoTarefaPageState extends State<CriarHabitoTarefaPage> {
     }
 
     if (success && mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Salvo com sucesso!')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Salvo com sucesso!')));
       if (widget.lastRoute != null) {
         Routefly.navigate(widget.lastRoute!);
       } else {
         Navigator.of(context).pop();
       }
     } else if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Erro ao salvar.')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Erro ao salvar.')));
     }
   }
 
@@ -233,7 +236,8 @@ class _CriarHabitoTarefaPageState extends State<CriarHabitoTarefaPage> {
     if (confirm != true || !mounted) return;
 
     final List<String> allExistingQtdRowIds = widget
-        .editingItem!.tarefasHabitosQtd
+        .editingItem!
+        .tarefasHabitosQtd
         .map((qtd) => qtd.id)
         .toList();
 
@@ -243,18 +247,18 @@ class _CriarHabitoTarefaPageState extends State<CriarHabitoTarefaPage> {
     );
 
     if (success && mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Excluído com sucesso!')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Excluído com sucesso!')));
       if (widget.lastRoute != null) {
         Routefly.navigate(widget.lastRoute!);
       } else {
         Navigator.of(context).pop();
       }
     } else if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Erro ao excluir.')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Erro ao excluir.')));
     }
   }
 
@@ -325,6 +329,13 @@ class _CriarHabitoTarefaPageState extends State<CriarHabitoTarefaPage> {
               onSelectionChanged: (Set<String> newSelection) {
                 setState(() {
                   _tipo = newSelection.first;
+                  if (_tipo == 'tarefa') {
+                    for (final meta in _metas) {
+                      meta.metaVezesController.text = '1';
+                      meta.reiniciaEmQtdController.text = '1';
+                      meta.reiniciaEmTipo = 'dias';
+                    }
+                  }
                 });
               },
             ),
@@ -359,8 +370,10 @@ class _CriarHabitoTarefaPageState extends State<CriarHabitoTarefaPage> {
                           ),
                           if (_metas.length > 1)
                             IconButton(
-                              icon: const Icon(Icons.delete_outline,
-                                  color: Colors.red),
+                              icon: const Icon(
+                                Icons.delete_outline,
+                                color: Colors.red,
+                              ),
                               onPressed: () {
                                 setState(() {
                                   meta.dispose();
@@ -411,100 +424,128 @@ class _CriarHabitoTarefaPageState extends State<CriarHabitoTarefaPage> {
                         },
                       ),
                       const SizedBox(height: 12),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: TextFormField(
-                              controller: meta.metaVezesController,
-                              keyboardType: TextInputType.number,
-                              decoration: const InputDecoration(
-                                labelText: 'Meta (Vezes)',
-                                border: OutlineInputBorder(),
+                      if (_tipo == 'habito') ...[
+                        Row(
+                          children: [
+                            Expanded(
+                              child: TextFormField(
+                                controller: meta.metaVezesController,
+                                keyboardType: TextInputType.number,
+                                decoration: const InputDecoration(
+                                  labelText: 'Meta (Vezes)',
+                                  border: OutlineInputBorder(),
+                                ),
+                                validator: (value) {
+                                  if (value == null || value.trim().isEmpty) {
+                                    return 'Obrigatório';
+                                  }
+                                  if (int.tryParse(value) == null) {
+                                    return 'Inválido';
+                                  }
+                                  return null;
+                                },
                               ),
-                              validator: (value) {
-                                if (value == null || value.trim().isEmpty) {
-                                  return 'Obrigatório';
-                                }
-                                if (int.tryParse(value) == null) {
-                                  return 'Inválido';
-                                }
-                                return null;
-                              },
                             ),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: TextFormField(
-                              controller: meta.valorController,
-                              keyboardType: TextInputType.number,
-                              decoration: const InputDecoration(
-                                labelText: 'Valor por Vez',
-                                border: OutlineInputBorder(),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: TextFormField(
+                                controller: meta.valorController,
+                                keyboardType: TextInputType.number,
+                                decoration: const InputDecoration(
+                                  labelText: 'Valor por Vez',
+                                  border: OutlineInputBorder(),
+                                ),
+                                validator: (value) {
+                                  if (value == null || value.trim().isEmpty) {
+                                    return 'Obrigatório';
+                                  }
+                                  if (num.tryParse(value) == null) {
+                                    return 'Inválido';
+                                  }
+                                  return null;
+                                },
                               ),
-                              validator: (value) {
-                                if (value == null || value.trim().isEmpty) {
-                                  return 'Obrigatório';
-                                }
-                                if (num.tryParse(value) == null) {
-                                  return 'Inválido';
-                                }
-                                return null;
-                              },
                             ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 12),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: TextFormField(
-                              controller: meta.reiniciaEmQtdController,
-                              keyboardType: TextInputType.number,
-                              decoration: const InputDecoration(
-                                labelText: 'Reinicia a cada',
-                                border: OutlineInputBorder(),
+                          ],
+                        ),
+                        const SizedBox(height: 12),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: TextFormField(
+                                controller: meta.reiniciaEmQtdController,
+                                keyboardType: TextInputType.number,
+                                decoration: const InputDecoration(
+                                  labelText: 'Reinicia a cada',
+                                  border: OutlineInputBorder(),
+                                ),
+                                validator: (value) {
+                                  if (value == null || value.trim().isEmpty) {
+                                    return 'Obrigatório';
+                                  }
+                                  if (int.tryParse(value) == null) {
+                                    return 'Inválido';
+                                  }
+                                  return null;
+                                },
                               ),
-                              validator: (value) {
-                                if (value == null || value.trim().isEmpty) {
-                                  return 'Obrigatório';
-                                }
-                                if (int.tryParse(value) == null) {
-                                  return 'Inválido';
-                                }
-                                return null;
-                              },
                             ),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: DropdownButtonFormField<String>(
-                              value: meta.reiniciaEmTipo,
-                              decoration: const InputDecoration(
-                                labelText: 'Tipo Período',
-                                border: OutlineInputBorder(),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: DropdownButtonFormField<String>(
+                                value: meta.reiniciaEmTipo,
+                                decoration: const InputDecoration(
+                                  labelText: 'Tipo Período',
+                                  border: OutlineInputBorder(),
+                                ),
+                                items: const [
+                                  DropdownMenuItem(
+                                    value: 'dias',
+                                    child: Text('Dias'),
+                                  ),
+                                  DropdownMenuItem(
+                                    value: 'semanas',
+                                    child: Text('Semanas'),
+                                  ),
+                                  DropdownMenuItem(
+                                    value: 'meses',
+                                    child: Text('Meses'),
+                                  ),
+                                  DropdownMenuItem(
+                                    value: 'anos',
+                                    child: Text('Anos'),
+                                  ),
+                                ],
+                                onChanged: (val) {
+                                  if (val != null) {
+                                    setState(() {
+                                      meta.reiniciaEmTipo = val;
+                                    });
+                                  }
+                                },
                               ),
-                              items: const [
-                                DropdownMenuItem(
-                                    value: 'dias', child: Text('Dias')),
-                                DropdownMenuItem(
-                                    value: 'semanas', child: Text('Semanas')),
-                                DropdownMenuItem(
-                                    value: 'meses', child: Text('Meses')),
-                                DropdownMenuItem(
-                                    value: 'anos', child: Text('Anos')),
-                              ],
-                              onChanged: (val) {
-                                if (val != null) {
-                                  setState(() {
-                                    meta.reiniciaEmTipo = val;
-                                  });
-                                }
-                              },
                             ),
+                          ],
+                        ),
+                      ] else ...[
+                        TextFormField(
+                          controller: meta.valorController,
+                          keyboardType: TextInputType.number,
+                          decoration: const InputDecoration(
+                            labelText: 'Valor',
+                            border: OutlineInputBorder(),
                           ),
-                        ],
-                      ),
+                          validator: (value) {
+                            if (value == null || value.trim().isEmpty) {
+                              return 'Obrigatório';
+                            }
+                            if (num.tryParse(value) == null) {
+                              return 'Inválido';
+                            }
+                            return null;
+                          },
+                        ),
+                      ],
                     ],
                   ),
                 ),
@@ -514,12 +555,14 @@ class _CriarHabitoTarefaPageState extends State<CriarHabitoTarefaPage> {
             OutlinedButton.icon(
               onPressed: () {
                 setState(() {
-                  _metas.add(MetaItem(
-                    metaVezes: '1',
-                    valor: '1.0',
-                    reiniciaEmQtd: '1',
-                    reiniciaEmTipo: 'dias',
-                  ));
+                  _metas.add(
+                    MetaItem(
+                      metaVezes: '1',
+                      valor: '1.0',
+                      reiniciaEmQtd: '1',
+                      reiniciaEmTipo: 'dias',
+                    ),
+                  );
                 });
               },
               icon: const Icon(Icons.add),

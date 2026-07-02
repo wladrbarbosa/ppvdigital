@@ -4,11 +4,8 @@ import 'package:ppvdigital/routes.g.dart';
 import 'package:routefly/routefly.dart';
 
 class LoginPage extends StatefulWidget {
-  const LoginPage({
-    super.key,
-    this.title = 'Login',
-  });
-  
+  const LoginPage({super.key, this.title = 'Login'});
+
   final String title;
 
   @override
@@ -49,26 +46,23 @@ class _LoginPageState extends State<LoginPage> {
               mainAxisAlignment: MainAxisAlignment.center,
               children: <Widget>[
                 Text(
-                  'Projeto Pessoal de Vida\nDigital',
+                  'Seapruma',
                   maxLines: 2,
                   textAlign: TextAlign.center,
                   style: Theme.of(context).textTheme.displayLarge,
                 ),
-                const SizedBox(height: 16.0,),
+                const SizedBox(height: 16.0),
                 const TabBar(
                   dividerHeight: 0,
                   tabs: [
-                    Tab(
-                      icon: Icon(Icons.login_outlined),
-                      text: 'Entrar',
-                    ),
+                    Tab(icon: Icon(Icons.login_outlined), text: 'Entrar'),
                     Tab(
                       icon: Icon(Icons.add_reaction_rounded),
                       text: 'Cadastrar',
                     ),
                   ],
                 ),
-                const SizedBox(height: 16.0,),
+                const SizedBox(height: 16.0),
                 SizedBox(
                   height: 250,
                   child: TabBarView(
@@ -80,13 +74,17 @@ class _LoginPageState extends State<LoginPage> {
                             controller: emailController,
                             autofillHints: const [AutofillHints.username],
                             keyboardType: TextInputType.emailAddress,
-                            decoration: const InputDecoration(labelText: 'Email',),
+                            decoration: const InputDecoration(
+                              labelText: 'Email',
+                            ),
                           ),
-                          const SizedBox(height: 16.0,),
+                          const SizedBox(height: 16.0),
                           TextField(
                             controller: passwordController,
                             autofillHints: const [AutofillHints.password],
-                            decoration: const InputDecoration(labelText: 'Senha'),
+                            decoration: const InputDecoration(
+                              labelText: 'Senha',
+                            ),
                             obscureText: true,
                           ),
                           const SizedBox(height: 16.0),
@@ -95,10 +93,15 @@ class _LoginPageState extends State<LoginPage> {
                             children: <Widget>[
                               ElevatedButton(
                                 onPressed: () async {
-                                  await login(emailController.text, passwordController.text);
+                                  await login(
+                                    emailController.text,
+                                    passwordController.text,
+                                  );
 
                                   if (Core.loginController.status != null) {
-                                    Routefly.navigate(routePaths.home);
+                                    Routefly.navigate(
+                                      routePaths.capacitacao.path,
+                                    );
                                   }
                                 },
                                 child: const Text('Entrar'),
@@ -112,18 +115,24 @@ class _LoginPageState extends State<LoginPage> {
                         children: [
                           TextField(
                             controller: emailController,
-                            decoration: const InputDecoration(labelText: 'Email',),
+                            decoration: const InputDecoration(
+                              labelText: 'Email',
+                            ),
                           ),
-                          const SizedBox(height: 16.0,),
+                          const SizedBox(height: 16.0),
                           TextField(
                             controller: passwordController,
-                            decoration: const InputDecoration(labelText: 'Senha'),
+                            decoration: const InputDecoration(
+                              labelText: 'Senha',
+                            ),
                             obscureText: true,
                           ),
                           const SizedBox(height: 16.0),
                           TextField(
                             controller: nameController,
-                            decoration: const InputDecoration(labelText: 'Nome'),
+                            decoration: const InputDecoration(
+                              labelText: 'Nome',
+                            ),
                           ),
                           const SizedBox(height: 16.0),
                           Row(
@@ -131,8 +140,11 @@ class _LoginPageState extends State<LoginPage> {
                             children: <Widget>[
                               ElevatedButton(
                                 onPressed: () {
-                                  register(emailController.text, passwordController.text,
-                                      nameController.text,);
+                                  register(
+                                    emailController.text,
+                                    passwordController.text,
+                                    nameController.text,
+                                  );
                                 },
                                 child: const Text('Cadastrar'),
                               ),
@@ -144,9 +156,11 @@ class _LoginPageState extends State<LoginPage> {
                   ),
                 ),
                 const SizedBox(height: 16.0),
-                Text(Core.loginController.currentUser != null
-                    ? 'Autenticado como ${Core.loginController.currentUser!.name}'
-                    : 'Não autenticado',),
+                Text(
+                  Core.loginController.currentUser != null
+                      ? 'Autenticado como ${Core.loginController.currentUser!.name}'
+                      : 'Não autenticado',
+                ),
               ],
             ),
           ),

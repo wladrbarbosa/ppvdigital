@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:ppvdigital/app/capacitacao/tarefas_habitos/tarefas_habitos_controller.dart';
 import 'package:ppvdigital/app/capacitacao/financas/financas_controller.dart';
+import 'package:ppvdigital/core.dart';
 import 'package:ppvdigital/routes.g.dart';
 import 'package:routefly/routefly.dart';
 
@@ -20,6 +21,19 @@ class _CapacitacaoPageState extends State<CapacitacaoPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      appBar: AppBar(
+        title: Text(widget.title),
+        actions: [
+          TextButton.icon(
+            icon: const Icon(Icons.logout, color: Colors.red),
+            label: const Text('Sair', style: TextStyle(color: Colors.red)),
+            onPressed: () async {
+              await Core.loginController.signOut();
+              Routefly.navigate(routePaths.login);
+            },
+          ),
+        ],
+      ),
       body: Padding(
         padding: const EdgeInsets.all(32.0),
         child: GridView.count(

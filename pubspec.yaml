@@ -44,6 +44,7 @@ dependencies:
     git:
       url: 'git@github.com:wladrbarbosa/routefly.git'
       ref: '2f19820cb9494d5d399dd76ff53454b981618305'
+  shared_preferences: ^2.5.5
   shimmer: 3.0.0
   syncfusion_flutter_calendar: 33.2.15
   syncfusion_localizations: 33.2.15

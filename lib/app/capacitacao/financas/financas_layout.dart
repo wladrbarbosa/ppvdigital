@@ -97,6 +97,12 @@ class _FinancasLayoutState extends State<FinancasLayout>
     return Scaffold(
       appBar: AppBar(
         title: const Text('Finanças'),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () {
+            Routefly.navigate(routePaths.capacitacao.path);
+          },
+        ),
         actions: [
           if (_tabController.index == 0)
             Builder(

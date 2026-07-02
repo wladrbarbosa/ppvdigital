@@ -43,10 +43,7 @@ extension HistoricoTransformDocumentList on List<Row> {
 
         final cachedTarefa = Core.tarefasHabitosController.tarefasHabitosList
             .cast<TarefaHabitoModel?>()
-            .firstWhere(
-              (el) => el?.id == tarefaId,
-              orElse: () => null,
-            );
+            .firstWhere((el) => el?.id == tarefaId, orElse: () => null);
 
         final String? createdAtStr = e1.data[r'$createdAt'] as String?;
         final DateTime parsedCreatedAt = createdAtStr != null
@@ -58,7 +55,8 @@ extension HistoricoTransformDocumentList on List<Row> {
             id: e1.$id,
             usuario: (e1.data['usuario'] as String?) ?? '',
             createdAt: parsedCreatedAt,
-            tarefasEHabitos: cachedTarefa ??
+            tarefasEHabitos:
+                cachedTarefa ??
                 (rawTarefaMap as Map<String, dynamic>).toTarefasHabitosModel(),
           ),
         );
@@ -171,7 +169,7 @@ class HistoricoController {
       mobx.runInAction(() {
         _historicoList.removeWhere((el) => el.id == documentId);
       });
-      
+
       // Reload main tasks/habits count dynamically
       await Core.tarefasHabitosController.loadDocuments();
       return true;
