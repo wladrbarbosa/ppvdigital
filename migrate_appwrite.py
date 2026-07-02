@@ -81,7 +81,7 @@ def wait_for_attributes(endpoint, headers, database_id, collection_id, timeout_s
         print(f"  - Still building: {pending_details} (elapsed: {int(elapsed)}s)")
         time.sleep(3)
 
-def clean_document_data(data, attributes):
+def clean_document_data(data, attributes, exclude_relationships=False):
     cleaned = {}
     for attr in attributes:
         key = attr['key']
@@ -93,6 +93,8 @@ def clean_document_data(data, attributes):
             continue
         
         if attr.get('type') == 'relationship':
+            if exclude_relationships:
+                continue
             if attr.get('array', False):
                 if isinstance(val, list):
                     cleaned[key] = [item['$id'] if isinstance(item, dict) and '$id' in item else item for item in val]
@@ -108,6 +110,49 @@ def clean_document_data(data, attributes):
                 continue
             cleaned[key] = val
     return cleaned
+
+def get_relationship_data(data, attributes):
+    cleaned = {}
+    has_relationships = False
+    for attr in attributes:
+        if attr.get('type') == 'relationship':
+            key = attr['key']
+            if key not in data:
+                continue
+            val = data[key]
+            if val is None:
+                cleaned[key] = None
+                has_relationships = True
+                continue
+            
+            has_relationships = True
+            if attr.get('array', False):
+                if isinstance(val, list):
+                    cleaned[key] = [item['$id'] if isinstance(item, dict) and '$id' in item else item for item in val]
+                else:
+                    cleaned[key] = []
+            else:
+                if isinstance(val, dict) and '$id' in val:
+                    cleaned[key] = val['$id']
+                else:
+                    cleaned[key] = val
+    return cleaned, has_relationships
+
+def update_document_relationships(endpoint, headers, database_id, collection_id, doc_id, relationship_data):
+    try:
+        make_request(
+            endpoint, 
+            headers, 
+            f"/databases/{database_id}/collections/{collection_id}/documents/{doc_id}", 
+            "PATCH", 
+            {
+                "data": relationship_data
+            }
+        )
+        return True
+    except Exception as e:
+        print(f"  ! Error updating relationships for document {doc_id}: {e}")
+        return False
 
 def migrate_single_document(endpoint, headers, database_id, collection_id, doc_id, cleaned_data, permissions):
     try:
@@ -357,15 +402,41 @@ def migrate():
                         print(f"  ! Error creating index '{key}': {e}")
 
         # Step E: Migrate Documents in Destination
+        # Dynamically scan and map hidden one-way relationship attributes
+        hidden_relationships = {}
+        print("\nScanning for hidden relationship attributes in destination...")
+        for col in collections:
+            col_id = col['$id']
+            dest_attr_res = make_request(DEST_ENDPOINT, dest_headers, f"/databases/{db_id}/collections/{col_id}/attributes")
+            for attr in dest_attr_res['attributes']:
+                if (attr.get('type') == 'relationship' and 
+                    attr.get('relationType') == 'oneToMany' and 
+                    not attr.get('twoWay', False)):
+                    
+                    related_col = attr.get('relatedCollection')
+                    two_way_key = attr.get('twoWayKey')
+                    if related_col and two_way_key:
+                        if related_col not in hidden_relationships:
+                            hidden_relationships[related_col] = []
+                        hidden_relationships[related_col].append({
+                            'key': two_way_key,
+                            'type': 'relationship',
+                            'array': False
+                        })
+                        print(f"  * Detected hidden relationship: {col_id} -> {related_col} via key '{two_way_key}'")
+
+        # Pass 1: Create all documents excluding relationship fields
         for col in collections:
             col_id = col['$id']
             col_name = col['name']
             
-            print(f"\nMigrating documents for collection '{col_name}'...")
+            print(f"\nMigrating documents for collection '{col_name}' (Pass 1: Creating documents)...")
             
             # Fetch attributes schema from destination to clean relationship values
             dest_attr_res = make_request(DEST_ENDPOINT, dest_headers, f"/databases/{db_id}/collections/{col_id}/attributes")
             dest_attributes = dest_attr_res['attributes']
+            if col_id in hidden_relationships:
+                dest_attributes.extend(hidden_relationships[col_id])
             
             # Paginate documents fetching from source using cursorAfter
             last_id = None
@@ -397,7 +468,7 @@ def migrate():
                     futures = []
                     for doc in documents:
                         doc_id = doc['$id']
-                        cleaned_data = clean_document_data(doc, dest_attributes)
+                        cleaned_data = clean_document_data(doc, dest_attributes, exclude_relationships=True)
                         futures.append(executor.submit(
                             migrate_single_document,
                             DEST_ENDPOINT,
@@ -414,12 +485,84 @@ def migrate():
                             total_migrated += 1
                 
                 last_id = documents[-1]['$id']
-                print(f"  - Progress: migrated {total_migrated} documents so far...")
+                print(f"  - Progress: created {total_migrated} documents so far...")
                 
                 if len(documents) < chunk_size:
                     break
             
-            print(f"Completed collection '{col_name}'. Migrated {total_migrated} documents.")
+            print(f"Completed Pass 1 for collection '{col_name}'. Created {total_migrated} documents.")
+
+        # Pass 2: Update relationship fields for all documents
+        for col in collections:
+            col_id = col['$id']
+            col_name = col['name']
+            
+            # Fetch attributes schema from destination
+            dest_attr_res = make_request(DEST_ENDPOINT, dest_headers, f"/databases/{db_id}/collections/{col_id}/attributes")
+            dest_attributes = dest_attr_res['attributes']
+            if col_id in hidden_relationships:
+                dest_attributes.extend(hidden_relationships[col_id])
+            
+            # Check if there are any relationship attributes
+            has_any_rel = any(a.get('type') == 'relationship' for a in dest_attributes)
+            if not has_any_rel:
+                print(f"\nSkipping Pass 2 for collection '{col_name}' (No relationship attributes).")
+                continue
+                
+            print(f"\nUpdating document relationships for collection '{col_name}' (Pass 2)...")
+            
+            last_id = None
+            total_updated = 0
+            chunk_size = SOURCE_BATCH_LIMIT
+            
+            while True:
+                queries = [
+                    json.dumps({"method": "limit", "values": [chunk_size]})
+                ]
+                if last_id is not None:
+                    queries.append(
+                        json.dumps({"method": "cursorAfter", "values": [last_id]})
+                    )
+                
+                query_params = [('queries[]', q) for q in queries]
+                query_str = urllib.parse.urlencode(query_params)
+                
+                docs_res = make_request(
+                    SOURCE_ENDPOINT, 
+                    src_headers, 
+                    f"/databases/{db_id}/collections/{col_id}/documents?{query_str}"
+                )
+                documents = docs_res.get('documents', [])
+                if not documents:
+                    break
+                
+                with ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
+                    futures = []
+                    for doc in documents:
+                        doc_id = doc['$id']
+                        rel_data, has_rel = get_relationship_data(doc, dest_attributes)
+                        if has_rel:
+                            futures.append(executor.submit(
+                                update_document_relationships,
+                                DEST_ENDPOINT,
+                                dest_headers,
+                                db_id,
+                                col_id,
+                                doc_id,
+                                rel_data
+                            ))
+                    
+                    for future in as_completed(futures):
+                        if future.result():
+                            total_updated += 1
+                
+                last_id = documents[-1]['$id']
+                print(f"  - Progress: updated relationships for {total_updated} documents so far...")
+                
+                if len(documents) < chunk_size:
+                    break
+            
+            print(f"Completed Pass 2 for collection '{col_name}'. Updated relationships for {total_updated} documents.")
 
     print("\n=== MIGRATION COMPLETED SUCCESSFULLY ===")
 

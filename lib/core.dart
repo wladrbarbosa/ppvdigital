@@ -35,9 +35,9 @@ class Core {
   static final Core instance = Core._internal();
 
   // Appwrite Connection parameters
-  static const String endpoint = 'https://cloud.appwrite.io/v1';
-  static const String projectId = '671f6df50033227ea6d6';
-  
+  static const String endpoint = 'https://appwrite.wladapps.com/v1';
+  static const String projectId = '6a46a08b0009901f8788';
+
   // Appwrite Database parameters
   static const String databaseId = '671f6e1600022832cba5';
 
@@ -53,9 +53,7 @@ class Core {
   static const String tableDivisaoTransacoes = 'divisao_transacoes';
   static const String tableContatos = 'contatos';
 
-  static Client client = Client()
-      .setEndpoint(endpoint)
-      .setProject(projectId);
+  static Client client = Client().setEndpoint(endpoint).setProject(projectId);
 
   static LoginController loginController = LoginController();
   static TarefasHabitosController tarefasHabitosController =
