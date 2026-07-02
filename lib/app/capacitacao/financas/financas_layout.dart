@@ -22,6 +22,8 @@ class _FinancasLayoutState extends State<FinancasLayout>
   DateTime _selectedMonth = DateTime.now();
   bool _somarAcumulado = false;
   final Set<String> _selectedContas = {};
+  final Set<String> _selectedTransIds = {};
+  bool _filterOpen = false;
   late final TabController _tabController;
 
   final Map<String, IconData> _presetIcons = {
@@ -44,7 +46,8 @@ class _FinancasLayoutState extends State<FinancasLayout>
     _tabController.addListener(() {
       setState(() {});
     });
-    FinancasController.financasFuture = Core.financasController.loadDocuments();
+    FinancasController.financasFuture =
+        Core.financasController.loadDocuments(selectedMonth: _selectedMonth);
   }
 
   @override
@@ -105,20 +108,20 @@ class _FinancasLayoutState extends State<FinancasLayout>
         ),
         actions: [
           if (_tabController.index == 0)
-            Builder(
-              builder: (context) {
-                return IconButton(
-                  icon: const Icon(Icons.filter_list),
-                  tooltip: 'Filtros e Opções',
-                  onPressed: () {
-                    Scaffold.of(context).openEndDrawer();
-                  },
-                );
+            IconButton(
+              icon: Icon(
+                Icons.filter_list,
+                color: _filterOpen ? Colors.blue : null,
+              ),
+              tooltip: 'Filtros e Opções',
+              onPressed: () {
+                setState(() {
+                  _filterOpen = !_filterOpen;
+                });
               },
             ),
         ],
       ),
-      endDrawer: _buildEndDrawer(context),
       bottomNavigationBar: Material(
         color: Theme.of(context).cardColor,
         elevation: 8,
@@ -194,8 +197,10 @@ class _FinancasLayoutState extends State<FinancasLayout>
                         )
                         .toList();
 
+                    Widget mainContent;
+
                     if (filteredTransList.isEmpty) {
-                      return Column(
+                      mainContent = Column(
                         children: [
                           _buildMonthSelector(),
                           const Expanded(
@@ -207,190 +212,270 @@ class _FinancasLayoutState extends State<FinancasLayout>
                           ),
                         ],
                       );
-                    }
+                    } else {
+                      final grouped = _agruparPorDia(filteredTransList);
+                      final Map<String, double> saldosDiarios =
+                          _calcularSaldosDiarios(
+                            grouped,
+                            accountFilteredList,
+                            activeUser,
+                          );
 
-                    final grouped = _agruparPorDia(filteredTransList);
-                    final Map<String, double> saldosDiarios =
-                        _calcularSaldosDiarios(
-                          grouped,
-                          accountFilteredList,
-                          activeUser,
-                        );
+                      mainContent = Column(
+                        children: [
+                          _buildMonthSelector(),
+                          Expanded(
+                            child: ListView.builder(
+                              padding: const EdgeInsets.only(bottom: 80.0),
+                              itemCount: grouped.length,
+                              itemBuilder: (context, index) {
+                                final dateKey = grouped.keys.elementAt(index);
+                                final dayTrans = grouped[dateKey]!;
+                                final dateParsed = DateTime.parse(dateKey);
+                                final formattedDate = DateFormat(
+                                  "dd 'de' MMMM, yyyy",
+                                  'pt_BR',
+                                ).format(dateParsed);
 
-                    return Column(
-                      children: [
-                        _buildMonthSelector(),
-                        Expanded(
-                          child: ListView.builder(
-                            padding: const EdgeInsets.only(bottom: 80.0),
-                            itemCount: grouped.length,
-                            itemBuilder: (context, index) {
-                              final dateKey = grouped.keys.elementAt(index);
-                              final dayTrans = grouped[dateKey]!;
-                              final dateParsed = DateTime.parse(dateKey);
-                              final formattedDate = DateFormat(
-                                "dd 'de' MMMM, yyyy",
-                                'pt_BR',
-                              ).format(dateParsed);
+                                final double saldoExibido =
+                                    saldosDiarios[dateKey] ?? 0.0;
 
-                              final double dayTotal = _calcularTotalDia(
-                                dayTrans,
-                                activeUser,
-                              );
-                              final double saldoExibido =
-                                  saldosDiarios[dateKey] ?? 0.0;
-
-                              return Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 16.0,
-                                      vertical: 8.0,
-                                    ),
-                                    color: Colors.grey.withOpacity(0.1),
-                                    child: Row(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.spaceBetween,
-                                      children: [
-                                        Text(
-                                          formattedDate,
-                                          style: const TextStyle(
-                                            fontWeight: FontWeight.bold,
-                                            color: Colors.grey,
-                                          ),
-                                        ),
-                                        Text(
-                                          'Saldo acumulado: R\$ ${saldoExibido.toStringAsFixed(2)}',
-                                          style: TextStyle(
-                                            fontWeight: FontWeight.bold,
-                                            color: saldoExibido >= 0
-                                                ? Colors.green
-                                                : Colors.red,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                  ...dayTrans.map((t) {
-                                    final double valToDisplay = _mostrarDivisoes
-                                        ? _calcularValorDivisao(t, activeUser)
-                                        : t.valor;
-
-                                    final Color valueColor = t.tipo == 'receita'
-                                        ? Colors.green
-                                        : (t.tipo == 'transferencia'
-                                              ? Colors.blue
-                                              : Colors.red);
-
-                                    final IconData catIcon =
-                                        _presetIcons[t.categoria?.icone] ??
-                                        Icons.monetization_on;
-
-                                    return ListTile(
-                                      onTap: () {
-                                        Routefly.pushNavigate(
-                                          routePaths
-                                              .capacitacao
-                                              .criarEditarTransacao,
-                                          arguments: {
-                                            'lastRoute':
-                                                Routefly.currentUri.path,
-                                            'transacao': t,
-                                          },
-                                        );
-                                      },
-                                      leading: CircleAvatar(
-                                        backgroundColor:
-                                            t.categoria?.cor?.withOpacity(
-                                              0.2,
-                                            ) ??
-                                            Colors.blue.withOpacity(0.2),
-                                        child: Icon(
-                                          catIcon,
-                                          color:
-                                              t.categoria?.cor ?? Colors.blue,
-                                        ),
+                                return Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 16.0,
+                                        vertical: 8.0,
                                       ),
-                                      title: Text(
-                                        t.descricao,
-                                        style: const TextStyle(
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                      ),
-                                      subtitle: Column(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.start,
-                                        children: [
-                                          Text(
-                                            t.tipo == 'transferencia'
-                                                ? 'Transf: ${t.conta?.name ?? '?'} ➔ ${t.contaDestino?.name ?? '?'}'
-                                                : 'Conta: ${t.conta?.name ?? 'Sem conta'}',
-                                          ),
-                                          if (_mostrarDivisoes)
-                                            Text(
-                                              'Sua parcela (Valor Total: R\$ ${t.valor.toStringAsFixed(2)})',
-                                              style: const TextStyle(
-                                                fontStyle: FontStyle.italic,
-                                                fontSize: 12,
-                                              ),
-                                            ),
-                                        ],
-                                      ),
-                                      trailing: Column(
+                                      color: Colors.grey.withOpacity(0.1),
+                                      child: Row(
                                         mainAxisAlignment:
-                                            MainAxisAlignment.center,
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.end,
+                                            MainAxisAlignment.spaceBetween,
                                         children: [
                                           Text(
-                                            'R\$ ${valToDisplay.toStringAsFixed(2)}',
+                                            formattedDate,
+                                            style: const TextStyle(
+                                              fontWeight: FontWeight.bold,
+                                              color: Colors.grey,
+                                            ),
+                                          ),
+                                          Text(
+                                            'Saldo acumulado: R\$ ${saldoExibido.toStringAsFixed(2)}',
                                             style: TextStyle(
                                               fontWeight: FontWeight.bold,
-                                              fontSize: 16,
-                                              color: valueColor,
-                                            ),
-                                          ),
-                                          const SizedBox(height: 4),
-                                          Container(
-                                            padding: const EdgeInsets.symmetric(
-                                              horizontal: 6,
-                                              vertical: 2,
-                                            ),
-                                            decoration: BoxDecoration(
-                                              color: t.consolidada
-                                                  ? Colors.green.withOpacity(
-                                                      0.1,
-                                                    )
-                                                  : Colors.amber.withOpacity(
-                                                      0.1,
-                                                    ),
-                                              borderRadius:
-                                                  BorderRadius.circular(4),
-                                            ),
-                                            child: Text(
-                                              t.consolidada
-                                                  ? 'Efetivada'
-                                                  : 'Prevista',
-                                              style: TextStyle(
-                                                fontSize: 10,
-                                                fontWeight: FontWeight.bold,
-                                                color: t.consolidada
-                                                    ? Colors.green
-                                                    : Colors.amber[800],
-                                              ),
+                                              color: saldoExibido >= 0
+                                                  ? Colors.green
+                                                  : Colors.red,
                                             ),
                                           ),
                                         ],
                                       ),
-                                    );
-                                  }),
-                                  const Divider(height: 1),
-                                ],
-                              );
-                            },
+                                    ),
+                                    ...dayTrans.map((t) {
+                                      final double valToDisplay = _mostrarDivisoes
+                                          ? _calcularValorDivisao(t, activeUser)
+                                          : t.valor;
+
+                                      final Color valueColor = t.tipo == 'receita'
+                                          ? Colors.green
+                                          : (t.tipo == 'transferencia'
+                                                ? Colors.blue
+                                                : Colors.red);
+
+                                      final IconData catIcon =
+                                          _presetIcons[t.categoria?.icone] ??
+                                          Icons.monetization_on;
+
+                                      return ListTile(
+                                        onTap: () {
+                                          Routefly.pushNavigate(
+                                            routePaths
+                                                .capacitacao
+                                                .criarEditarTransacao,
+                                            arguments: {
+                                              'lastRoute':
+                                                  Routefly.currentUri.path,
+                                              'transacao': t,
+                                            },
+                                          );
+                                        },
+                                        leading: Row(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            Checkbox(
+                                              value: _selectedTransIds.contains(t.id),
+                                              onChanged: (val) {
+                                                setState(() {
+                                                  if (val == true) {
+                                                    _selectedTransIds.add(t.id);
+                                                  } else {
+                                                    _selectedTransIds.remove(t.id);
+                                                  }
+                                                });
+                                              },
+                                            ),
+                                            CircleAvatar(
+                                              backgroundColor:
+                                                  t.categoria?.cor?.withOpacity(
+                                                    0.2,
+                                                  ) ??
+                                                  Colors.blue.withOpacity(0.2),
+                                              child: Icon(
+                                                catIcon,
+                                                color:
+                                                    t.categoria?.cor ?? Colors.blue,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                        title: Text(
+                                          t.descricao,
+                                          style: const TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                        subtitle: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            Text(
+                                              t.tipo == 'transferencia'
+                                                  ? 'Transf: ${t.conta?.name ?? '?'} ➔ ${t.contaDestino?.name ?? '?'}'
+                                                  : 'Conta: ${t.conta?.name ?? 'Sem conta'}',
+                                            ),
+                                            if (_mostrarDivisoes)
+                                              Text(
+                                                'Sua parcela (Valor Total: R\$ ${t.valor.toStringAsFixed(2)})',
+                                                style: const TextStyle(
+                                                  fontStyle: FontStyle.italic,
+                                                  fontSize: 12,
+                                                ),
+                                              ),
+                                            const SizedBox(height: 4),
+                                            Wrap(
+                                              spacing: 4,
+                                              runSpacing: 4,
+                                              children: [
+                                                if (t.recorrencia != null)
+                                                  _buildIndicatorChip(
+                                                    context,
+                                                    icon: Icons.repeat,
+                                                    label: 'Recorrente',
+                                                    color: Colors.purple,
+                                                  ),
+                                                if (t.devedorContato != null)
+                                                  _buildIndicatorChip(
+                                                    context,
+                                                    icon: Icons.arrow_downward,
+                                                    label: '${t.devedorContato!.nome} deve p/ você',
+                                                    color: Colors.teal,
+                                                  ),
+                                                if (t.credorContato != null)
+                                                  _buildIndicatorChip(
+                                                    context,
+                                                    icon: Icons.arrow_upward,
+                                                    label: 'Você deve p/ ${t.credorContato!.nome}',
+                                                    color: Colors.orange,
+                                                  ),
+                                                if (t.divisoes.isNotEmpty)
+                                                  _buildIndicatorChip(
+                                                    context,
+                                                    icon: Icons.pie_chart_outline,
+                                                    label: 'Dividido (${t.divisoes.length})',
+                                                    color: Colors.blueGrey,
+                                                  ),
+                                              ],
+                                            ),
+                                          ],
+                                        ),
+                                        trailing: Column(
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.center,
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.end,
+                                          children: [
+                                            Text(
+                                              'R\$ ${valToDisplay.toStringAsFixed(2)}',
+                                              style: TextStyle(
+                                                fontWeight: FontWeight.bold,
+                                                fontSize: 16,
+                                                color: valueColor,
+                                              ),
+                                            ),
+                                            const SizedBox(height: 4),
+                                            Container(
+                                              padding: const EdgeInsets.symmetric(
+                                                horizontal: 6,
+                                                vertical: 2,
+                                              ),
+                                              decoration: BoxDecoration(
+                                                color: t.consolidada
+                                                    ? Colors.green.withOpacity(
+                                                        0.1,
+                                                      )
+                                                    : Colors.amber.withOpacity(
+                                                        0.1,
+                                                      ),
+                                                borderRadius:
+                                                    BorderRadius.circular(4),
+                                              ),
+                                              child: Text(
+                                                t.consolidada
+                                                    ? 'Efetivada'
+                                                    : 'Prevista',
+                                                style: TextStyle(
+                                                  fontSize: 10,
+                                                  fontWeight: FontWeight.bold,
+                                                  color: t.consolidada
+                                                      ? Colors.green
+                                                      : Colors.amber[800],
+                                                ),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      );
+                                    }),
+                                    const Divider(height: 1),
+                                  ],
+                                );
+                              },
+                            ),
+                          ),
+                        ],
+                      );
+                    }
+
+                    return Row(
+                      children: [
+                        Expanded(
+                          child: Stack(
+                            children: [
+                              mainContent,
+                              if (_selectedTransIds.isNotEmpty)
+                                Positioned(
+                                  bottom: 16,
+                                  left: 16,
+                                  right: 16,
+                                  child: _buildBatchActionsBar(context),
+                                ),
+                            ],
                           ),
                         ),
+                        if (_filterOpen)
+                          Container(
+                            width: 300,
+                            decoration: BoxDecoration(
+                              border: Border(
+                                left: BorderSide(
+                                  color: Colors.grey.withOpacity(0.2),
+                                ),
+                              ),
+                              color: Theme.of(context).cardColor,
+                            ),
+                            child: _buildInlineFilterPanel(context),
+                          ),
                       ],
                     );
                   },
@@ -699,117 +784,6 @@ class _FinancasLayoutState extends State<FinancasLayout>
       );
     }
 
-  Widget _buildEndDrawer(BuildContext context) {
-    return Drawer(
-      child: SafeArea(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            const Padding(
-              padding: EdgeInsets.all(16.0),
-              child: Text(
-                'Filtros e Opções',
-                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-              ),
-            ),
-            const Divider(),
-            Expanded(
-              child: ListView(
-                children: [
-                  SwitchListTile(
-                    title: const Text('Ver transações que participo em divisões'),
-                    value: _mostrarDivisoes,
-                    onChanged: (val) {
-                      setState(() {
-                        _mostrarDivisoes = val;
-                      });
-                    },
-                  ),
-                  SwitchListTile(
-                    title: const Text('Somar saldo acumulado dos meses passados'),
-                    value: _somarAcumulado,
-                    onChanged: (val) {
-                      setState(() {
-                        _somarAcumulado = val;
-                      });
-                    },
-                  ),
-                  const Divider(),
-                  const Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-                    child: Text(
-                      'Filtrar por Conta(s)',
-                      style: TextStyle(fontWeight: FontWeight.bold),
-                    ),
-                  ),
-                  Observer(
-                    builder: (context) {
-                      final accounts = Core.financasController.contasList;
-                      if (accounts.isEmpty) {
-                        return const Padding(
-                          padding: EdgeInsets.symmetric(horizontal: 16.0),
-                          child: Text('Nenhuma conta cadastrada para filtrar.'),
-                        );
-                      }
-                      return Column(
-                        children: accounts.map((account) {
-                          final isChecked = _selectedContas.contains(account.id);
-                          return CheckboxListTile(
-                            title: Text(account.name),
-                            subtitle: Text('Saldo: R\$ ${account.saldoAtual.toStringAsFixed(2)}'),
-                            value: isChecked,
-                            onChanged: (val) {
-                              setState(() {
-                                if (val == true) {
-                                  _selectedContas.add(account.id);
-                                } else {
-                                  _selectedContas.remove(account.id);
-                                }
-                              });
-                            },
-                          );
-                        }).toList(),
-                      );
-                    },
-                  ),
-                ],
-              ),
-            ),
-            const Divider(),
-            Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: OutlinedButton(
-                      onPressed: () {
-                        setState(() {
-                          _selectedContas.clear();
-                          _mostrarDivisoes = false;
-                          _somarAcumulado = false;
-                        });
-                      },
-                      child: const Text('Limpar Filtros'),
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: ElevatedButton(
-                      onPressed: () {
-                        Navigator.of(context).pop();
-                      },
-                      child: const Text('Fechar'),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
   double _calcularImpactoTransacao(
     TransacaoModel t,
     String activeUserId,
@@ -867,6 +841,10 @@ class _FinancasLayoutState extends State<FinancasLayout>
                         _selectedMonth.month - 1,
                         1,
                       );
+                      FinancasController.financasFuture =
+                          Core.financasController.loadDocuments(
+                        selectedMonth: _selectedMonth,
+                      );
                     });
                   },
                 ),
@@ -876,6 +854,10 @@ class _FinancasLayoutState extends State<FinancasLayout>
                   onPressed: () {
                     setState(() {
                       _selectedMonth = DateTime.now();
+                      FinancasController.financasFuture =
+                          Core.financasController.loadDocuments(
+                        selectedMonth: _selectedMonth,
+                      );
                     });
                   },
                 ),
@@ -913,6 +895,10 @@ class _FinancasLayoutState extends State<FinancasLayout>
                     _selectedMonth.year,
                     _selectedMonth.month + 1,
                     1,
+                  );
+                  FinancasController.financasFuture =
+                      Core.financasController.loadDocuments(
+                    selectedMonth: _selectedMonth,
                   );
                 });
               },
@@ -992,6 +978,10 @@ class _FinancasLayoutState extends State<FinancasLayout>
                       onTap: () {
                         setState(() {
                           _selectedMonth = DateTime(tempYear, monthIndex, 1);
+                          FinancasController.financasFuture =
+                              Core.financasController.loadDocuments(
+                            selectedMonth: _selectedMonth,
+                          );
                         });
                         Navigator.of(context).pop();
                       },
@@ -1089,5 +1079,321 @@ class _FinancasLayoutState extends State<FinancasLayout>
     }
 
     return saldos;
+  }
+
+  Widget _buildBatchActionsBar(BuildContext context) {
+    return Card(
+      elevation: 6,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      color: Theme.of(context).primaryColor,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              '${_selectedTransIds.length} selecionadas',
+              style: const TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+                fontSize: 16,
+              ),
+            ),
+            Row(
+              children: [
+                IconButton(
+                  tooltip: 'Efetivar (Consolidar)',
+                  icon: const Icon(Icons.check_circle_outline, color: Colors.white),
+                  onPressed: () => _executeBatchUpdate('consolidar', true),
+                ),
+                IconButton(
+                  tooltip: 'Tornar Prevista (Desconsolidar)',
+                  icon: const Icon(Icons.pending_actions, color: Colors.white),
+                  onPressed: () => _executeBatchUpdate('consolidar', false),
+                ),
+                IconButton(
+                  tooltip: 'Trocar Data',
+                  icon: const Icon(Icons.calendar_month, color: Colors.white),
+                  onPressed: () => _selectBatchDate(context),
+                ),
+                IconButton(
+                  tooltip: 'Trocar Conta',
+                  icon: const Icon(Icons.account_balance_wallet, color: Colors.white),
+                  onPressed: () => _selectBatchConta(context),
+                ),
+                const SizedBox(width: 8),
+                IconButton(
+                  tooltip: 'Limpar Seleção',
+                  icon: const Icon(Icons.close, color: Colors.white70),
+                  onPressed: () {
+                    setState(() {
+                      _selectedTransIds.clear();
+                    });
+                  },
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _executeBatchUpdate(String action, dynamic value) async {
+    bool hasRecurrente = false;
+    for (final id in _selectedTransIds) {
+      final matches = Core.financasController.transacoesList.where((trans) => trans.id == id);
+      if (matches.isNotEmpty) {
+        final t = matches.first;
+        if (t.recorrencia != null) {
+          hasRecurrente = true;
+          break;
+        }
+      }
+    }
+
+    String recurrenceOption = 'only_current';
+
+    if (hasRecurrente) {
+      final String? selectedOpt = await showDialog<String>(
+        context: context,
+        builder: (context) {
+          return AlertDialog(
+            title: const Text('Atualizar recorrências'),
+            content: const Text(
+              'Algumas transações selecionadas possuem recorrência. Como deseja aplicar a alteração?',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop('only_current'),
+                child: const Text('Apenas selecionadas'),
+              ),
+              TextButton(
+                onPressed: () => Navigator.of(context).pop('current_and_future'),
+                child: const Text('Selecionadas e futuras'),
+              ),
+              TextButton(
+                onPressed: () => Navigator.of(context).pop('all'),
+                child: const Text('Todas as recorrências'),
+              ),
+            ],
+          );
+        },
+      );
+      if (selectedOpt == null) return;
+      recurrenceOption = selectedOpt;
+    }
+
+    if (!mounted) return;
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const Center(child: CircularProgressIndicator()),
+    );
+
+    final success = await Core.financasController.batchUpdateTransactions(
+      transIds: _selectedTransIds.toList(),
+      action: action,
+      newValue: value,
+      recurrenceOption: recurrenceOption,
+    );
+
+    if (!mounted) return;
+
+    Navigator.of(context).pop();
+
+    if (success) {
+      setState(() {
+        _selectedTransIds.clear();
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Transações atualizadas com sucesso!')),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Erro ao atualizar transações.')),
+      );
+    }
+  }
+
+  Future<void> _selectBatchDate(BuildContext context) async {
+    final DateTime? picked = await showDatePicker(
+      context: context,
+      initialDate: DateTime.now(),
+      firstDate: DateTime(2020),
+      lastDate: DateTime(2030),
+    );
+    if (picked != null) {
+      if (!mounted) return;
+      await _executeBatchUpdate('dataCompetencia', picked);
+    }
+  }
+
+  Future<void> _selectBatchConta(BuildContext context) async {
+    final accounts = Core.financasController.contasList;
+    if (accounts.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Nenhuma conta cadastrada.')),
+      );
+      return;
+    }
+
+    final String? pickedContaId = await showDialog<String>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Selecione a Conta'),
+          content: SizedBox(
+            width: double.maxFinite,
+            child: ListView.builder(
+              shrinkWrap: true,
+              itemCount: accounts.length,
+              itemBuilder: (context, index) {
+                final conta = accounts[index];
+                return ListTile(
+                  title: Text(conta.name),
+                  subtitle: Text('Saldo: R\$ ${conta.saldoAtual.toStringAsFixed(2)}'),
+                  onTap: () {
+                    Navigator.of(context).pop(conta.id);
+                  },
+                );
+              },
+            ),
+          ),
+        );
+      },
+    );
+
+    if (pickedContaId != null) {
+      if (!mounted) return;
+      await _executeBatchUpdate('conta', pickedContaId);
+    }
+  }
+
+  Widget _buildInlineFilterPanel(BuildContext context) {
+    return SafeArea(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 16.0),
+            child: Text(
+              'Filtros e Opções',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+          ),
+          const Divider(),
+          Expanded(
+            child: ListView(
+              children: [
+                SwitchListTile(
+                  title: const Text('Ver transações que participo em divisões'),
+                  value: _mostrarDivisoes,
+                  onChanged: (val) {
+                    setState(() {
+                      _mostrarDivisoes = val;
+                    });
+                  },
+                ),
+                SwitchListTile(
+                  title: const Text('Somar saldo acumulado dos meses passados'),
+                  value: _somarAcumulado,
+                  onChanged: (val) {
+                    setState(() {
+                      _somarAcumulado = val;
+                    });
+                  },
+                ),
+                const Divider(),
+                const Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+                  child: Text(
+                    'Filtrar por Conta(s)',
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                ),
+                Observer(
+                  builder: (context) {
+                    final accounts = Core.financasController.contasList;
+                    if (accounts.isEmpty) {
+                      return const Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 16.0),
+                        child: Text('Nenhuma conta cadastrada para filtrar.'),
+                      );
+                    }
+                    return Column(
+                      children: accounts.map((account) {
+                        final isChecked = _selectedContas.contains(account.id);
+                        return CheckboxListTile(
+                          title: Text(account.name),
+                          subtitle: Text('Saldo: R\$ ${account.saldoAtual.toStringAsFixed(2)}'),
+                          value: isChecked,
+                          onChanged: (val) {
+                            setState(() {
+                              if (val == true) {
+                                _selectedContas.add(account.id);
+                              } else {
+                                _selectedContas.remove(account.id);
+                              }
+                            });
+                          },
+                        );
+                      }).toList(),
+                    );
+                  },
+                ),
+              ],
+            ),
+          ),
+          const Divider(),
+          Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: OutlinedButton(
+              onPressed: () {
+                setState(() {
+                  _selectedContas.clear();
+                  _mostrarDivisoes = false;
+                  _somarAcumulado = false;
+                });
+              },
+              child: const Text('Limpar Filtros'),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildIndicatorChip(
+    BuildContext context, {
+    required IconData icon,
+    required String label,
+    required Color color,
+  }) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+      decoration: BoxDecoration(
+        color: color.withOpacity(isDark ? 0.2 : 0.1),
+        borderRadius: BorderRadius.circular(4),
+        border: Border.all(color: color.withOpacity(0.3), width: 0.5),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 10, color: color),
+          const SizedBox(width: 3),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 9,
+              fontWeight: FontWeight.w600,
+              color: isDark ? color.withOpacity(0.9) : color,
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }

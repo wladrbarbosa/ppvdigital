@@ -18,6 +18,9 @@ class FinancasController {
 
   late final Databases databases;
 
+  DateTime _lastSelectedMonth = DateTime.now();
+  DateTime get lastSelectedMonth => _lastSelectedMonth;
+
   final mobx.ObservableList<ContaModel> _contasList =
       mobx.ObservableList<ContaModel>(name: 'contasList');
   List<ContaModel> get contasList => _contasList.toList();
@@ -45,7 +48,10 @@ class FinancasController {
     databases = Databases(Core.client);
   }
 
-  Future<bool> loadDocuments() async {
+  Future<bool> loadDocuments({DateTime? selectedMonth}) async {
+    final DateTime targetMonth = selectedMonth ?? _lastSelectedMonth;
+    _lastSelectedMonth = targetMonth;
+
     return await mobx.runInAction(() async {
       try {
         if (Core.loginController.currentUser == null) {
@@ -98,12 +104,24 @@ class FinancasController {
           catDocs.rows.map((d) => CategoriaTransacaoModel.fromMap(d.data)),
         );
 
-        // 3. Load transactions
+        // 3. Load transactions (for targetMonth)
         final List<String> contaIds = contasList.map((c) => c.id).toList();
         final List<TransacaoModel> loadedTrans = [];
+        final List<TransacaoModel> loadedPastTrans = [];
+
+        final firstDayOfMonth = DateTime(
+          targetMonth.year,
+          targetMonth.month,
+          1,
+        );
+        final lastDayOfMonth = DateTime(
+          targetMonth.year,
+          targetMonth.month + 1,
+          1,
+        ).subtract(const Duration(milliseconds: 1));
 
         if (contaIds.isNotEmpty) {
-          // Query transactions where conta is one of the user's accounts
+          // Query transactions where conta is one of the user's accounts inside selected month
           for (int k = 0; k < contaIds.length; k += 100) {
             final chunkContaIds = contaIds.sublist(
               k,
@@ -114,6 +132,14 @@ class FinancasController {
               tableId: '671f7a6f000cb3ab17b9', // transacoes
               queries: [
                 Query.equal('conta', chunkContaIds),
+                Query.greaterThanEqual(
+                  'dataCompetencia',
+                  firstDayOfMonth.toIso8601String(),
+                ),
+                Query.lessThanEqual(
+                  'dataCompetencia',
+                  lastDayOfMonth.toIso8601String(),
+                ),
                 Query.select([
                   '*',
                   'conta.*',
@@ -127,11 +153,13 @@ class FinancasController {
               ],
             );
             for (final doc in transDocs1.rows) {
-              loadedTrans.add(TransacaoModel.fromMap(doc.data));
+              final map = Map<String, dynamic>.from(doc.data);
+              map['\$id'] = doc.$id;
+              loadedTrans.add(TransacaoModel.fromMap(map));
             }
           }
 
-          // Query transactions where contaDestino is one of the user's accounts (incoming transfers)
+          // Query transactions where contaDestino is one of the user's accounts inside selected month
           for (int k = 0; k < contaIds.length; k += 100) {
             final chunkContaIds = contaIds.sublist(
               k,
@@ -142,6 +170,14 @@ class FinancasController {
               tableId: '671f7a6f000cb3ab17b9',
               queries: [
                 Query.equal('contaDestino', chunkContaIds),
+                Query.greaterThanEqual(
+                  'dataCompetencia',
+                  firstDayOfMonth.toIso8601String(),
+                ),
+                Query.lessThanEqual(
+                  'dataCompetencia',
+                  lastDayOfMonth.toIso8601String(),
+                ),
                 Query.select([
                   '*',
                   'conta.*',
@@ -156,7 +192,120 @@ class FinancasController {
             );
             for (final doc in transDocs2.rows) {
               if (!loadedTrans.any((t) => t.id == doc.$id)) {
-                loadedTrans.add(TransacaoModel.fromMap(doc.data));
+                final map = Map<String, dynamic>.from(doc.data);
+                map['\$id'] = doc.$id;
+                loadedTrans.add(TransacaoModel.fromMap(map));
+              }
+            }
+          }
+
+          // Query past transactions (before selected month) with lightweight select
+          for (int k = 0; k < contaIds.length; k += 100) {
+            final chunkContaIds = contaIds.sublist(
+              k,
+              k + 100 > contaIds.length ? contaIds.length : k + 100,
+            );
+            final transDocs1 = await tablesDB.listRows(
+              databaseId: '671f6e1600022832cba5',
+              tableId: '671f7a6f000cb3ab17b9',
+              queries: [
+                Query.equal('conta', chunkContaIds),
+                Query.lessThan(
+                  'dataCompetencia',
+                  firstDayOfMonth.toIso8601String(),
+                ),
+                Query.select([
+                  'valor',
+                  'tipo',
+                  'conta.*',
+                  'contaDestino.*',
+                  'consolidada',
+                  'dataCompetencia',
+                ]),
+                Query.limit(5000),
+              ],
+            );
+            for (final doc in transDocs1.rows) {
+              final map = Map<String, dynamic>.from(doc.data);
+              map['\$id'] = doc.$id;
+              if (map['conta'] is String) {
+                final String cId = map['conta'] as String;
+                final contaMatch = contasList.firstWhere(
+                  (c) => c.id == cId,
+                  orElse: () =>
+                      ContaModel(id: cId, name: '', userId: '', saldoAtual: 0),
+                );
+                map['conta'] = contaMatch.toMap();
+              }
+              if (map['contaDestino'] is String) {
+                final String cId = map['contaDestino'] as String;
+                final contaMatch = contasList.firstWhere(
+                  (c) => c.id == cId,
+                  orElse: () =>
+                      ContaModel(id: cId, name: '', userId: '', saldoAtual: 0),
+                );
+                map['contaDestino'] = contaMatch.toMap();
+              }
+              loadedPastTrans.add(TransacaoModel.fromMap(map));
+            }
+          }
+
+          for (int k = 0; k < contaIds.length; k += 100) {
+            final chunkContaIds = contaIds.sublist(
+              k,
+              k + 100 > contaIds.length ? contaIds.length : k + 100,
+            );
+            final transDocs2 = await tablesDB.listRows(
+              databaseId: '671f6e1600022832cba5',
+              tableId: '671f7a6f000cb3ab17b9',
+              queries: [
+                Query.equal('contaDestino', chunkContaIds),
+                Query.lessThan(
+                  'dataCompetencia',
+                  firstDayOfMonth.toIso8601String(),
+                ),
+                Query.select([
+                  'valor',
+                  'tipo',
+                  'conta.*',
+                  'contaDestino.*',
+                  'consolidada',
+                  'dataCompetencia',
+                ]),
+                Query.limit(5000),
+              ],
+            );
+            for (final doc in transDocs2.rows) {
+              if (!loadedPastTrans.any((t) => t.id == doc.$id)) {
+                final map = Map<String, dynamic>.from(doc.data);
+                map['\$id'] = doc.$id;
+                if (map['conta'] is String) {
+                  final String cId = map['conta'] as String;
+                  final contaMatch = contasList.firstWhere(
+                    (c) => c.id == cId,
+                    orElse: () => ContaModel(
+                      id: cId,
+                      name: '',
+                      userId: '',
+                      saldoAtual: 0,
+                    ),
+                  );
+                  map['conta'] = contaMatch.toMap();
+                }
+                if (map['contaDestino'] is String) {
+                  final String cId = map['contaDestino'] as String;
+                  final contaMatch = contasList.firstWhere(
+                    (c) => c.id == cId,
+                    orElse: () => ContaModel(
+                      id: cId,
+                      name: '',
+                      userId: '',
+                      saldoAtual: 0,
+                    ),
+                  );
+                  map['contaDestino'] = contaMatch.toMap();
+                }
+                loadedPastTrans.add(TransacaoModel.fromMap(map));
               }
             }
           }
@@ -194,7 +343,7 @@ class FinancasController {
           }
         }
 
-        // Fetch divisions for loaded transactions to show in UI
+        // Fetch divisions for loaded current month transactions
         if (loadedTrans.isNotEmpty) {
           final List<String> loadedTransIds = loadedTrans
               .map((t) => t.id)
@@ -226,8 +375,18 @@ class FinancasController {
           }
         }
 
+        // Bind in-memory divisions to past transactions
+        for (int i = 0; i < loadedPastTrans.length; i++) {
+          final t = loadedPastTrans[i];
+          final divsForT = _divisoesList
+              .where((d) => d.transacaoId == t.id)
+              .toList();
+          loadedPastTrans[i] = t.copyWith(divisoes: divsForT);
+        }
+
         _transacoesList.clear();
         _transacoesList.addAll(loadedTrans);
+        _transacoesList.addAll(loadedPastTrans);
 
         return true;
       } catch (e) {
@@ -734,9 +893,7 @@ class FinancasController {
               databaseId: '671f6e1600022832cba5',
               tableId: 'transacao_recorrencia',
               rowId: original.recorrencia!.id,
-              data: {
-                'parcelaInicio': parcelaInicio,
-              },
+              data: {'parcelaInicio': parcelaInicio},
             );
           }
           // update all other transactions in series
@@ -903,6 +1060,153 @@ class FinancasController {
       return true;
     } catch (e) {
       log('Error updating transaction: $e');
+      return false;
+    }
+  }
+
+  Future<bool> batchUpdateTransactions({
+    required List<String> transIds,
+    required String action, // 'consolidar' | 'dataCompetencia' | 'conta'
+    required dynamic newValue, // bool | DateTime | String
+    required String
+    recurrenceOption, // 'only_current' | 'current_and_future' | 'all'
+  }) async {
+    try {
+      final TablesDB tablesDB = TablesDB(databases.client);
+      final List<Map<String, dynamic>> ops = [];
+      final List<TransacaoModel> targetTransactions = [];
+
+      for (final id in transIds) {
+        final matches = transacoesList.where((t) => t.id == id);
+        if (matches.isEmpty) continue;
+        final original = matches.first;
+
+        List<TransacaoModel> seriesToUpdate = [];
+        if (original.recorrencia != null &&
+            recurrenceOption != 'only_current') {
+          final allRecTrans = transacoesList
+              .where((t) => t.recorrencia?.id == original.recorrencia!.id)
+              .toList();
+
+          if (recurrenceOption == 'all') {
+            seriesToUpdate = allRecTrans;
+          } else if (recurrenceOption == 'current_and_future') {
+            seriesToUpdate = allRecTrans
+                .where(
+                  (t) =>
+                      t.dataCompetencia.isAtSameMomentAs(
+                        original.dataCompetencia,
+                      ) ||
+                      t.dataCompetencia.isAfter(original.dataCompetencia),
+                )
+                .toList();
+          }
+        } else {
+          seriesToUpdate = [original];
+        }
+
+        for (final t in seriesToUpdate) {
+          if (!targetTransactions.any((item) => item.id == t.id)) {
+            targetTransactions.add(t);
+          }
+        }
+      }
+
+      // Revert account balances for target transactions that are currently consolidated
+      for (final t in targetTransactions) {
+        if (t.consolidada) {
+          if (t.tipo == 'despesa' && t.conta != null) {
+            await updateAccountBalance(t.conta!.id, t.valor);
+          } else if (t.tipo == 'receita' && t.conta != null) {
+            await updateAccountBalance(t.conta!.id, -t.valor);
+          } else if (t.tipo == 'transferencia' &&
+              t.conta != null &&
+              t.contaDestino != null) {
+            await updateAccountBalance(t.conta!.id, t.valor);
+            await updateAccountBalance(t.contaDestino!.id, -t.valor);
+          }
+        }
+      }
+
+      // Prepare updates
+      for (final t in targetTransactions) {
+        final Map<String, dynamic> updateData = {};
+
+        if (action == 'consolidar') {
+          updateData['consolidada'] = newValue as bool;
+        } else if (action == 'dataCompetencia') {
+          final DateTime newDate = newValue as DateTime;
+          TransacaoModel? originalForT;
+          for (final origId in transIds) {
+            final matchesOrig = transacoesList.where((o) => o.id == origId);
+            if (matchesOrig.isEmpty) continue;
+            final orig = matchesOrig.first;
+            if (t.recorrencia != null &&
+                orig.recorrencia != null &&
+                t.recorrencia!.id == orig.recorrencia!.id) {
+              originalForT = orig;
+              break;
+            }
+          }
+          if (originalForT != null) {
+            final delta = newDate.difference(originalForT.dataCompetencia);
+            if (t.id == originalForT.id) {
+              updateData['dataCompetencia'] = newDate.toIso8601String();
+            } else {
+              updateData['dataCompetencia'] = t.dataCompetencia
+                  .add(delta)
+                  .toIso8601String();
+            }
+          } else {
+            updateData['dataCompetencia'] = newDate.toIso8601String();
+          }
+        } else if (action == 'conta') {
+          updateData['conta'] = newValue as String;
+        }
+
+        ops.add({
+          'action': 'update',
+          'databaseId': '671f6e1600022832cba5',
+          'tableId': '671f7a6f000cb3ab17b9',
+          'rowId': t.id,
+          'data': updateData,
+        });
+
+        final bool nextConsolidada = updateData.containsKey('consolidada')
+            ? (updateData['consolidada'] as bool)
+            : t.consolidada;
+        final String? nextContaId = updateData.containsKey('conta')
+            ? (updateData['conta'] as String)
+            : t.conta?.id;
+
+        if (nextConsolidada) {
+          if (t.tipo == 'despesa' && nextContaId != null) {
+            await updateAccountBalance(nextContaId, -t.valor);
+          } else if (t.tipo == 'receita' && nextContaId != null) {
+            await updateAccountBalance(nextContaId, t.valor);
+          } else if (t.tipo == 'transferencia' &&
+              nextContaId != null &&
+              t.contaDestino?.id != null) {
+            await updateAccountBalance(nextContaId, -t.valor);
+            await updateAccountBalance(t.contaDestino!.id, t.valor);
+          }
+        }
+      }
+
+      for (int j = 0; j < ops.length; j += 100) {
+        final chunk = ops.sublist(
+          j,
+          j + 100 > ops.length ? ops.length : j + 100,
+        );
+        final String txId = (await tablesDB.createTransaction()).$id;
+        await tablesDB.createOperations(transactionId: txId, operations: chunk);
+        await tablesDB.updateTransaction(transactionId: txId, commit: true);
+      }
+
+      await loadDocuments();
+      return true;
+    } catch (e) {
+      log('Error during batch update: $e');
       return false;
     }
   }
