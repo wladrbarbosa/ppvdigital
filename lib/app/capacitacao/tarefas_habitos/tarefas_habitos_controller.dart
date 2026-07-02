@@ -141,8 +141,8 @@ extension TarefasHabitosTransformDocumentList on List<Row> {
     final TablesDB tablesDB = TablesDB(databases.client);
 
     final RowList res = await tablesDB.listRows(
-      databaseId: '671f6e1600022832cba5',
-      tableId: '6741f10d000d985e4af9',
+      databaseId: Core.databaseId,
+      tableId: Core.tableHistoricoTarefasHabitos,
       queries: [
         Query.equal('usuario', Core.loginController.currentUser?.$id ?? ''),
         Query.select([
@@ -275,8 +275,8 @@ class TarefasHabitosController {
         }
         final TablesDB tablesDB = TablesDB(databases.client);
         final RowList tarefasHabitosDocs = await tablesDB.listRows(
-          databaseId: '671f6e1600022832cba5',
-          tableId: '671f864f0023d1c27de8',
+          databaseId: Core.databaseId,
+          tableId: Core.tableTarefasEHabitos,
           queries: [
             Query.select([
               '*',
@@ -322,8 +322,8 @@ class TarefasHabitosController {
         _tarefasHabitosList.setAll(0, temp);
         final TablesDB tablesDB = TablesDB(databases.client);
         tablesDB.createRow(
-          databaseId: '671f6e1600022832cba5',
-          tableId: '6741f10d000d985e4af9',
+          databaseId: Core.databaseId,
+          tableId: Core.tableHistoricoTarefasHabitos,
           rowId: ID.unique(),
           data: {
             'tarefasEHabitos': found.id,
@@ -350,13 +350,13 @@ class TarefasHabitosController {
       final TablesDB tablesDB = TablesDB(databases.client);
 
       final String qtdCollectionId =
-          tarefasHabitosQtdCollectionId ?? '674cfd5e001a6582741e';
+          tarefasHabitosQtdCollectionId ?? Core.tableTarefasHabitosQtds;
 
       final List<String> qtdRowIds = [];
 
       for (final meta in metas) {
         final Row qtdRow = await tablesDB.createRow(
-          databaseId: '671f6e1600022832cba5',
+          databaseId: Core.databaseId,
           tableId: qtdCollectionId,
           rowId: ID.unique(),
           data: {
@@ -372,8 +372,8 @@ class TarefasHabitosController {
       }
 
       await tablesDB.createRow(
-        databaseId: '671f6e1600022832cba5',
-        tableId: '671f864f0023d1c27de8',
+        databaseId: Core.databaseId,
+        tableId: Core.tableTarefasEHabitos,
         rowId: ID.unique(),
         data: {
           'nome': nome,
@@ -409,7 +409,7 @@ class TarefasHabitosController {
       final TablesDB tablesDB = TablesDB(databases.client);
 
       final String qtdCollectionId =
-          tarefasHabitosQtdCollectionId ?? '674cfd5e001a6582741e';
+          tarefasHabitosQtdCollectionId ?? Core.tableTarefasHabitosQtds;
 
       final List<String> finalQtdRowIds = [];
       final List<String> savedQtdRowIds = [];
@@ -419,7 +419,7 @@ class TarefasHabitosController {
         if (metaId != null && metaId.isNotEmpty) {
           // Update existing meta
           await tablesDB.updateRow(
-            databaseId: '671f6e1600022832cba5',
+            databaseId: Core.databaseId,
             tableId: qtdCollectionId,
             rowId: metaId,
             data: {
@@ -436,7 +436,7 @@ class TarefasHabitosController {
         } else {
           // Create new meta
           final Row qtdRow = await tablesDB.createRow(
-            databaseId: '671f6e1600022832cba5',
+            databaseId: Core.databaseId,
             tableId: qtdCollectionId,
             rowId: ID.unique(),
             data: {
@@ -453,8 +453,8 @@ class TarefasHabitosController {
       }
 
       await tablesDB.updateRow(
-        databaseId: '671f6e1600022832cba5',
-        tableId: '671f864f0023d1c27de8',
+        databaseId: Core.databaseId,
+        tableId: Core.tableTarefasEHabitos,
         rowId: id,
         data: {
           'nome': nome,
@@ -470,7 +470,7 @@ class TarefasHabitosController {
         if (!savedQtdRowIds.contains(existingId)) {
           try {
             await tablesDB.deleteRow(
-              databaseId: '671f6e1600022832cba5',
+              databaseId: Core.databaseId,
               tableId: qtdCollectionId,
               rowId: existingId,
             );
@@ -493,12 +493,12 @@ class TarefasHabitosController {
       final TablesDB tablesDB = TablesDB(databases.client);
 
       final String qtdCollectionId =
-          tarefasHabitosQtdCollectionId ?? '674cfd5e001a6582741e';
+          tarefasHabitosQtdCollectionId ?? Core.tableTarefasHabitosQtds;
 
       for (final qtdRowId in qtdRowIds) {
         try {
           await tablesDB.deleteRow(
-            databaseId: '671f6e1600022832cba5',
+            databaseId: Core.databaseId,
             tableId: qtdCollectionId,
             rowId: qtdRowId,
           );
@@ -508,8 +508,8 @@ class TarefasHabitosController {
       }
 
       await tablesDB.deleteRow(
-        databaseId: '671f6e1600022832cba5',
-        tableId: '671f864f0023d1c27de8',
+        databaseId: Core.databaseId,
+        tableId: Core.tableTarefasEHabitos,
         rowId: id,
       );
 

@@ -48,8 +48,8 @@ class CategoriasController {
 
         final TablesDB tablesDB = TablesDB(databases.client);
         final RowList docs = await tablesDB.listRows(
-          databaseId: '671f6e1600022832cba5',
-          tableId: '671f8803003d7d827ea8',
+          databaseId: Core.databaseId,
+          tableId: Core.tableCategoriasTarefasHabitos,
           queries: [
             Query.equal('usuario', [
               Core.loginController.currentUser?.$id ?? '',
@@ -85,8 +85,8 @@ class CategoriasController {
       final TablesDB tablesDB = TablesDB(databases.client);
 
       final Row row = await tablesDB.createRow(
-        databaseId: '671f6e1600022832cba5',
-        tableId: '671f8803003d7d827ea8',
+        databaseId: Core.databaseId,
+        tableId: Core.tableCategoriasTarefasHabitos,
         rowId: ID.unique(),
         data: {
           'nome': nome,
@@ -132,8 +132,8 @@ class CategoriasController {
       final TablesDB tablesDB = TablesDB(databases.client);
 
       await tablesDB.updateRow(
-        databaseId: '671f6e1600022832cba5',
-        tableId: '671f8803003d7d827ea8',
+        databaseId: Core.databaseId,
+        tableId: Core.tableCategoriasTarefasHabitos,
         rowId: id,
         data: {
           'nome': nome,
@@ -169,8 +169,8 @@ class CategoriasController {
     try {
       final TablesDB tablesDB = TablesDB(databases.client);
       await tablesDB.deleteRow(
-        databaseId: '671f6e1600022832cba5',
-        tableId: '671f8803003d7d827ea8',
+        databaseId: Core.databaseId,
+        tableId: Core.tableCategoriasTarefasHabitos,
         rowId: documentId,
       );
 

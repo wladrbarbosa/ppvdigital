@@ -29,9 +29,9 @@ class FinancasController {
       mobx.ObservableList<CategoriaTransacaoModel>(name: 'categoriasList');
   List<CategoriaTransacaoModel> get categoriasList => _categoriasList.toList();
 
-  final mobx.ObservableList<ContatoModel> _contatosList =
-      mobx.ObservableList<ContatoModel>(name: 'contatosList');
-  List<ContatoModel> get contatosList => _contatosList.toList();
+  final mobx.ObservableList<ContatoModel> _Core.tableContatosList =
+      mobx.ObservableList<ContatoModel>(name: 'Core.tableContatosList');
+  List<ContatoModel> get Core.tableContatosList => _Core.tableContatosList.toList();
 
   final mobx.ObservableList<TransacaoModel> _transacoesList =
       mobx.ObservableList<TransacaoModel>(name: 'transacoesList');
@@ -60,28 +60,28 @@ class FinancasController {
         final String user = Core.loginController.currentUser?.$id ?? '';
         final TablesDB tablesDB = TablesDB(databases.client);
 
-        // 0. Load contatos
-        final contatosDocs = await tablesDB.listRows(
-          databaseId: '671f6e1600022832cba5',
-          tableId: 'contatos',
+        // 0. Load Core.tableContatos
+        final Core.tableContatosDocs = await tablesDB.listRows(
+          databaseId: 'Core.databaseId',
+          tableId: 'Core.tableContatos',
           queries: [
             Query.equal('ownerId', [user]),
             Query.limit(5000),
           ],
         );
-        _contatosList.clear();
-        _contatosList.addAll(
-          contatosDocs.rows.map((d) => ContatoModel.fromMap(d.data)),
+        _Core.tableContatosList.clear();
+        _Core.tableContatosList.addAll(
+          Core.tableContatosDocs.rows.map((d) => ContatoModel.fromMap(d.data)),
         );
 
-        final List<String> userContatoIds = _contatosList
+        final List<String> userContatoIds = _Core.tableContatosList
             .map((c) => c.id)
             .toList();
 
         // 1. Load accounts
         final accountsDocs = await tablesDB.listRows(
-          databaseId: '671f6e1600022832cba5',
-          tableId: '671f7aa70014dda7507c', // contas
+          databaseId: 'Core.databaseId',
+          tableId: 'Core.tableContas', // contas
           queries: [
             Query.equal('userId', [user]),
           ],
@@ -93,8 +93,8 @@ class FinancasController {
 
         // 2. Load categories
         final catDocs = await tablesDB.listRows(
-          databaseId: '671f6e1600022832cba5',
-          tableId: 'categorias_transacoes',
+          databaseId: 'Core.databaseId',
+          tableId: 'Core.tableCategoriasTransacoes',
           queries: [
             Query.equal('userId', [user]),
           ],
@@ -128,8 +128,8 @@ class FinancasController {
               k + 100 > contaIds.length ? contaIds.length : k + 100,
             );
             final transDocs1 = await tablesDB.listRows(
-              databaseId: '671f6e1600022832cba5',
-              tableId: '671f7a6f000cb3ab17b9', // transacoes
+              databaseId: 'Core.databaseId',
+              tableId: 'Core.tableTransacoes', // transacoes
               queries: [
                 Query.equal('conta', chunkContaIds),
                 Query.greaterThanEqual(
@@ -166,8 +166,8 @@ class FinancasController {
               k + 100 > contaIds.length ? contaIds.length : k + 100,
             );
             final transDocs2 = await tablesDB.listRows(
-              databaseId: '671f6e1600022832cba5',
-              tableId: '671f7a6f000cb3ab17b9',
+              databaseId: 'Core.databaseId',
+              tableId: 'Core.tableTransacoes',
               queries: [
                 Query.equal('contaDestino', chunkContaIds),
                 Query.greaterThanEqual(
@@ -206,8 +206,8 @@ class FinancasController {
               k + 100 > contaIds.length ? contaIds.length : k + 100,
             );
             final transDocs1 = await tablesDB.listRows(
-              databaseId: '671f6e1600022832cba5',
-              tableId: '671f7a6f000cb3ab17b9',
+              databaseId: 'Core.databaseId',
+              tableId: 'Core.tableTransacoes',
               queries: [
                 Query.equal('conta', chunkContaIds),
                 Query.lessThan(
@@ -256,8 +256,8 @@ class FinancasController {
               k + 100 > contaIds.length ? contaIds.length : k + 100,
             );
             final transDocs2 = await tablesDB.listRows(
-              databaseId: '671f6e1600022832cba5',
-              tableId: '671f7a6f000cb3ab17b9',
+              databaseId: 'Core.databaseId',
+              tableId: 'Core.tableTransacoes',
               queries: [
                 Query.equal('contaDestino', chunkContaIds),
                 Query.lessThan(
@@ -320,8 +320,8 @@ class FinancasController {
               k + 100 > userContatoIds.length ? userContatoIds.length : k + 100,
             );
             final divDocs = await tablesDB.listRows(
-              databaseId: '671f6e1600022832cba5',
-              tableId: 'divisao_transacoes',
+              databaseId: 'Core.databaseId',
+              tableId: 'Core.tableDivisaoTransacoes',
               queries: [
                 Query.equal('contatoResponsavel', chunkIds),
                 Query.select([
@@ -355,8 +355,8 @@ class FinancasController {
               k + 100 > loadedTransIds.length ? loadedTransIds.length : k + 100,
             );
             final allDivsDocs = await tablesDB.listRows(
-              databaseId: '671f6e1600022832cba5',
-              tableId: 'divisao_transacoes',
+              databaseId: 'Core.databaseId',
+              tableId: 'Core.tableDivisaoTransacoes',
               queries: [Query.equal('transacao', chunkIds), Query.limit(5000)],
             );
             allDivs.addAll(
@@ -401,8 +401,8 @@ class FinancasController {
     final account = contasList.firstWhere((c) => c.id == contaId);
     final double newSaldo = account.saldoAtual + amountDiff;
     await tablesDB.updateRow(
-      databaseId: '671f6e1600022832cba5',
-      tableId: '671f7aa70014dda7507c', // contas
+      databaseId: 'Core.databaseId',
+      tableId: 'Core.tableContas', // contas
       rowId: contaId,
       data: {'saldoAtual': newSaldo},
     );
@@ -417,8 +417,8 @@ class FinancasController {
       final TablesDB tablesDB = TablesDB(databases.client);
 
       await tablesDB.createRow(
-        databaseId: '671f6e1600022832cba5',
-        tableId: '671f7aa70014dda7507c', // contas
+        databaseId: 'Core.databaseId',
+        tableId: 'Core.tableContas', // contas
         rowId: ID.unique(),
         data: {'name': name, 'userId': user, 'saldoAtual': saldoInicial},
       );
@@ -434,8 +434,8 @@ class FinancasController {
     try {
       final TablesDB tablesDB = TablesDB(databases.client);
       await tablesDB.updateRow(
-        databaseId: '671f6e1600022832cba5',
-        tableId: '671f7aa70014dda7507c', // contas
+        databaseId: 'Core.databaseId',
+        tableId: 'Core.tableContas', // contas
         rowId: id,
         data: {'name': name, 'saldoAtual': saldoAtual},
       );
@@ -451,8 +451,8 @@ class FinancasController {
     try {
       final TablesDB tablesDB = TablesDB(databases.client);
       await tablesDB.deleteRow(
-        databaseId: '671f6e1600022832cba5',
-        tableId: '671f7aa70014dda7507c', // contas
+        databaseId: 'Core.databaseId',
+        tableId: 'Core.tableContas', // contas
         rowId: id,
       );
       await loadDocuments();
@@ -476,8 +476,8 @@ class FinancasController {
       final TablesDB tablesDB = TablesDB(databases.client);
 
       await tablesDB.createRow(
-        databaseId: '671f6e1600022832cba5',
-        tableId: 'categorias_transacoes',
+        databaseId: 'Core.databaseId',
+        tableId: 'Core.tableCategoriasTransacoes',
         rowId: ID.unique(),
         data: {'userId': user, 'name': name, 'icone': icone, 'cor': hexColor},
       );
@@ -498,8 +498,8 @@ class FinancasController {
     try {
       final TablesDB tablesDB = TablesDB(databases.client);
       await tablesDB.updateRow(
-        databaseId: '671f6e1600022832cba5',
-        tableId: 'categorias_transacoes',
+        databaseId: 'Core.databaseId',
+        tableId: 'Core.tableCategoriasTransacoes',
         rowId: id,
         data: {'name': name, 'icone': icone, 'cor': hexColor},
       );
@@ -515,8 +515,8 @@ class FinancasController {
     try {
       final TablesDB tablesDB = TablesDB(databases.client);
       await tablesDB.deleteRow(
-        databaseId: '671f6e1600022832cba5',
-        tableId: 'categorias_transacoes',
+        databaseId: 'Core.databaseId',
+        tableId: 'Core.tableCategoriasTransacoes',
         rowId: id,
       );
       await loadDocuments();
@@ -554,8 +554,8 @@ class FinancasController {
 
       if (recorrente) {
         final Row recRow = await tablesDB.createRow(
-          databaseId: '671f6e1600022832cba5',
-          tableId: 'transacao_recorrencia',
+          databaseId: 'Core.databaseId',
+          tableId: 'Core.tableTransacaoRecorrencias',
           rowId: ID.unique(),
           data: {
             'tipoRecorrencia': tipoRecorrencia,
@@ -611,8 +611,8 @@ class FinancasController {
           // Stage transaction creation
           ops.add({
             'action': 'create',
-            'databaseId': '671f6e1600022832cba5',
-            'tableId': '671f7a6f000cb3ab17b9',
+            'databaseId': 'Core.databaseId',
+            'tableId': 'Core.tableTransacoes',
             'rowId': tRowId,
             'data': {
               'descricao': descFinal,
@@ -649,8 +649,8 @@ class FinancasController {
             final double rPeso = (divItem['peso'] as num).toDouble();
             ops.add({
               'action': 'create',
-              'databaseId': '671f6e1600022832cba5',
-              'tableId': 'divisao_transacoes',
+              'databaseId': 'Core.databaseId',
+              'tableId': 'Core.tableDivisaoTransacoes',
               'rowId': ID.unique(),
               'data': {
                 'transacao': tRowId,
@@ -678,8 +678,8 @@ class FinancasController {
         // Single non-recurrent transaction (normal flow)
         final String tRowId = ID.unique();
         await tablesDB.createRow(
-          databaseId: '671f6e1600022832cba5',
-          tableId: '671f7a6f000cb3ab17b9',
+          databaseId: 'Core.databaseId',
+          tableId: 'Core.tableTransacoes',
           rowId: tRowId,
           data: {
             'descricao': descricao,
@@ -712,8 +712,8 @@ class FinancasController {
           final String rContato = divItem['contatoResponsavel'] as String;
           final double rPeso = (divItem['peso'] as num).toDouble();
           await tablesDB.createRow(
-            databaseId: '671f6e1600022832cba5',
-            tableId: 'divisao_transacoes',
+            databaseId: 'Core.databaseId',
+            tableId: 'Core.tableDivisaoTransacoes',
             rowId: ID.unique(),
             data: {
               'transacao': tRowId,
@@ -784,8 +784,8 @@ class FinancasController {
           // create new recurrence row
           final originalRec = original.recorrencia!;
           final Row newRecRow = await tablesDB.createRow(
-            databaseId: '671f6e1600022832cba5',
-            tableId: 'transacao_recorrencia',
+            databaseId: 'Core.databaseId',
+            tableId: 'Core.tableTransacaoRecorrencias',
             rowId: ID.unique(),
             data: {
               'tipoRecorrencia': originalRec.tipoRecorrencia,
@@ -829,8 +829,8 @@ class FinancasController {
             // Stage transaction update
             ops.add({
               'action': 'update',
-              'databaseId': '671f6e1600022832cba5',
-              'tableId': '671f7a6f000cb3ab17b9',
+              'databaseId': 'Core.databaseId',
+              'tableId': 'Core.tableTransacoes',
               'rowId': t.id,
               'data': {
                 'descricao': descricao,
@@ -865,8 +865,8 @@ class FinancasController {
             for (final oldDiv in t.divisoes) {
               ops.add({
                 'action': 'delete',
-                'databaseId': '671f6e1600022832cba5',
-                'tableId': 'divisao_transacoes',
+                'databaseId': 'Core.databaseId',
+                'tableId': 'Core.tableDivisaoTransacoes',
                 'rowId': oldDiv.id,
               });
             }
@@ -876,8 +876,8 @@ class FinancasController {
               final double rPeso = (divItem['peso'] as num).toDouble();
               ops.add({
                 'action': 'create',
-                'databaseId': '671f6e1600022832cba5',
-                'tableId': 'divisao_transacoes',
+                'databaseId': 'Core.databaseId',
+                'tableId': 'Core.tableDivisaoTransacoes',
                 'rowId': ID.unique(),
                 'data': {
                   'transacao': t.id,
@@ -890,8 +890,8 @@ class FinancasController {
         } else if (optionRecorrencia == 'all') {
           if (parcelaInicio != null) {
             await tablesDB.updateRow(
-              databaseId: '671f6e1600022832cba5',
-              tableId: 'transacao_recorrencia',
+              databaseId: 'Core.databaseId',
+              tableId: 'Core.tableTransacaoRecorrencias',
               rowId: original.recorrencia!.id,
               data: {'parcelaInicio': parcelaInicio},
             );
@@ -924,8 +924,8 @@ class FinancasController {
             // Stage transaction update
             ops.add({
               'action': 'update',
-              'databaseId': '671f6e1600022832cba5',
-              'tableId': '671f7a6f000cb3ab17b9',
+              'databaseId': 'Core.databaseId',
+              'tableId': 'Core.tableTransacoes',
               'rowId': t.id,
               'data': {
                 'descricao': descricao,
@@ -959,8 +959,8 @@ class FinancasController {
             for (final oldDiv in t.divisoes) {
               ops.add({
                 'action': 'delete',
-                'databaseId': '671f6e1600022832cba5',
-                'tableId': 'divisao_transacoes',
+                'databaseId': 'Core.databaseId',
+                'tableId': 'Core.tableDivisaoTransacoes',
                 'rowId': oldDiv.id,
               });
             }
@@ -970,8 +970,8 @@ class FinancasController {
               final double rPeso = (divItem['peso'] as num).toDouble();
               ops.add({
                 'action': 'create',
-                'databaseId': '671f6e1600022832cba5',
-                'tableId': 'divisao_transacoes',
+                'databaseId': 'Core.databaseId',
+                'tableId': 'Core.tableDivisaoTransacoes',
                 'rowId': ID.unique(),
                 'data': {
                   'transacao': t.id,
@@ -987,8 +987,8 @@ class FinancasController {
       // 2. Stage current transaction update
       ops.add({
         'action': 'update',
-        'databaseId': '671f6e1600022832cba5',
-        'tableId': '671f7a6f000cb3ab17b9', // transacoes
+        'databaseId': 'Core.databaseId',
+        'tableId': 'Core.tableTransacoes', // transacoes
         'rowId': id,
         'data': {
           'descricao': descricao,
@@ -1023,8 +1023,8 @@ class FinancasController {
       for (final oldDiv in original.divisoes) {
         ops.add({
           'action': 'delete',
-          'databaseId': '671f6e1600022832cba5',
-          'tableId': 'divisao_transacoes',
+          'databaseId': 'Core.databaseId',
+          'tableId': 'Core.tableDivisaoTransacoes',
           'rowId': oldDiv.id,
         });
       }
@@ -1034,8 +1034,8 @@ class FinancasController {
         final double rPeso = (divItem['peso'] as num).toDouble();
         ops.add({
           'action': 'create',
-          'databaseId': '671f6e1600022832cba5',
-          'tableId': 'divisao_transacoes',
+          'databaseId': 'Core.databaseId',
+          'tableId': 'Core.tableDivisaoTransacoes',
           'rowId': ID.unique(),
           'data': {
             'transacao': id,
@@ -1166,8 +1166,8 @@ class FinancasController {
 
         ops.add({
           'action': 'update',
-          'databaseId': '671f6e1600022832cba5',
-          'tableId': '671f7a6f000cb3ab17b9',
+          'databaseId': 'Core.databaseId',
+          'tableId': 'Core.tableTransacoes',
           'rowId': t.id,
           'data': updateData,
         });
@@ -1249,8 +1249,8 @@ class FinancasController {
         for (final div in t.divisoes) {
           ops.add({
             'action': 'delete',
-            'databaseId': '671f6e1600022832cba5',
-            'tableId': 'divisao_transacoes',
+            'databaseId': 'Core.databaseId',
+            'tableId': 'Core.tableDivisaoTransacoes',
             'rowId': div.id,
           });
         }
@@ -1272,8 +1272,8 @@ class FinancasController {
         // Stage the transaction itself
         ops.add({
           'action': 'delete',
-          'databaseId': '671f6e1600022832cba5',
-          'tableId': '671f7a6f000cb3ab17b9', // transacoes
+          'databaseId': 'Core.databaseId',
+          'tableId': 'Core.tableTransacoes', // transacoes
           'rowId': t.id,
         });
       }
@@ -1281,8 +1281,8 @@ class FinancasController {
       if (transacao.recorrencia != null && deleteOption == 'all') {
         ops.add({
           'action': 'delete',
-          'databaseId': '671f6e1600022832cba5',
-          'tableId': 'transacao_recorrencia',
+          'databaseId': 'Core.databaseId',
+          'tableId': 'Core.tableTransacaoRecorrencias',
           'rowId': transacao.recorrencia!.id,
         });
       }
@@ -1320,8 +1320,8 @@ class FinancasController {
       final TablesDB tablesDB = TablesDB(databases.client);
 
       await tablesDB.createRow(
-        databaseId: '671f6e1600022832cba5',
-        tableId: 'contatos',
+        databaseId: 'Core.databaseId',
+        tableId: 'Core.tableContatos',
         rowId: ID.unique(),
         data: {
           'ownerId': user,
@@ -1349,8 +1349,8 @@ class FinancasController {
     try {
       final TablesDB tablesDB = TablesDB(databases.client);
       await tablesDB.updateRow(
-        databaseId: '671f6e1600022832cba5',
-        tableId: 'contatos',
+        databaseId: 'Core.databaseId',
+        tableId: 'Core.tableContatos',
         rowId: id,
         data: {
           'nome': nome,
@@ -1371,8 +1371,8 @@ class FinancasController {
     try {
       final TablesDB tablesDB = TablesDB(databases.client);
       await tablesDB.deleteRow(
-        databaseId: '671f6e1600022832cba5',
-        tableId: 'contatos',
+        databaseId: 'Core.databaseId',
+        tableId: 'Core.tableContatos',
         rowId: id,
       );
       await loadDocuments();

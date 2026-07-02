@@ -87,8 +87,8 @@ class CalendarioController {
 
         final TablesDB tablesDB = TablesDB(databases.client);
         final RowList historicoDocs = await tablesDB.listRows(
-          databaseId: '671f6e1600022832cba5',
-          tableId: '6741f10d000d985e4af9',
+          databaseId: Core.databaseId,
+          tableId: Core.tableHistoricoTarefasHabitos,
           queries: [
             Query.equal('usuario', [
               Core.loginController.currentUser?.$id ?? '',
@@ -125,8 +125,8 @@ class CalendarioController {
         _historicoList.setAll(0, temp);
         final TablesDB tablesDB = TablesDB(databases.client);
         tablesDB.createRow(
-          databaseId: '671f6e1600022832cba5',
-          tableId: '6741f10d000d985e4af9',
+          databaseId: Core.databaseId,
+          tableId: Core.tableHistoricoTarefasHabitos,
           rowId: ID.unique(),
           data: {
             'tarefasEHabitos': found.id,

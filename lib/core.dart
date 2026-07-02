@@ -1,10 +1,10 @@
 import 'package:appwrite/appwrite.dart';
 import 'package:flutter/material.dart';
+import 'package:ppvdigital/app/capacitacao/financas/financas_controller.dart';
 import 'package:ppvdigital/app/capacitacao/tarefas_habitos/calendario_controller.dart';
 import 'package:ppvdigital/app/capacitacao/tarefas_habitos/categorias_controller.dart';
 import 'package:ppvdigital/app/capacitacao/tarefas_habitos/historico_controller.dart';
 import 'package:ppvdigital/app/capacitacao/tarefas_habitos/tarefas_habitos_controller.dart';
-import 'package:ppvdigital/app/capacitacao/financas/financas_controller.dart';
 import 'package:ppvdigital/app/capacitacao/tarefas_habitos/tarefas_habitos_layout.dart';
 import 'package:ppvdigital/app/login/login_controller.dart';
 
@@ -33,9 +33,29 @@ class Core {
   Core._internal();
 
   static final Core instance = Core._internal();
+
+  // Appwrite Connection parameters
+  static const String endpoint = 'https://cloud.appwrite.io/v1';
+  static const String projectId = '671f6df50033227ea6d6';
+  
+  // Appwrite Database parameters
+  static const String databaseId = '671f6e1600022832cba5';
+
+  // Appwrite Collection / Table IDs
+  static const String tableTransacoes = '671f7a6f000cb3ab17b9';
+  static const String tableContas = '671f7aa70014dda7507c';
+  static const String tableTarefasEHabitos = '671f864f0023d1c27de8';
+  static const String tableCategoriasTarefasHabitos = '671f8803003d7d827ea8';
+  static const String tableHistoricoTarefasHabitos = '6741f10d000d985e4af9';
+  static const String tableTarefasHabitosQtds = '674cfd5e001a6582741e';
+  static const String tableCategoriasTransacoes = 'categorias_transacoes';
+  static const String tableTransacaoRecorrencias = 'transacao_recorrencia';
+  static const String tableDivisaoTransacoes = 'divisao_transacoes';
+  static const String tableContatos = 'contatos';
+
   static Client client = Client()
-      .setEndpoint('https://cloud.appwrite.io/v1')
-      .setProject('671f6df50033227ea6d6');
+      .setEndpoint(endpoint)
+      .setProject(projectId);
 
   static LoginController loginController = LoginController();
   static TarefasHabitosController tarefasHabitosController =
