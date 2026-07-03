@@ -33,5 +33,30 @@ class _AuthBuilderState extends State<AuthBuilder> {
   }
 
   @override
-  Widget build(BuildContext context) =>  widget.child;
+  Widget build(BuildContext context) {
+    return Stack(
+      children: [
+        widget.child,
+        Positioned(
+          right: 8,
+          bottom: 8,
+          child: Material(
+            color: Colors.transparent,
+            child: IgnorePointer(
+              child: Text(
+                'v${Core.appVersion}',
+                style: TextStyle(
+                  color: Theme.of(context).brightness == Brightness.dark
+                      ? Colors.white24
+                      : Colors.black26,
+                  fontSize: 10,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
 }
