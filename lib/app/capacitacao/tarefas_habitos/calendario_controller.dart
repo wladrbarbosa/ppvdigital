@@ -45,7 +45,7 @@ extension CalendarioTransformRowList on List<Row> {
         HistoricoItemModel(
           id: e1.$id,
           usuario: e1.data['usuario'] as String,
-          createdAt: DateTime.parse((e1.data[r'$createdAt'] as String?) ?? ''),
+          createdAt: DateTime.parse((e1.data[r'$createdAt'] as String?) ?? '').toLocal(),
           tarefasEHabitos: cachedTarefa ?? rawTarefaMap.toTarefasHabitosModel(),
         ),
       );

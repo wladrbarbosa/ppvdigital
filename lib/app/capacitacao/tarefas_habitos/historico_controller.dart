@@ -47,7 +47,7 @@ extension HistoricoTransformDocumentList on List<Row> {
 
         final String? createdAtStr = e1.data[r'$createdAt'] as String?;
         final DateTime parsedCreatedAt = createdAtStr != null
-            ? (DateTime.tryParse(createdAtStr) ?? DateTime.now())
+            ? (DateTime.tryParse(createdAtStr)?.toLocal() ?? DateTime.now())
             : DateTime.now();
 
         temp.add(

@@ -34,7 +34,7 @@ class ListaHabitosTarefasPage extends StatefulWidget {
 }
 
 class ListaHabitosTarefasPageState extends State<ListaHabitosTarefasPage> {
-  final double width = 220.0;
+  final double width = 260.0;
   final double height = 120.0;
   static int? qtdItems;
 

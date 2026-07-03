@@ -23,8 +23,12 @@ class _FinancasLayoutState extends State<FinancasLayout>
   bool _somarAcumulado = false;
   final Set<String> _selectedContas = {};
   final Set<String> _selectedTransIds = {};
+  final Set<String> _selectedCategorias = {};
+  final Set<String> _selectedTipos = {};
+  final Set<String> _selectedContatos = {};
   bool _filterOpen = false;
   late final TabController _tabController;
+  final ScrollController _transacoesScrollController = ScrollController();
 
   final Map<String, IconData> _presetIcons = {
     'monetization_on': Icons.monetization_on,
@@ -54,6 +58,7 @@ class _FinancasLayoutState extends State<FinancasLayout>
   @override
   void dispose() {
     _tabController.dispose();
+    _transacoesScrollController.dispose();
     super.dispose();
   }
 
@@ -92,6 +97,198 @@ class _FinancasLayoutState extends State<FinancasLayout>
       total += _calcularImpactoTransacao(t, activeUserId, _selectedContas);
     }
     return total;
+  }
+
+  Widget _buildDayGroup({
+    required BuildContext context,
+    required String dateKey,
+    required List<TransacaoModel> dayTrans,
+    required Map<String, double> saldosDiarios,
+    required String activeUser,
+  }) {
+    final dateParsed = DateTime.parse(dateKey);
+    final formattedDate = DateFormat(
+      "dd 'de' MMMM, yyyy",
+      'pt_BR',
+    ).format(dateParsed);
+
+    final double saldoExibido = saldosDiarios[dateKey] ?? 0.0;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          padding: const EdgeInsets.symmetric(
+            horizontal: 16.0,
+            vertical: 8.0,
+          ),
+          color: Colors.grey.withOpacity(0.1),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                formattedDate,
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  color: Colors.grey,
+                ),
+              ),
+              Text(
+                'Saldo acumulado: R\$ ${saldoExibido.toStringAsFixed(2)}',
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  color: saldoExibido >= 0 ? Colors.green : Colors.red,
+                ),
+              ),
+            ],
+          ),
+        ),
+        ...dayTrans.map((t) {
+          final double valToDisplay = _mostrarDivisoes
+              ? _calcularValorDivisao(t, activeUser)
+              : t.valor;
+
+          final Color valueColor = t.tipo == 'receita'
+              ? Colors.green
+              : (t.tipo == 'transferencia' ? Colors.blue : Colors.red);
+
+          final IconData catIcon =
+              _presetIcons[t.categoria?.icone] ?? Icons.monetization_on;
+
+          return ListTile(
+            onTap: () {
+              Routefly.pushNavigate(
+                routePaths.capacitacao.criarEditarTransacao,
+                arguments: {
+                  'lastRoute': Routefly.currentUri.path,
+                  'transacao': t,
+                },
+              );
+            },
+            leading: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Checkbox(
+                  value: _selectedTransIds.contains(t.id),
+                  onChanged: (val) {
+                    setState(() {
+                      if (val == true) {
+                        _selectedTransIds.add(t.id);
+                      } else {
+                        _selectedTransIds.remove(t.id);
+                      }
+                    });
+                  },
+                ),
+                CircleAvatar(
+                  backgroundColor: t.categoria?.cor?.withOpacity(0.2) ??
+                      Colors.blue.withOpacity(0.2),
+                  child: Icon(
+                    catIcon,
+                    color: t.categoria?.cor ?? Colors.blue,
+                  ),
+                ),
+              ],
+            ),
+            title: Text(
+              t.descricao,
+              style: const TextStyle(
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            subtitle: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  t.tipo == 'transferencia'
+                      ? 'Transf: ${t.conta?.name ?? '?'} ➔ ${t.contaDestino?.name ?? '?'}'
+                      : 'Conta: ${t.conta?.name ?? 'Sem conta'}',
+                ),
+                if (_mostrarDivisoes)
+                  Text(
+                    'Sua parcela (Valor Total: R\$ ${t.valor.toStringAsFixed(2)})',
+                    style: const TextStyle(
+                      fontStyle: FontStyle.italic,
+                      fontSize: 12,
+                    ),
+                  ),
+                const SizedBox(height: 4),
+                Wrap(
+                  spacing: 4,
+                  runSpacing: 4,
+                  children: [
+                    if (t.recorrencia != null)
+                      _buildIndicatorChip(
+                        context,
+                        icon: Icons.repeat,
+                        label: 'Recorrente',
+                        color: Colors.purple,
+                      ),
+                    if (t.devedorContato != null)
+                      _buildIndicatorChip(
+                        context,
+                        icon: Icons.arrow_downward,
+                        label: '${t.devedorContato!.nome} deve p/ você',
+                        color: Colors.teal,
+                      ),
+                    if (t.credorContato != null)
+                      _buildIndicatorChip(
+                        context,
+                        icon: Icons.arrow_upward,
+                        label: 'Você deve p/ ${t.credorContato!.nome}',
+                        color: Colors.orange,
+                      ),
+                    if (_isDivididaComOutros(t, activeUser))
+                      _buildIndicatorChip(
+                        context,
+                        icon: Icons.pie_chart_outline,
+                        label: 'Dividido (${t.divisoes.length})',
+                        color: Colors.blueGrey,
+                      ),
+                  ],
+                ),
+              ],
+            ),
+            trailing: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Text(
+                  'R\$ ${valToDisplay.toStringAsFixed(2)}',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                    color: valueColor,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 6,
+                    vertical: 2,
+                  ),
+                  decoration: BoxDecoration(
+                    color: t.consolidada
+                        ? Colors.green.withOpacity(0.1)
+                        : Colors.amber.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                  child: Text(
+                    t.consolidada ? 'Efetivada' : 'Prevista',
+                    style: TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.bold,
+                      color: t.consolidada ? Colors.green : Colors.amber[800],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          );
+        }),
+        const Divider(height: 1),
+      ],
+    );
   }
 
   @override
@@ -157,25 +354,19 @@ class _FinancasLayoutState extends State<FinancasLayout>
                   // Filter list based on toggle
                   List<TransacaoModel> displayTransList = [];
                   if (_mostrarDivisoes) {
-                    // Fetch the transactions where the user participates in divisions
-                    for (final div in splitTrans) {
-                      final matched = allTrans.where(
-                        (t) => t.id == div.transacaoId,
-                      );
-                      if (matched.isNotEmpty) {
-                        displayTransList.add(matched.first);
-                      }
-                    }
+                    displayTransList = allTrans
+                        .where((t) => _participaComOutros(t, activeUser))
+                        .toList();
                   } else {
                     displayTransList = allTrans;
                   }
 
-                  // Apply account filter
-                  List<TransacaoModel> accountFilteredList = [];
+                  // Apply account, category, type, and contact filters
+                  List<TransacaoModel> step1List = [];
                   if (_selectedContas.isEmpty) {
-                    accountFilteredList = displayTransList;
+                    step1List = displayTransList;
                   } else {
-                    accountFilteredList = displayTransList.where((t) {
+                    step1List = displayTransList.where((t) {
                       if (t.tipo == 'transferencia') {
                         final bool origemSel =
                             t.conta != null &&
@@ -188,6 +379,40 @@ class _FinancasLayoutState extends State<FinancasLayout>
                         return t.conta != null &&
                             _selectedContas.contains(t.conta!.id);
                       }
+                    }).toList();
+                  }
+
+                  List<TransacaoModel> step2List = [];
+                  if (_selectedCategorias.isEmpty) {
+                    step2List = step1List;
+                  } else {
+                    step2List = step1List.where((t) {
+                      return t.categoria != null &&
+                          _selectedCategorias.contains(t.categoria!.id);
+                    }).toList();
+                  }
+
+                  List<TransacaoModel> step3List = [];
+                  if (_selectedTipos.isEmpty) {
+                    step3List = step2List;
+                  } else {
+                    step3List = step2List.where((t) {
+                      return _selectedTipos.contains(t.tipo);
+                    }).toList();
+                  }
+
+                  List<TransacaoModel> accountFilteredList = [];
+                  if (_selectedContatos.isEmpty) {
+                    accountFilteredList = step3List;
+                  } else {
+                    accountFilteredList = step3List.where((t) {
+                      final bool isDevedor = t.devedorContato != null &&
+                          _selectedContatos.contains(t.devedorContato!.id);
+                      final bool isCredor = t.credorContato != null &&
+                          _selectedContatos.contains(t.credorContato!.id);
+                      final bool inDivisao = t.divisoes.any((div) =>
+                          _selectedContatos.contains(div.contatoResponsavel));
+                      return isDevedor || isCredor || inDivisao;
                     }).toList();
                   }
 
@@ -227,231 +452,74 @@ class _FinancasLayoutState extends State<FinancasLayout>
                     mainContent = Column(
                       children: [
                         _buildMonthSelector(),
-                        Expanded(
-                          child: ListView.builder(
-                            padding: const EdgeInsets.only(bottom: 80.0),
-                            itemCount: grouped.length,
-                            itemBuilder: (context, index) {
-                              final dateKey = grouped.keys.elementAt(index);
-                              final dayTrans = grouped[dateKey]!;
-                              final dateParsed = DateTime.parse(dateKey);
-                              final formattedDate = DateFormat(
-                                "dd 'de' MMMM, yyyy",
-                                'pt_BR',
-                              ).format(dateParsed);
-
-                              final double saldoExibido =
-                                  saldosDiarios[dateKey] ?? 0.0;
-
-                              return Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 16.0,
-                                      vertical: 8.0,
-                                    ),
-                                    color: Colors.grey.withOpacity(0.1),
-                                    child: Row(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.spaceBetween,
-                                      children: [
-                                        Text(
-                                          formattedDate,
-                                          style: const TextStyle(
-                                            fontWeight: FontWeight.bold,
-                                            color: Colors.grey,
-                                          ),
-                                        ),
-                                        Text(
-                                          'Saldo acumulado: R\$ ${saldoExibido.toStringAsFixed(2)}',
-                                          style: TextStyle(
-                                            fontWeight: FontWeight.bold,
-                                            color: saldoExibido >= 0
-                                                ? Colors.green
-                                                : Colors.red,
-                                          ),
-                                        ),
-                                      ],
+                        if (filteredTransList.isNotEmpty)
+                          Padding(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 16.0,
+                              vertical: 4.0,
+                            ),
+                            child: Row(
+                              children: [
+                                Checkbox(
+                                  value: _selectedTransIds.isEmpty
+                                      ? false
+                                      : (_selectedTransIds.length ==
+                                              filteredTransList.length
+                                          ? true
+                                          : null),
+                                  tristate: true,
+                                  onChanged: (val) {
+                                    setState(() {
+                                      if (val == true) {
+                                        _selectedTransIds.addAll(
+                                          filteredTransList.map((t) => t.id),
+                                        );
+                                      } else {
+                                        _selectedTransIds.clear();
+                                      }
+                                    });
+                                  },
+                                ),
+                                const Text(
+                                  'Selecionar tudo',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.grey,
+                                  ),
+                                ),
+                                const Spacer(),
+                                if (_selectedTransIds.isNotEmpty)
+                                  Text(
+                                    '${_selectedTransIds.length} selecionadas',
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.blueGrey,
                                     ),
                                   ),
-                                  ...dayTrans.map((t) {
-                                    final double valToDisplay = _mostrarDivisoes
-                                        ? _calcularValorDivisao(t, activeUser)
-                                        : t.valor;
-
-                                    final Color valueColor = t.tipo == 'receita'
-                                        ? Colors.green
-                                        : (t.tipo == 'transferencia'
-                                              ? Colors.blue
-                                              : Colors.red);
-
-                                    final IconData catIcon =
-                                        _presetIcons[t.categoria?.icone] ??
-                                        Icons.monetization_on;
-
-                                    return ListTile(
-                                      onTap: () {
-                                        Routefly.pushNavigate(
-                                          routePaths
-                                              .capacitacao
-                                              .criarEditarTransacao,
-                                          arguments: {
-                                            'lastRoute':
-                                                Routefly.currentUri.path,
-                                            'transacao': t,
-                                          },
-                                        );
-                                      },
-                                      leading: Row(
-                                        mainAxisSize: MainAxisSize.min,
-                                        children: [
-                                          Checkbox(
-                                            value: _selectedTransIds.contains(
-                                              t.id,
-                                            ),
-                                            onChanged: (val) {
-                                              setState(() {
-                                                if (val == true) {
-                                                  _selectedTransIds.add(t.id);
-                                                } else {
-                                                  _selectedTransIds.remove(
-                                                    t.id,
-                                                  );
-                                                }
-                                              });
-                                            },
-                                          ),
-                                          CircleAvatar(
-                                            backgroundColor:
-                                                t.categoria?.cor?.withOpacity(
-                                                  0.2,
-                                                ) ??
-                                                Colors.blue.withOpacity(0.2),
-                                            child: Icon(
-                                              catIcon,
-                                              color:
-                                                  t.categoria?.cor ??
-                                                  Colors.blue,
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                      title: Text(
-                                        t.descricao,
-                                        style: const TextStyle(
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                      ),
-                                      subtitle: Column(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.start,
-                                        children: [
-                                          Text(
-                                            t.tipo == 'transferencia'
-                                                ? 'Transf: ${t.conta?.name ?? '?'} ➔ ${t.contaDestino?.name ?? '?'}'
-                                                : 'Conta: ${t.conta?.name ?? 'Sem conta'}',
-                                          ),
-                                          if (_mostrarDivisoes)
-                                            Text(
-                                              'Sua parcela (Valor Total: R\$ ${t.valor.toStringAsFixed(2)})',
-                                              style: const TextStyle(
-                                                fontStyle: FontStyle.italic,
-                                                fontSize: 12,
-                                              ),
-                                            ),
-                                          const SizedBox(height: 4),
-                                          Wrap(
-                                            spacing: 4,
-                                            runSpacing: 4,
-                                            children: [
-                                              if (t.recorrencia != null)
-                                                _buildIndicatorChip(
-                                                  context,
-                                                  icon: Icons.repeat,
-                                                  label: 'Recorrente',
-                                                  color: Colors.purple,
-                                                ),
-                                              if (t.devedorContato != null)
-                                                _buildIndicatorChip(
-                                                  context,
-                                                  icon: Icons.arrow_downward,
-                                                  label:
-                                                      '${t.devedorContato!.nome} deve p/ você',
-                                                  color: Colors.teal,
-                                                ),
-                                              if (t.credorContato != null)
-                                                _buildIndicatorChip(
-                                                  context,
-                                                  icon: Icons.arrow_upward,
-                                                  label:
-                                                      'Você deve p/ ${t.credorContato!.nome}',
-                                                  color: Colors.orange,
-                                                ),
-                                              if (t.divisoes.isNotEmpty)
-                                                _buildIndicatorChip(
-                                                  context,
-                                                  icon: Icons.pie_chart_outline,
-                                                  label:
-                                                      'Dividido (${t.divisoes.length})',
-                                                  color: Colors.blueGrey,
-                                                ),
-                                            ],
-                                          ),
-                                        ],
-                                      ),
-                                      trailing: Column(
-                                        mainAxisAlignment:
-                                            MainAxisAlignment.center,
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.end,
-                                        children: [
-                                          Text(
-                                            'R\$ ${valToDisplay.toStringAsFixed(2)}',
-                                            style: TextStyle(
-                                              fontWeight: FontWeight.bold,
-                                              fontSize: 16,
-                                              color: valueColor,
-                                            ),
-                                          ),
-                                          const SizedBox(height: 4),
-                                          Container(
-                                            padding: const EdgeInsets.symmetric(
-                                              horizontal: 6,
-                                              vertical: 2,
-                                            ),
-                                            decoration: BoxDecoration(
-                                              color: t.consolidada
-                                                  ? Colors.green.withOpacity(
-                                                      0.1,
-                                                    )
-                                                  : Colors.amber.withOpacity(
-                                                      0.1,
-                                                    ),
-                                              borderRadius:
-                                                  BorderRadius.circular(4),
-                                            ),
-                                            child: Text(
-                                              t.consolidada
-                                                  ? 'Efetivada'
-                                                  : 'Prevista',
-                                              style: TextStyle(
-                                                fontSize: 10,
-                                                fontWeight: FontWeight.bold,
-                                                color: t.consolidada
-                                                    ? Colors.green
-                                                    : Colors.amber[800],
-                                              ),
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    );
-                                  }),
-                                  const Divider(height: 1),
+                              ],
+                            ),
+                          ),
+                        Expanded(
+                          child: Scrollbar(
+                            controller: _transacoesScrollController,
+                            thumbVisibility: true,
+                            interactive: true,
+                            child: SingleChildScrollView(
+                              controller: _transacoesScrollController,
+                              padding: const EdgeInsets.only(bottom: 80.0),
+                              child: Column(
+                                children: [
+                                  for (final dateKey in grouped.keys)
+                                    _buildDayGroup(
+                                      context: context,
+                                      dateKey: dateKey,
+                                      dayTrans: grouped[dateKey]!,
+                                      saldosDiarios: saldosDiarios,
+                                      activeUser: activeUser,
+                                    ),
                                 ],
-                              );
-                            },
+                              ),
+                            ),
                           ),
                         ),
                       ],
@@ -820,6 +888,35 @@ class _FinancasLayoutState extends State<FinancasLayout>
     return 0.0;
   }
 
+  bool _isDivididaComOutros(TransacaoModel t, String activeUserId) {
+    if (t.divisoes.isEmpty) return false;
+    return t.divisoes.any((div) {
+      final contact = Core.financasController.contatosList.firstWhere(
+        (c) => c.id == div.contatoResponsavel,
+        orElse: () => ContatoModel(id: '', ownerId: '', nome: ''),
+      );
+      return contact.userId != activeUserId;
+    });
+  }
+
+  bool _participaComOutros(TransacaoModel t, String activeUserId) {
+    if (t.divisoes.isEmpty) return false;
+    bool userIn = false;
+    bool otherIn = false;
+    for (final div in t.divisoes) {
+      final contact = Core.financasController.contatosList.firstWhere(
+        (c) => c.id == div.contatoResponsavel,
+        orElse: () => ContatoModel(id: '', ownerId: '', nome: ''),
+      );
+      if (contact.userId == activeUserId) {
+        userIn = true;
+      } else {
+        otherIn = true;
+      }
+    }
+    return userIn && otherIn;
+  }
+
   Widget _buildMonthSelector() {
     final monthName = DateFormat('MMMM yyyy', 'pt_BR').format(_selectedMonth);
     final capitalized = monthName[0].toUpperCase() + monthName.substring(1);
@@ -1080,65 +1177,127 @@ class _FinancasLayoutState extends State<FinancasLayout>
   }
 
   Widget _buildBatchActionsBar(BuildContext context) {
-    return Card(
-      elevation: 6,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      color: Theme.of(context).primaryColor,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(
-              '${_selectedTransIds.length} selecionadas',
-              style: const TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.bold,
-                fontSize: 16,
-              ),
-            ),
-            Row(
-              children: [
-                IconButton(
-                  tooltip: 'Efetivar (Consolidar)',
-                  icon: const Icon(
-                    Icons.check_circle_outline,
-                    color: Colors.white,
-                  ),
-                  onPressed: () => _executeBatchUpdate('consolidar', true),
-                ),
-                IconButton(
-                  tooltip: 'Tornar Prevista (Desconsolidar)',
-                  icon: const Icon(Icons.pending_actions, color: Colors.white),
-                  onPressed: () => _executeBatchUpdate('consolidar', false),
-                ),
-                IconButton(
-                  tooltip: 'Trocar Data',
-                  icon: const Icon(Icons.calendar_month, color: Colors.white),
-                  onPressed: () => _selectBatchDate(context),
-                ),
-                IconButton(
-                  tooltip: 'Trocar Conta',
-                  icon: const Icon(
-                    Icons.account_balance_wallet,
-                    color: Colors.white,
-                  ),
-                  onPressed: () => _selectBatchConta(context),
-                ),
-                const SizedBox(width: 8),
-                IconButton(
-                  tooltip: 'Limpar Seleção',
-                  icon: const Icon(Icons.close, color: Colors.white70),
-                  onPressed: () {
-                    setState(() {
-                      _selectedTransIds.clear();
-                    });
-                  },
-                ),
-              ],
-            ),
-          ],
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    
+    return Container(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.25),
+            blurRadius: 16,
+            spreadRadius: 2,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Card(
+        elevation: 0,
+        margin: EdgeInsets.zero,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+          side: BorderSide(
+            color: Theme.of(context).colorScheme.secondary.withOpacity(0.5),
+            width: 1.5,
+          ),
         ),
+        color: isDark ? Colors.grey[900] : Colors.blueGrey[900],
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 6,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).colorScheme.secondary.withOpacity(0.2),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Text(
+                      '${_selectedTransIds.length} selecionadas',
+                      style: TextStyle(
+                        color: Theme.of(context).colorScheme.secondary,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 14,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              Row(
+                children: [
+                  _buildBatchActionButton(
+                    tooltip: 'Efetivar (Consolidar)',
+                    icon: Icons.check_circle_outline,
+                    color: Colors.greenAccent,
+                    onPressed: () => _executeBatchUpdate('consolidar', true),
+                  ),
+                  const SizedBox(width: 8),
+                  _buildBatchActionButton(
+                    tooltip: 'Tornar Prevista',
+                    icon: Icons.pending_actions,
+                    color: Colors.amberAccent,
+                    onPressed: () => _executeBatchUpdate('consolidar', false),
+                  ),
+                  const SizedBox(width: 8),
+                  _buildBatchActionButton(
+                    tooltip: 'Trocar Data',
+                    icon: Icons.calendar_month,
+                    color: Colors.lightBlueAccent,
+                    onPressed: () => _selectBatchDate(context),
+                  ),
+                  const SizedBox(width: 8),
+                  _buildBatchActionButton(
+                    tooltip: 'Trocar Conta',
+                    icon: Icons.account_balance_wallet,
+                    color: Colors.purpleAccent,
+                    onPressed: () => _selectBatchConta(context),
+                  ),
+                  const SizedBox(width: 12),
+                  Container(
+                    height: 24,
+                    width: 1.5,
+                    color: Colors.white24,
+                  ),
+                  const SizedBox(width: 4),
+                  IconButton(
+                    tooltip: 'Limpar Seleção',
+                    icon: const Icon(Icons.close, color: Colors.white70),
+                    onPressed: () {
+                      setState(() {
+                        _selectedTransIds.clear();
+                      });
+                    },
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildBatchActionButton({
+    required String tooltip,
+    required IconData icon,
+    required Color color,
+    required VoidCallback onPressed,
+  }) {
+    return Container(
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.1),
+        shape: BoxShape.circle,
+      ),
+      child: IconButton(
+        tooltip: tooltip,
+        icon: Icon(icon, color: color),
+        onPressed: onPressed,
       ),
     );
   }
@@ -1357,6 +1516,149 @@ class _FinancasLayoutState extends State<FinancasLayout>
                     );
                   },
                 ),
+                const Divider(),
+                const Padding(
+                  padding: EdgeInsets.symmetric(
+                    horizontal: 16.0,
+                    vertical: 8.0,
+                  ),
+                  child: Text(
+                    'Filtrar por Tipo(s)',
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                ),
+                CheckboxListTile(
+                  title: const Text('Receita'),
+                  value: _selectedTipos.contains('receita'),
+                  onChanged: (val) {
+                    setState(() {
+                      if (val == true) {
+                        _selectedTipos.add('receita');
+                      } else {
+                        _selectedTipos.remove('receita');
+                      }
+                    });
+                  },
+                ),
+                CheckboxListTile(
+                  title: const Text('Despesa'),
+                  value: _selectedTipos.contains('despesa'),
+                  onChanged: (val) {
+                    setState(() {
+                      if (val == true) {
+                        _selectedTipos.add('despesa');
+                      } else {
+                        _selectedTipos.remove('despesa');
+                      }
+                    });
+                  },
+                ),
+                CheckboxListTile(
+                  title: const Text('Transferência'),
+                  value: _selectedTipos.contains('transferencia'),
+                  onChanged: (val) {
+                    setState(() {
+                      if (val == true) {
+                        _selectedTipos.add('transferencia');
+                      } else {
+                        _selectedTipos.remove('transferencia');
+                      }
+                    });
+                  },
+                ),
+                const Divider(),
+                const Padding(
+                  padding: EdgeInsets.symmetric(
+                    horizontal: 16.0,
+                    vertical: 8.0,
+                  ),
+                  child: Text(
+                    'Filtrar por Categoria(s)',
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                ),
+                Observer(
+                  builder: (context) {
+                    final categories = Core.financasController.categoriasList;
+                    if (categories.isEmpty) {
+                      return const Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 16.0),
+                        child: Text('Nenhuma categoria cadastrada.'),
+                      );
+                    }
+                    return Column(
+                      children: categories.map((cat) {
+                        final isChecked = _selectedCategorias.contains(cat.id);
+                        return CheckboxListTile(
+                          title: Row(
+                            children: [
+                              if (cat.icone != null && _presetIcons.containsKey(cat.icone))
+                                Icon(
+                                  _presetIcons[cat.icone],
+                                  color: cat.cor,
+                                  size: 18,
+                                )
+                              else
+                                Icon(Icons.category, color: cat.cor, size: 18),
+                              const SizedBox(width: 8),
+                              Text(cat.name),
+                            ],
+                          ),
+                          value: isChecked,
+                          onChanged: (val) {
+                            setState(() {
+                              if (val == true) {
+                                _selectedCategorias.add(cat.id);
+                              } else {
+                                _selectedCategorias.remove(cat.id);
+                              }
+                            });
+                          },
+                        );
+                      }).toList(),
+                    );
+                  },
+                ),
+                const Divider(),
+                const Padding(
+                  padding: EdgeInsets.symmetric(
+                    horizontal: 16.0,
+                    vertical: 8.0,
+                  ),
+                  child: Text(
+                    'Filtrar por Contato(s)',
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                ),
+                Observer(
+                  builder: (context) {
+                    final contacts = Core.financasController.contatosList;
+                    if (contacts.isEmpty) {
+                      return const Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 16.0),
+                        child: Text('Nenhum contato cadastrado.'),
+                      );
+                    }
+                    return Column(
+                      children: contacts.map((contact) {
+                        final isChecked = _selectedContatos.contains(contact.id);
+                        return CheckboxListTile(
+                          title: Text(contact.nome),
+                          value: isChecked,
+                          onChanged: (val) {
+                            setState(() {
+                              if (val == true) {
+                                _selectedContatos.add(contact.id);
+                              } else {
+                                _selectedContatos.remove(contact.id);
+                              }
+                            });
+                          },
+                        );
+                      }).toList(),
+                    );
+                  },
+                ),
               ],
             ),
           ),
@@ -1367,6 +1669,9 @@ class _FinancasLayoutState extends State<FinancasLayout>
               onPressed: () {
                 setState(() {
                   _selectedContas.clear();
+                  _selectedCategorias.clear();
+                  _selectedTipos.clear();
+                  _selectedContatos.clear();
                   _mostrarDivisoes = false;
                   _somarAcumulado = false;
                 });

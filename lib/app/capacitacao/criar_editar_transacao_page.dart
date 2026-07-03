@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:ppvdigital/app/capacitacao/financas/financas_controller.dart';
 import 'package:ppvdigital/core.dart';
+import 'package:ppvdigital/models/contato_model.dart';
 import 'package:ppvdigital/models/transacao_model.dart';
 import 'package:routefly/routefly.dart';
 
@@ -132,6 +133,31 @@ class _CriarEditarTransacaoPageState extends State<CriarEditarTransacaoPage> {
         _divisoes.add({
           'contatoResponsavel': div.contatoResponsavel,
           'peso': div.peso,
+        });
+      }
+    } else {
+      WidgetsBinding.instance.addPostFrameCallback((_) async {
+        if (Core.financasController.contatosList.isEmpty) {
+          await Core.financasController.loadDocuments();
+        }
+        _initializeUserDivisao();
+      });
+    }
+  }
+
+  void _initializeUserDivisao() {
+    final currentUser = Core.loginController.currentUser;
+    if (currentUser != null) {
+      final userContato = Core.financasController.contatosList.firstWhere(
+        (c) => c.userId == currentUser.$id,
+        orElse: () => ContatoModel(id: '', ownerId: '', nome: ''),
+      );
+      if (userContato.id.isNotEmpty) {
+        setState(() {
+          _divisoes.add({
+            'contatoResponsavel': userContato.id,
+            'peso': 1.0,
+          });
         });
       }
     }
@@ -917,25 +943,6 @@ class _CriarEditarTransacaoPageState extends State<CriarEditarTransacaoPage> {
             children: [
               Expanded(
                 child: TextFormField(
-                  controller: _totalParcelasController,
-                  keyboardType: TextInputType.number,
-                  decoration: const InputDecoration(
-                    labelText: 'Nº Parcelas',
-                    border: OutlineInputBorder(),
-                  ),
-                  validator: (value) {
-                    if (_recorrente &&
-                        !_recorrenciaIndeterminada &&
-                        (value == null || int.tryParse(value) == null)) {
-                      return 'Parcelas inválidas.';
-                    }
-                    return null;
-                  },
-                ),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: TextFormField(
                   controller: _parcelaInicioController,
                   keyboardType: TextInputType.number,
                   decoration: const InputDecoration(
@@ -947,6 +954,25 @@ class _CriarEditarTransacaoPageState extends State<CriarEditarTransacaoPage> {
                         !_recorrenciaIndeterminada &&
                         (value == null || int.tryParse(value) == null)) {
                       return 'Parcela inicial inválida.';
+                    }
+                    return null;
+                  },
+                ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: TextFormField(
+                  controller: _totalParcelasController,
+                  keyboardType: TextInputType.number,
+                  decoration: const InputDecoration(
+                    labelText: 'Nº Parcelas',
+                    border: OutlineInputBorder(),
+                  ),
+                  validator: (value) {
+                    if (_recorrente &&
+                        !_recorrenciaIndeterminada &&
+                        (value == null || int.tryParse(value) == null)) {
+                      return 'Parcelas inválidas.';
                     }
                     return null;
                   },
