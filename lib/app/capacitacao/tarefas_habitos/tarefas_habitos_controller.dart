@@ -5,7 +5,6 @@ import 'package:appwrite/models.dart';
 import 'package:flutter/material.dart' hide Row;
 import 'package:mobx/mobx.dart' as mobx;
 import 'package:ppvdigital/app/capacitacao/tarefas_habitos/historico_controller.dart';
-import 'package:ppvdigital/app/capacitacao/tarefas_habitos/lista_habitos_tarefas_page.dart';
 import 'package:ppvdigital/core.dart';
 import 'package:ppvdigital/models/categorias_tarefas_habitos_model.dart';
 import 'package:ppvdigital/models/historico_item_model.dart';
@@ -293,8 +292,6 @@ class TarefasHabitosController {
         _tarefasHabitosList.addAll(
           await tarefasHabitosDocs.rows.toTarefaHabitoModelList(databases),
         );
-        ListaHabitosTarefasPageState.qtdItems =
-            Core.tarefasHabitosController.tarefasHabitosList.length;
         return true;
       } on AppwriteException catch (e) {
         log(e.toString());
@@ -331,6 +328,48 @@ class TarefasHabitosController {
           },
         );
       }, name: 'addQtdHabito');
+    } on AppwriteException catch (e) {
+      log(e.toString());
+    }
+  }
+
+  Future<void> completeTarefa(String documentId) async {
+    try {
+      mobx.runInAction(() {
+        final List<TarefaHabitoModel> temp = List<TarefaHabitoModel>.from(
+          _tarefasHabitosList.toList(),
+        );
+        final int index = temp.indexWhere((el) => el.id == documentId);
+        if (index != -1) {
+          final found = temp[index];
+          for (final element in found.tarefasHabitosQtd) {
+            element.vezesPraticado += element.valor;
+          }
+          temp[index] = found.copyWith(concluida: true);
+          _tarefasHabitosList.clear();
+          _tarefasHabitosList.addAll(temp);
+        }
+
+        final TablesDB tablesDB = TablesDB(databases.client);
+        tablesDB.createRow(
+          databaseId: Core.databaseId,
+          tableId: Core.tableHistoricoTarefasHabitos,
+          rowId: ID.unique(),
+          data: {
+            'tarefasEHabitos': documentId,
+            'usuario': Core.loginController.currentUser?.$id ?? '',
+          },
+        );
+
+        tablesDB.updateRow(
+          databaseId: Core.databaseId,
+          tableId: Core.tableTarefasEHabitos,
+          rowId: documentId,
+          data: {
+            'concluida': true,
+          },
+        );
+      }, name: 'completeTarefa');
     } on AppwriteException catch (e) {
       log(e.toString());
     }

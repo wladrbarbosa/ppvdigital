@@ -4,10 +4,7 @@ import 'package:ppvdigital/core.dart';
 import 'package:routefly/routefly.dart';
 
 class AuthBuilder extends StatefulWidget {
-  const AuthBuilder({
-    super.key,
-    required this.child,
-  });
+  const AuthBuilder({super.key, required this.child});
 
   final Widget child;
 
@@ -44,7 +41,7 @@ class _AuthBuilderState extends State<AuthBuilder> {
             color: Colors.transparent,
             child: IgnorePointer(
               child: Text(
-                'v${Core.appVersion}',
+                Core.appVersion,
                 style: TextStyle(
                   color: Theme.of(context).brightness == Brightness.dark
                       ? Colors.white24

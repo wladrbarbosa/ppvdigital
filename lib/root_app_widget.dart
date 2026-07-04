@@ -21,15 +21,20 @@ class RootAppWidget extends StatelessWidget {
       if (!TarefasPageState.fromTabClick) {
         switch (routeInformation.uri.path) {
           case final String url
-              when url == routePaths.capacitacao.tarefasHabitos.calendario:
+              when url == routePaths.capacitacao.tarefasHabitos.habitos:
             Core.globalKey.currentContext
                 ?.findAncestorStateOfType<TarefasPageState>()
                 ?.updateTabIndex(1);
           case final String url
-              when url == routePaths.capacitacao.tarefasHabitos.categorias:
+              when url == routePaths.capacitacao.tarefasHabitos.calendario:
             Core.globalKey.currentContext
                 ?.findAncestorStateOfType<TarefasPageState>()
                 ?.updateTabIndex(2);
+          case final String url
+              when url == routePaths.capacitacao.tarefasHabitos.categorias:
+            Core.globalKey.currentContext
+                ?.findAncestorStateOfType<TarefasPageState>()
+                ?.updateTabIndex(3);
           default:
             Core.globalKey.currentContext
                 ?.findAncestorStateOfType<TarefasPageState>()

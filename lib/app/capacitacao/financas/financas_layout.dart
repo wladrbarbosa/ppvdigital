@@ -118,10 +118,7 @@ class _FinancasLayoutState extends State<FinancasLayout>
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Container(
-          padding: const EdgeInsets.symmetric(
-            horizontal: 16.0,
-            vertical: 8.0,
-          ),
+          padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
           color: Colors.grey.withOpacity(0.1),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -181,20 +178,16 @@ class _FinancasLayoutState extends State<FinancasLayout>
                   },
                 ),
                 CircleAvatar(
-                  backgroundColor: t.categoria?.cor?.withOpacity(0.2) ??
+                  backgroundColor:
+                      t.categoria?.cor?.withOpacity(0.2) ??
                       Colors.blue.withOpacity(0.2),
-                  child: Icon(
-                    catIcon,
-                    color: t.categoria?.cor ?? Colors.blue,
-                  ),
+                  child: Icon(catIcon, color: t.categoria?.cor ?? Colors.blue),
                 ),
               ],
             ),
             title: Text(
               t.descricao,
-              style: const TextStyle(
-                fontWeight: FontWeight.bold,
-              ),
+              style: const TextStyle(fontWeight: FontWeight.bold),
             ),
             subtitle: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -291,9 +284,19 @@ class _FinancasLayoutState extends State<FinancasLayout>
     );
   }
 
+  bool _anyFilterActive() {
+    return _selectedContas.isNotEmpty ||
+        _selectedCategorias.isNotEmpty ||
+        _selectedTipos.isNotEmpty ||
+        _selectedContatos.isNotEmpty ||
+        _mostrarDivisoes ||
+        _somarAcumulado;
+  }
+
   @override
   Widget build(BuildContext context) {
     final String activeUser = Core.loginController.currentUser?.$id ?? '';
+    final isMobile = MediaQuery.of(context).size.width < 750;
 
     return Scaffold(
       appBar: AppBar(
@@ -309,13 +312,46 @@ class _FinancasLayoutState extends State<FinancasLayout>
             IconButton(
               icon: Icon(
                 Icons.filter_list,
-                color: _filterOpen ? Colors.blue : null,
+                color: (isMobile ? _anyFilterActive() : _filterOpen)
+                    ? Colors.blue
+                    : null,
               ),
               tooltip: 'Filtros e Opções',
               onPressed: () {
-                setState(() {
-                  _filterOpen = !_filterOpen;
-                });
+                if (isMobile) {
+                  showModalBottomSheet(
+                    context: context,
+                    isScrollControlled: true,
+                    backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+                    shape: const RoundedRectangleBorder(
+                      borderRadius: BorderRadius.vertical(
+                        top: Radius.circular(20),
+                      ),
+                    ),
+                    builder: (context) {
+                      return DraggableScrollableSheet(
+                        initialChildSize: 0.8,
+                        maxChildSize: 0.95,
+                        minChildSize: 0.5,
+                        expand: false,
+                        builder: (context, scrollController) {
+                          return StatefulBuilder(
+                            builder: (context, setStateSheet) {
+                              return _buildInlineFilterPanel(
+                                context,
+                                setStateSheet,
+                              );
+                            },
+                          );
+                        },
+                      );
+                    },
+                  );
+                } else {
+                  setState(() {
+                    _filterOpen = !_filterOpen;
+                  });
+                }
               },
             ),
         ],
@@ -406,12 +442,16 @@ class _FinancasLayoutState extends State<FinancasLayout>
                     accountFilteredList = step3List;
                   } else {
                     accountFilteredList = step3List.where((t) {
-                      final bool isDevedor = t.devedorContato != null &&
+                      final bool isDevedor =
+                          t.devedorContato != null &&
                           _selectedContatos.contains(t.devedorContato!.id);
-                      final bool isCredor = t.credorContato != null &&
+                      final bool isCredor =
+                          t.credorContato != null &&
                           _selectedContatos.contains(t.credorContato!.id);
-                      final bool inDivisao = t.divisoes.any((div) =>
-                          _selectedContatos.contains(div.contatoResponsavel));
+                      final bool inDivisao = t.divisoes.any(
+                        (div) =>
+                            _selectedContatos.contains(div.contatoResponsavel),
+                      );
                       return isDevedor || isCredor || inDivisao;
                     }).toList();
                   }
@@ -464,9 +504,9 @@ class _FinancasLayoutState extends State<FinancasLayout>
                                   value: _selectedTransIds.isEmpty
                                       ? false
                                       : (_selectedTransIds.length ==
-                                              filteredTransList.length
-                                          ? true
-                                          : null),
+                                                filteredTransList.length
+                                            ? true
+                                            : null),
                                   tristate: true,
                                   onChanged: (val) {
                                     setState(() {
@@ -542,7 +582,7 @@ class _FinancasLayoutState extends State<FinancasLayout>
                           ],
                         ),
                       ),
-                      if (_filterOpen)
+                      if (_filterOpen && !isMobile)
                         Container(
                           width: 300,
                           decoration: BoxDecoration(
@@ -1178,7 +1218,7 @@ class _FinancasLayoutState extends State<FinancasLayout>
 
   Widget _buildBatchActionsBar(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    
+
     return Container(
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(16),
@@ -1215,7 +1255,9 @@ class _FinancasLayoutState extends State<FinancasLayout>
                       vertical: 6,
                     ),
                     decoration: BoxDecoration(
-                      color: Theme.of(context).colorScheme.secondary.withOpacity(0.2),
+                      color: Theme.of(
+                        context,
+                      ).colorScheme.secondary.withOpacity(0.2),
                       borderRadius: BorderRadius.circular(20),
                     ),
                     child: Text(
@@ -1259,11 +1301,7 @@ class _FinancasLayoutState extends State<FinancasLayout>
                     onPressed: () => _selectBatchConta(context),
                   ),
                   const SizedBox(width: 12),
-                  Container(
-                    height: 24,
-                    width: 1.5,
-                    color: Colors.white24,
-                  ),
+                  Container(height: 24, width: 1.5, color: Colors.white24),
                   const SizedBox(width: 4),
                   IconButton(
                     tooltip: 'Limpar Seleção',
@@ -1439,7 +1477,15 @@ class _FinancasLayoutState extends State<FinancasLayout>
     }
   }
 
-  Widget _buildInlineFilterPanel(BuildContext context) {
+  Widget _buildInlineFilterPanel(
+    BuildContext context, [
+    StateSetter? setStateSheet,
+  ]) {
+    void update(VoidCallback fn) {
+      setState(fn);
+      setStateSheet?.call(fn);
+    }
+
     return SafeArea(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -1459,7 +1505,7 @@ class _FinancasLayoutState extends State<FinancasLayout>
                   title: const Text('Ver transações que participo em divisões'),
                   value: _mostrarDivisoes,
                   onChanged: (val) {
-                    setState(() {
+                    update(() {
                       _mostrarDivisoes = val;
                     });
                   },
@@ -1468,7 +1514,7 @@ class _FinancasLayoutState extends State<FinancasLayout>
                   title: const Text('Somar saldo acumulado dos meses passados'),
                   value: _somarAcumulado,
                   onChanged: (val) {
-                    setState(() {
+                    update(() {
                       _somarAcumulado = val;
                     });
                   },
@@ -1503,7 +1549,7 @@ class _FinancasLayoutState extends State<FinancasLayout>
                           ),
                           value: isChecked,
                           onChanged: (val) {
-                            setState(() {
+                            update(() {
                               if (val == true) {
                                 _selectedContas.add(account.id);
                               } else {
@@ -1531,7 +1577,7 @@ class _FinancasLayoutState extends State<FinancasLayout>
                   title: const Text('Receita'),
                   value: _selectedTipos.contains('receita'),
                   onChanged: (val) {
-                    setState(() {
+                    update(() {
                       if (val == true) {
                         _selectedTipos.add('receita');
                       } else {
@@ -1544,7 +1590,7 @@ class _FinancasLayoutState extends State<FinancasLayout>
                   title: const Text('Despesa'),
                   value: _selectedTipos.contains('despesa'),
                   onChanged: (val) {
-                    setState(() {
+                    update(() {
                       if (val == true) {
                         _selectedTipos.add('despesa');
                       } else {
@@ -1557,7 +1603,7 @@ class _FinancasLayoutState extends State<FinancasLayout>
                   title: const Text('Transferência'),
                   value: _selectedTipos.contains('transferencia'),
                   onChanged: (val) {
-                    setState(() {
+                    update(() {
                       if (val == true) {
                         _selectedTipos.add('transferencia');
                       } else {
@@ -1592,7 +1638,8 @@ class _FinancasLayoutState extends State<FinancasLayout>
                         return CheckboxListTile(
                           title: Row(
                             children: [
-                              if (cat.icone != null && _presetIcons.containsKey(cat.icone))
+                              if (cat.icone != null &&
+                                  _presetIcons.containsKey(cat.icone))
                                 Icon(
                                   _presetIcons[cat.icone],
                                   color: cat.cor,
@@ -1606,7 +1653,7 @@ class _FinancasLayoutState extends State<FinancasLayout>
                           ),
                           value: isChecked,
                           onChanged: (val) {
-                            setState(() {
+                            update(() {
                               if (val == true) {
                                 _selectedCategorias.add(cat.id);
                               } else {
@@ -1641,12 +1688,14 @@ class _FinancasLayoutState extends State<FinancasLayout>
                     }
                     return Column(
                       children: contacts.map((contact) {
-                        final isChecked = _selectedContatos.contains(contact.id);
+                        final isChecked = _selectedContatos.contains(
+                          contact.id,
+                        );
                         return CheckboxListTile(
                           title: Text(contact.nome),
                           value: isChecked,
                           onChanged: (val) {
-                            setState(() {
+                            update(() {
                               if (val == true) {
                                 _selectedContatos.add(contact.id);
                               } else {
@@ -1667,7 +1716,7 @@ class _FinancasLayoutState extends State<FinancasLayout>
             padding: const EdgeInsets.all(16.0),
             child: OutlinedButton(
               onPressed: () {
-                setState(() {
+                update(() {
                   _selectedContas.clear();
                   _selectedCategorias.clear();
                   _selectedTipos.clear();

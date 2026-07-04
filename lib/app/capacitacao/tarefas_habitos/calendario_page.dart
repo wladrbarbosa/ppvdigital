@@ -28,14 +28,29 @@ class _CalendarioPageState extends State<CalendarioPage> {
     super.dispose();
   }
 
-  void _showDeleteDialog(BuildContext context, String itemId) {
+  void _showDeleteDialog(BuildContext context, HistoricoItemModel item) {
+    final dateStr = '${item.createdAt.day.toString().padLeft(2, '0')}/${item.createdAt.month.toString().padLeft(2, '0')}/${item.createdAt.year} às ${item.createdAt.hour.toString().padLeft(2, '0')}:${item.createdAt.minute.toString().padLeft(2, '0')}';
+
     showDialog(
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
           title: const Text('Remover registro'),
-          content: const Text(
-            'Deseja realmente remover este registro do histórico?',
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text('Deseja realmente remover este registro do histórico?'),
+              const SizedBox(height: 16),
+              Text(
+                'Item: ${item.tarefasEHabitos.nome}',
+                style: const TextStyle(fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 4),
+              Text('Tipo: ${item.tarefasEHabitos.tipo == 'habito' ? 'Hábito' : 'Tarefa'}'),
+              const SizedBox(height: 4),
+              Text('Concluído em: $dateStr'),
+            ],
           ),
           actions: [
             TextButton(
@@ -46,7 +61,7 @@ class _CalendarioPageState extends State<CalendarioPage> {
               onPressed: () async {
                 Navigator.of(context).pop();
                 final success = await Core.historicoController
-                    .deleteHistoricoItem(itemId);
+                    .deleteHistoricoItem(item.id);
                 if (success && context.mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(
@@ -104,7 +119,10 @@ class _CalendarioPageState extends State<CalendarioPage> {
                             details.appointments!.first as Appointment;
                         final itemId = appt.id as String?;
                         if (itemId != null) {
-                          _showDeleteDialog(context, itemId);
+                          final item = historyList.firstWhere(
+                            (el) => el.id == itemId,
+                          );
+                          _showDeleteDialog(context, item);
                         }
                       }
                     },

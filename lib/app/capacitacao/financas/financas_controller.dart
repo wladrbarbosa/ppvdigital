@@ -342,7 +342,6 @@ class FinancasController {
           }
         }
 
-        // Query divisions where user's contacts participate
         _divisoesList.clear();
         if (userContatoIds.isNotEmpty) {
           for (int k = 0; k < userContatoIds.length; k += 100) {
@@ -350,27 +349,39 @@ class FinancasController {
               k,
               k + 100 > userContatoIds.length ? userContatoIds.length : k + 100,
             );
-            final divDocs = await tablesDB.listRows(
-              databaseId: Core.databaseId,
-              tableId: Core.tableDivisaoTransacoes,
-              queries: [
-                Query.equal('contatoResponsavel', chunkIds),
-                Query.select([
-                  '*',
-                  'transacao.*',
-                  'transacao.conta.*',
-                  'transacao.contaDestino.*',
-                  'transacao.categoria.*',
-                  'transacao.recorrencia.*',
-                  'transacao.devedorContato.*',
-                  'transacao.credorContato.*',
-                ]),
-                Query.limit(5000),
-              ],
-            );
-            _divisoesList.addAll(
-              divDocs.rows.map((d) => DivisaoTransacaoModel.fromMap(d.data)),
-            );
+
+            int offset = 0;
+            const int pageSize = 500;
+            while (true) {
+              final divDocs = await tablesDB.listRows(
+                databaseId: Core.databaseId,
+                tableId: Core.tableDivisaoTransacoes,
+                queries: [
+                  Query.equal('contatoResponsavel', chunkIds),
+                  Query.select([
+                    '*',
+                    'transacao.*',
+                    'transacao.conta.*',
+                    'transacao.contaDestino.*',
+                    'transacao.categoria.*',
+                    'transacao.recorrencia.*',
+                    'transacao.devedorContato.*',
+                    'transacao.credorContato.*',
+                  ]),
+                  Query.limit(pageSize),
+                  Query.offset(offset),
+                ],
+              );
+
+              _divisoesList.addAll(
+                divDocs.rows.map((d) => DivisaoTransacaoModel.fromMap(d.data)),
+              );
+
+              if (divDocs.rows.length < pageSize) {
+                break;
+              }
+              offset += pageSize;
+            }
           }
         }
 
@@ -584,8 +595,19 @@ class FinancasController {
         const [], // List of {contatoResponsavel, peso}
     String? devedorContatoId,
     String? credorContatoId,
+    String? pagadorRecebedorId,
   }) async {
     try {
+      if (Core.loginController.currentUser == null) {
+        await Core.loginController.loadUser();
+      }
+      final String user = Core.loginController.currentUser?.$id ?? '';
+      final userContato = _contatosList.firstWhere(
+        (c) => c.userId == user,
+        orElse: () => ContatoModel(id: '', ownerId: '', nome: ''),
+      );
+      final String userContatoId = userContato.id;
+
       final TablesDB tablesDB = TablesDB(databases.client);
       String? recId;
 
@@ -713,51 +735,188 @@ class FinancasController {
         }
       } else {
         // Single non-recurrent transaction (normal flow)
-        final String tRowId = ID.unique();
-        await tablesDB.createRow(
-          databaseId: Core.databaseId,
-          tableId: Core.tableTransacoes,
-          rowId: tRowId,
-          data: {
-            'descricao': descricao,
-            'valor': valor,
-            'tipo': tipo,
-            'dataCompetencia': dataCompetencia.toIso8601String(),
-            'conta': contaId,
-            'contaDestino': contaDestinoId,
-            'consolidada': consolidada,
-            'categoria': categoriaId,
-            'devedorContato': devedorContatoId,
-            'credorContato': credorContatoId,
-          },
-        );
+        final bool isDivision = divisao.length > 1 &&
+            pagadorRecebedorId != null &&
+            (tipo == 'despesa' || tipo == 'receita');
 
-        if (consolidada) {
-          if (tipo == 'despesa' && contaId != null) {
-            await updateAccountBalance(contaId, -valor);
-          } else if (tipo == 'receita' && contaId != null) {
-            await updateAccountBalance(contaId, valor);
-          } else if (tipo == 'transferencia' &&
-              contaId != null &&
-              contaDestinoId != null) {
-            await updateAccountBalance(contaId, -valor);
-            await updateAccountBalance(contaDestinoId, valor);
+        if (isDivision) {
+          final double totalWeights = divisao.fold(
+            0.0,
+            (sum, item) => sum + (item['peso'] as num).toDouble(),
+          );
+
+          if (pagadorRecebedorId == userContatoId) {
+            // Case A: User paid/received.
+            // 1. Create main transaction for user (total amount)
+            final String tRowId = ID.unique();
+            await tablesDB.createRow(
+              databaseId: Core.databaseId,
+              tableId: Core.tableTransacoes,
+              rowId: tRowId,
+              data: {
+                'descricao': descricao,
+                'valor': valor,
+                'tipo': tipo,
+                'dataCompetencia': dataCompetencia.toIso8601String(),
+                'conta': contaId,
+                'contaDestino': contaDestinoId,
+                'consolidada': consolidada,
+                'categoria': categoriaId,
+                'devedorContato': devedorContatoId,
+                'credorContato': credorContatoId,
+              },
+            );
+
+            // Adjust balance for main transaction
+            if (consolidada) {
+              if (tipo == 'despesa' && contaId != null) {
+                await updateAccountBalance(contaId, -valor);
+              } else if (tipo == 'receita' && contaId != null) {
+                await updateAccountBalance(contaId, valor);
+              }
+            }
+
+            // Create divisions
+            for (final divItem in divisao) {
+              final String rContato = divItem['contatoResponsavel'] as String;
+              final double rPeso = (divItem['peso'] as num).toDouble();
+              await tablesDB.createRow(
+                databaseId: Core.databaseId,
+                tableId: Core.tableDivisaoTransacoes,
+                rowId: ID.unique(),
+                data: {
+                  'transacao': tRowId,
+                  'contatoResponsavel': rContato,
+                  'peso': rPeso,
+                },
+              );
+            }
+
+            // 2. Create refund transactions from other contacts
+            for (final divItem in divisao) {
+              final String rContato = divItem['contatoResponsavel'] as String;
+              if (rContato == userContatoId) continue;
+              final double rPeso = (divItem['peso'] as num).toDouble();
+              final double shareValue = valor * (rPeso / totalWeights);
+
+              final String refundType = tipo == 'despesa' ? 'receita' : 'despesa';
+              final String? refDevedor = refundType == 'receita' ? rContato : null;
+              final String? refCredor = refundType == 'despesa' ? rContato : null;
+
+              await tablesDB.createRow(
+                databaseId: Core.databaseId,
+                tableId: Core.tableTransacoes,
+                rowId: ID.unique(),
+                data: {
+                  'descricao': 'Reembolso: $descricao',
+                  'valor': shareValue,
+                  'tipo': refundType,
+                  'dataCompetencia': dataCompetencia.toIso8601String(),
+                  'conta': contaId,
+                  'consolidada': consolidada,
+                  'categoria': categoriaId,
+                  'devedorContato': refDevedor,
+                  'credorContato': refCredor,
+                },
+              );
+
+              // Adjust balance for refund transaction
+              if (consolidada && contaId != null) {
+                if (refundType == 'despesa') {
+                  await updateAccountBalance(contaId, -shareValue);
+                } else {
+                  await updateAccountBalance(contaId, shareValue);
+                }
+              }
+            }
+          } else {
+            // Case B: Another contact paid/received.
+            final userDiv = divisao.firstWhere(
+              (d) => d['contatoResponsavel'] == userContatoId,
+              orElse: () => {},
+            );
+            final double userWeight = userDiv.isNotEmpty
+                ? (userDiv['peso'] as num).toDouble()
+                : 0.0;
+            final double userShareValue = valor * (userWeight / totalWeights);
+
+            final String? refDevedor = tipo == 'receita' ? pagadorRecebedorId : null;
+            final String? refCredor = tipo == 'despesa' ? pagadorRecebedorId : null;
+
+            await tablesDB.createRow(
+              databaseId: Core.databaseId,
+              tableId: Core.tableTransacoes,
+              rowId: ID.unique(),
+              data: {
+                'descricao': 'Partilha: $descricao',
+                'valor': userShareValue,
+                'tipo': tipo,
+                'dataCompetencia': dataCompetencia.toIso8601String(),
+                'conta': contaId,
+                'consolidada': consolidada,
+                'categoria': categoriaId,
+                'devedorContato': refDevedor,
+                'credorContato': refCredor,
+              },
+            );
+
+            // Adjust balance for user's share transaction
+            if (consolidada && contaId != null) {
+              if (tipo == 'despesa') {
+                await updateAccountBalance(contaId, -userShareValue);
+              } else if (tipo == 'receita') {
+                await updateAccountBalance(contaId, userShareValue);
+              }
+            }
           }
-        }
-
-        for (final divItem in divisao) {
-          final String rContato = divItem['contatoResponsavel'] as String;
-          final double rPeso = (divItem['peso'] as num).toDouble();
+        } else {
+          // Normal single transaction (no division or single division)
+          final String tRowId = ID.unique();
           await tablesDB.createRow(
             databaseId: Core.databaseId,
-            tableId: Core.tableDivisaoTransacoes,
-            rowId: ID.unique(),
+            tableId: Core.tableTransacoes,
+            rowId: tRowId,
             data: {
-              'transacao': tRowId,
-              'contatoResponsavel': rContato,
-              'peso': rPeso,
+              'descricao': descricao,
+              'valor': valor,
+              'tipo': tipo,
+              'dataCompetencia': dataCompetencia.toIso8601String(),
+              'conta': contaId,
+              'contaDestino': contaDestinoId,
+              'consolidada': consolidada,
+              'categoria': categoriaId,
+              'devedorContato': devedorContatoId,
+              'credorContato': credorContatoId,
             },
           );
+
+          if (consolidada) {
+            if (tipo == 'despesa' && contaId != null) {
+              await updateAccountBalance(contaId, -valor);
+            } else if (tipo == 'receita' && contaId != null) {
+              await updateAccountBalance(contaId, valor);
+            } else if (tipo == 'transferencia' &&
+                contaId != null &&
+                contaDestinoId != null) {
+              await updateAccountBalance(contaId, -valor);
+              await updateAccountBalance(contaDestinoId, valor);
+            }
+          }
+
+          for (final divItem in divisao) {
+            final String rContato = divItem['contatoResponsavel'] as String;
+            final double rPeso = (divItem['peso'] as num).toDouble();
+            await tablesDB.createRow(
+              databaseId: Core.databaseId,
+              tableId: Core.tableDivisaoTransacoes,
+              rowId: ID.unique(),
+              data: {
+                'transacao': tRowId,
+                'contatoResponsavel': rContato,
+                'peso': rPeso,
+              },
+            );
+          }
         }
       }
 
@@ -786,6 +945,9 @@ class FinancasController {
     String? devedorContatoId,
     String? credorContatoId,
     int? parcelaInicio,
+    String? tipoRecorrencia,
+    int? frequencia,
+    int? totalParcelas,
   }) async {
     try {
       final TablesDB tablesDB = TablesDB(databases.client);
@@ -814,9 +976,42 @@ class FinancasController {
       final delta = dataCompetencia.difference(original.dataCompetencia);
       String? updatedRecId = original.recorrencia?.id;
 
+      // Local helper function to calculate recurrent dates
+      DateTime calculateRecurrentDate(DateTime baseDate, String period, int freq, int offset) {
+        if (period == 'dia') {
+          return baseDate.add(Duration(days: offset * freq));
+        } else if (period == 'semana') {
+          return baseDate.add(Duration(days: offset * 7 * freq));
+        } else if (period == 'mês') {
+          return DateTime(
+            baseDate.year,
+            baseDate.month + offset * freq,
+            baseDate.day,
+            baseDate.hour,
+            baseDate.minute,
+          );
+        } else if (period == 'ano') {
+          return DateTime(
+            baseDate.year + offset * freq,
+            baseDate.month,
+            baseDate.day,
+            baseDate.hour,
+            baseDate.minute,
+          );
+        }
+        return baseDate;
+      }
+
+      String newMainDesc = descricao;
+
       if (original.recorrencia != null && optionRecorrencia != null) {
         if (optionRecorrencia == 'only_current') {
           updatedRecId = null;
+          // Strip any suffix for single edited transaction split off from recurrence
+          final match = RegExp(r'^(.*)\s\(Parcela\s\d+/\d+\)$').firstMatch(descricao);
+          if (match != null) {
+            newMainDesc = match.group(1)!;
+          }
         } else {
           final allRecTrans = await _fetchRecurrenceSeries(
             tablesDB,
@@ -831,16 +1026,16 @@ class FinancasController {
               tableId: Core.tableTransacaoRecorrencias,
               rowId: ID.unique(),
               data: {
-                'tipoRecorrencia': originalRec.tipoRecorrencia,
-                'frequencia': originalRec.frequencia,
-                'totalParcelas': originalRec.totalParcelas,
+                'tipoRecorrencia': tipoRecorrencia ?? originalRec.tipoRecorrencia,
+                'frequencia': frequencia ?? originalRec.frequencia,
+                'totalParcelas': totalParcelas,
                 'parcelaInicio': parcelaInicio ?? originalRec.parcelaInicio,
                 'fimRecorrencia': originalRec.fimRecorrencia?.toIso8601String(),
               },
             );
             updatedRecId = newRecRow.$id;
 
-            // update other future transactions in series
+            // Sort future transactions chronologically
             final futureTrans = allRecTrans
                 .where(
                   (t) =>
@@ -848,8 +1043,24 @@ class FinancasController {
                       t.dataCompetencia.isAfter(original.dataCompetencia),
                 )
                 .toList();
+            futureTrans.sort((a, b) => a.dataCompetencia.compareTo(b.dataCompetencia));
 
-            for (final t in futureTrans) {
+            final String finalPeriod = tipoRecorrencia ?? originalRec.tipoRecorrencia;
+            final int finalFreq = frequencia ?? originalRec.frequencia ?? 1;
+
+            // Rebuild description for the current edited transaction
+            String baseDesc = descricao;
+            final match = RegExp(r'^(.*)\s\(Parcela\s\d+/\d+\)$').firstMatch(descricao);
+            if (match != null) {
+              baseDesc = match.group(1)!;
+            }
+            final int currentParcel = parcelaInicio ?? originalRec.parcelaInicio ?? 1;
+            newMainDesc = totalParcelas == null
+                ? baseDesc
+                : '$baseDesc (Parcela $currentParcel/$totalParcelas)';
+
+            for (int j = 0; j < futureTrans.length; j++) {
+              final t = futureTrans[j];
               // Revert balance if consolidated
               if (t.consolidada) {
                 if (t.tipo == 'despesa' && t.conta != null) {
@@ -864,7 +1075,13 @@ class FinancasController {
                 }
               }
 
-              final newDate = t.dataCompetencia.add(delta);
+              // Calculate new date based on offset (j + 1)
+              final newDate = calculateRecurrentDate(dataCompetencia, finalPeriod, finalFreq, j + 1);
+
+              final int nextParcel = currentParcel + j + 1;
+              final String newDesc = totalParcelas == null
+                  ? baseDesc
+                  : '$baseDesc (Parcela $nextParcel/$totalParcelas)';
 
               // Stage transaction update
               ops.add({
@@ -873,7 +1090,7 @@ class FinancasController {
                 'tableId': Core.tableTransacoes,
                 'rowId': t.id,
                 'data': {
-                  'descricao': descricao,
+                  'descricao': newDesc,
                   'valor': valor,
                   'tipo': tipo,
                   'dataCompetencia': newDate.toIso8601String(),
@@ -901,7 +1118,7 @@ class FinancasController {
                 }
               }
 
-              // Stage division deletes
+              // Stage division deletes and creates
               for (final oldDiv in t.divisoes) {
                 ops.add({
                   'action': 'delete',
@@ -910,7 +1127,6 @@ class FinancasController {
                   'rowId': oldDiv.id,
                 });
               }
-              // Stage division creates
               for (final divItem in divisao) {
                 final String rContato = divItem['contatoResponsavel'] as String;
                 final double rPeso = (divItem['peso'] as num).toDouble();
@@ -928,20 +1144,42 @@ class FinancasController {
               }
             }
           } else if (optionRecorrencia == 'all') {
-            if (parcelaInicio != null) {
-              await tablesDB.updateRow(
-                databaseId: Core.databaseId,
-                tableId: Core.tableTransacaoRecorrencias,
-                rowId: original.recorrencia!.id,
-                data: {'parcelaInicio': parcelaInicio},
-              );
-            }
-            // update all other transactions in series
-            final otherTrans = allRecTrans
-                .where((t) => t.id != original.id)
-                .toList();
+            // Update the recurrence row itself
+            await tablesDB.updateRow(
+              databaseId: Core.databaseId,
+              tableId: Core.tableTransacaoRecorrencias,
+              rowId: original.recorrencia!.id,
+              data: {
+                if (tipoRecorrencia != null) 'tipoRecorrencia': tipoRecorrencia,
+                if (frequencia != null) 'frequencia': frequencia,
+                'totalParcelas': totalParcelas,
+                if (parcelaInicio != null) 'parcelaInicio': parcelaInicio,
+              },
+            );
 
-            for (final t in otherTrans) {
+            // Sort all transactions chronologically
+            final allSeriesTrans = List<TransacaoModel>.from(allRecTrans);
+            allSeriesTrans.sort((a, b) => a.dataCompetencia.compareTo(b.dataCompetencia));
+
+            final int idxEdit = allSeriesTrans.indexWhere((t) => t.id == original.id);
+
+            final String finalPeriod = tipoRecorrencia ?? original.recorrencia!.tipoRecorrencia;
+            final int finalFreq = frequencia ?? original.recorrencia!.frequencia ?? 1;
+
+            // Rebuild base description
+            String baseDesc = descricao;
+            final match = RegExp(r'^(.*)\s\(Parcela\s\d+/\d+\)$').firstMatch(descricao);
+            if (match != null) {
+              baseDesc = match.group(1)!;
+            }
+            newMainDesc = totalParcelas == null
+                ? baseDesc
+                : '$baseDesc (Parcela ${(idxEdit != -1 ? idxEdit + 1 : 1)}/$totalParcelas)';
+
+            for (int j = 0; j < allSeriesTrans.length; j++) {
+              final t = allSeriesTrans[j];
+              if (t.id == original.id) continue;
+
               // Revert balance if consolidated
               if (t.consolidada) {
                 if (t.tipo == 'despesa' && t.conta != null) {
@@ -956,7 +1194,14 @@ class FinancasController {
                 }
               }
 
-              final newDate = t.dataCompetencia.add(delta);
+              // Calculate new date based on offset from edited transaction
+              final int offset = j - idxEdit;
+              final newDate = calculateRecurrentDate(dataCompetencia, finalPeriod, finalFreq, offset);
+
+              final int nextParcel = j + 1;
+              final String newDesc = totalParcelas == null
+                  ? baseDesc
+                  : '$baseDesc (Parcela $nextParcel/$totalParcelas)';
 
               // Stage transaction update
               ops.add({
@@ -965,7 +1210,7 @@ class FinancasController {
                 'tableId': Core.tableTransacoes,
                 'rowId': t.id,
                 'data': {
-                  'descricao': descricao,
+                  'descricao': newDesc,
                   'valor': valor,
                   'tipo': tipo,
                   'dataCompetencia': newDate.toIso8601String(),
@@ -992,7 +1237,7 @@ class FinancasController {
                 }
               }
 
-              // Stage division deletes
+              // Stage division deletes and creates
               for (final oldDiv in t.divisoes) {
                 ops.add({
                   'action': 'delete',
@@ -1001,7 +1246,6 @@ class FinancasController {
                   'rowId': oldDiv.id,
                 });
               }
-              // Stage division creates
               for (final divItem in divisao) {
                 final String rContato = divItem['contatoResponsavel'] as String;
                 final double rPeso = (divItem['peso'] as num).toDouble();
@@ -1029,7 +1273,7 @@ class FinancasController {
         'tableId': Core.tableTransacoes, // transacoes
         'rowId': id,
         'data': {
-          'descricao': descricao,
+          'descricao': newMainDesc,
           'valor': valor,
           'tipo': tipo,
           'dataCompetencia': dataCompetencia.toIso8601String(),

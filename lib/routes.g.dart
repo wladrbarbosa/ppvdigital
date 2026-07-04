@@ -13,10 +13,11 @@ import 'app/capacitacao/criar_editar_transacao_page.dart' as a7;
 import 'app/capacitacao/financas/financas_layout.dart' as a8;
 import 'app/capacitacao/tarefas_habitos/calendario_page.dart' as a9;
 import 'app/capacitacao/tarefas_habitos/categorias_page.dart' as a10;
-import 'app/capacitacao/tarefas_habitos/lista_habitos_tarefas_page.dart' as a11;
+import 'app/capacitacao/tarefas_habitos/habitos_page.dart' as a11;
 import 'app/capacitacao/tarefas_habitos/tarefas_habitos_layout.dart' as a12;
-import 'app/home/home_page.dart' as a13;
-import 'app/login/login_page.dart' as a14;
+import 'app/capacitacao/tarefas_habitos/tarefas_page.dart' as a13;
+import 'app/home/home_page.dart' as a14;
+import 'app/login/login_page.dart' as a15;
 
 List<RouteEntity> get routes => [
   RouteEntity(
@@ -86,13 +87,13 @@ List<RouteEntity> get routes => [
         Routefly.defaultRouteBuilder(ctx, settings, const a10.CategoriasPage()),
   ),
   RouteEntity(
-    key: '/capacitacao/tarefas_habitos/lista_habitos_tarefas',
+    key: '/capacitacao/tarefas_habitos/habitos',
     parent: '/capacitacao/tarefas_habitos',
-    uri: Uri.parse('/capacitacao/tarefas_habitos/lista_habitos_tarefas'),
+    uri: Uri.parse('/capacitacao/tarefas_habitos/habitos'),
     routeBuilder: (ctx, settings) => Routefly.defaultRouteBuilder(
       ctx,
       settings,
-      const a11.ListaHabitosTarefasPage(),
+      const a11.HabitosListPage(),
     ),
   ),
   RouteEntity(
@@ -102,16 +103,26 @@ List<RouteEntity> get routes => [
         Routefly.defaultRouteBuilder(ctx, settings, const a12.TarefasPage()),
   ),
   RouteEntity(
+    key: '/capacitacao/tarefas_habitos/tarefas',
+    parent: '/capacitacao/tarefas_habitos',
+    uri: Uri.parse('/capacitacao/tarefas_habitos/tarefas'),
+    routeBuilder: (ctx, settings) => Routefly.defaultRouteBuilder(
+      ctx,
+      settings,
+      const a13.TarefasListPage(),
+    ),
+  ),
+  RouteEntity(
     key: '/home',
     uri: Uri.parse('/home'),
     routeBuilder: (ctx, settings) =>
-        Routefly.defaultRouteBuilder(ctx, settings, const a13.HomePage()),
+        Routefly.defaultRouteBuilder(ctx, settings, const a14.HomePage()),
   ),
   RouteEntity(
     key: '/login',
     uri: Uri.parse('/login'),
     routeBuilder: (ctx, settings) =>
-        Routefly.defaultRouteBuilder(ctx, settings, const a14.LoginPage()),
+        Routefly.defaultRouteBuilder(ctx, settings, const a15.LoginPage()),
   ),
 ];
 
@@ -131,7 +142,8 @@ const routePaths = (
       path: '/capacitacao/tarefas_habitos',
       calendario: '/capacitacao/tarefas_habitos/calendario',
       categorias: '/capacitacao/tarefas_habitos/categorias',
-      listaHabitosTarefas: '/capacitacao/tarefas_habitos/lista_habitos_tarefas',
+      habitos: '/capacitacao/tarefas_habitos/habitos',
+      tarefas: '/capacitacao/tarefas_habitos/tarefas',
     ),
   ),
   home: '/home',

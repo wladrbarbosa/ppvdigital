@@ -77,6 +77,7 @@ class _CriarEditarTransacaoPageState extends State<CriarEditarTransacaoPage> {
 
   // Divisao / Responsibles list
   final List<Map<String, dynamic>> _divisoes = [];
+  String? _pagadorRecebedorId;
 
   final Map<String, IconData> _presetIcons = {
     'monetization_on': Icons.monetization_on,
@@ -158,6 +159,7 @@ class _CriarEditarTransacaoPageState extends State<CriarEditarTransacaoPage> {
             'contatoResponsavel': userContato.id,
             'peso': 1.0,
           });
+          _pagadorRecebedorId = userContato.id;
         });
       }
     }
@@ -258,6 +260,9 @@ class _CriarEditarTransacaoPageState extends State<CriarEditarTransacaoPage> {
         devedorContatoId: _selectedDevedorContatoId,
         credorContatoId: _selectedCredorContatoId,
         parcelaInicio: int.tryParse(_parcelaInicioController.text) ?? 1,
+        tipoRecorrencia: _recorrente ? _tipoRecorrencia : null,
+        frequencia: _recorrente ? (int.tryParse(_frequenciaController.text) ?? 1) : null,
+        totalParcelas: _recorrente ? (_recorrenciaIndeterminada ? null : (int.tryParse(_totalParcelasController.text) ?? 1)) : null,
       );
     } else {
       final int freq = int.tryParse(_frequenciaController.text) ?? 1;
@@ -284,6 +289,7 @@ class _CriarEditarTransacaoPageState extends State<CriarEditarTransacaoPage> {
         divisao: _divisoes,
         devedorContatoId: _selectedDevedorContatoId,
         credorContatoId: _selectedCredorContatoId,
+        pagadorRecebedorId: _pagadorRecebedorId,
       );
     }
 
@@ -829,6 +835,75 @@ class _CriarEditarTransacaoPageState extends State<CriarEditarTransacaoPage> {
                 );
               },
             ),
+            if (_divisoes.length > 1 && (_tipo == 'despesa' || _tipo == 'receita')) ...[
+              const SizedBox(height: 16),
+              Observer(
+                builder: (context) {
+                  final labelText = _tipo == 'despesa' ? 'Quem pagou?' : 'Quem recebeu?';
+                  final contatos = Core.financasController.contatosList;
+                  final availableContactIds = _divisoes
+                      .map((d) => d['contatoResponsavel'] as String?)
+                      .where((id) => id != null && id.isNotEmpty)
+                      .toSet();
+
+                  // Make sure _pagadorRecebedorId is still in available options, otherwise reset it
+                  if (_pagadorRecebedorId != null && !availableContactIds.contains(_pagadorRecebedorId)) {
+                    final currentUser = Core.loginController.currentUser;
+                    final userContato = contatos.firstWhere(
+                      (c) => currentUser != null && c.userId == currentUser.$id,
+                      orElse: () => ContatoModel(id: '', ownerId: '', nome: ''),
+                    );
+                    if (userContato.id.isNotEmpty && availableContactIds.contains(userContato.id)) {
+                      _pagadorRecebedorId = userContato.id;
+                    } else if (availableContactIds.isNotEmpty) {
+                      _pagadorRecebedorId = availableContactIds.first;
+                    } else {
+                      _pagadorRecebedorId = null;
+                    }
+                  } else if (_pagadorRecebedorId == null && availableContactIds.isNotEmpty) {
+                    final currentUser = Core.loginController.currentUser;
+                    final userContato = contatos.firstWhere(
+                      (c) => currentUser != null && c.userId == currentUser.$id,
+                      orElse: () => ContatoModel(id: '', ownerId: '', nome: ''),
+                    );
+                    if (userContato.id.isNotEmpty && availableContactIds.contains(userContato.id)) {
+                      _pagadorRecebedorId = userContato.id;
+                    } else {
+                      _pagadorRecebedorId = availableContactIds.first;
+                    }
+                  }
+
+                  return DropdownButtonFormField<String>(
+                    value: _pagadorRecebedorId,
+                    decoration: InputDecoration(
+                      labelText: labelText,
+                      border: const OutlineInputBorder(),
+                    ),
+                    items: availableContactIds.map((id) {
+                      final contact = contatos.firstWhere(
+                        (c) => c.id == id,
+                        orElse: () => ContatoModel(id: id!, ownerId: '', nome: 'Desconhecido'),
+                      );
+                      return DropdownMenuItem(
+                        value: id,
+                        child: Text(contact.nome),
+                      );
+                    }).toList(),
+                    onChanged: (val) {
+                      setState(() {
+                        _pagadorRecebedorId = val;
+                      });
+                    },
+                    validator: (value) {
+                      if (_divisoes.length > 1 && (value == null || value.isEmpty)) {
+                        return 'Selecione uma opção';
+                      }
+                      return null;
+                    },
+                  );
+                },
+              ),
+            ],
             const SizedBox(height: 24),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,

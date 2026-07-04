@@ -3,7 +3,6 @@ import 'dart:developer';
 import 'package:appwrite/appwrite.dart';
 import 'package:appwrite/models.dart';
 import 'package:mobx/mobx.dart' as mobx;
-import 'package:ppvdigital/app/capacitacao/tarefas_habitos/lista_habitos_tarefas_page.dart';
 import 'package:ppvdigital/app/capacitacao/tarefas_habitos/tarefas_habitos_controller.dart';
 import 'package:ppvdigital/core.dart';
 import 'package:ppvdigital/models/historico_item_model.dart';
@@ -99,8 +98,6 @@ class CalendarioController {
 
         _historicoList.clear();
         _historicoList.addAll(historicoDocs.rows.toHistoricoModelList());
-        ListaHabitosTarefasPageState.qtdItems =
-            Core.tarefasHabitosController.tarefasHabitosList.length;
         return true;
       } on AppwriteException catch (e) {
         log(e.toString());

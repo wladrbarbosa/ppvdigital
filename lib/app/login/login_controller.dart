@@ -53,60 +53,85 @@ class LoginController {
   }
 
   Future<void> loadUser() async {
-    return await mobx.runInAction(() async {
-      try {
-        final user = await account.get();
+    try {
+      final user = await account.get();
+      mobx.runInAction(() {
         _statusStreamController.add(AuthStatus.authenticated);
         _currentUser.value = user;
-      } catch (e) {
+      });
+    } catch (e) {
+      mobx.runInAction(() {
         _statusStreamController.add(AuthStatus.unauthenticated);
-      }
-    }, name: 'loadUser');
+        _currentUser.value = null;
+      });
+    }
   }
 
   Future<User> createUser(String email, String password, String name) async {
-    return await mobx.runInAction(() async {
-      final user = await account.create(
-        userId: ID.unique(),
-        email: email,
-        password: password,
-        name: name,
-      );
-      return user;
-    }, name: 'createUser');
+    final user = await account.create(
+      userId: ID.unique(),
+      email: email,
+      password: password,
+      name: name,
+    );
+    return user;
   }
 
   Future<Session> createEmailPasswordSession(
     String email,
     String password,
   ) async {
-    return await mobx.runInAction(() async {
+    try {
       final session = await account.createEmailPasswordSession(
         email: email,
         password: password,
       );
-      _currentUser.value = await account.get();
-      _statusStreamController.add(AuthStatus.authenticated);
+      final user = await account.get();
+      mobx.runInAction(() {
+        _currentUser.value = user;
+        _statusStreamController.add(AuthStatus.authenticated);
+      });
       return session;
-    }, name: 'createEmailPasswordSession');
+    } on AppwriteException catch (e) {
+      if (e.type == 'user_session_already_exists') {
+        try {
+          await account.deleteSession(sessionId: 'current');
+        } catch (_) {}
+        final session = await account.createEmailPasswordSession(
+          email: email,
+          password: password,
+        );
+        final user = await account.get();
+        mobx.runInAction(() {
+          _currentUser.value = user;
+          _statusStreamController.add(AuthStatus.authenticated);
+        });
+        return session;
+      }
+      rethrow;
+    }
   }
 
   Future<dynamic> signInWithProvider({required OAuthProvider provider}) async {
-    return await mobx.runInAction(() async {
-      final dynamic session = await account.createOAuth2Session(
-        provider: provider,
-      );
-      _currentUser.value = await account.get();
+    final dynamic session = await account.createOAuth2Session(
+      provider: provider,
+    );
+    final user = await account.get();
+    mobx.runInAction(() {
+      _currentUser.value = user;
       _statusStreamController.add(AuthStatus.authenticated);
-      return session;
-    }, name: 'signInWithProvider');
+    });
+    return session;
   }
 
   Future<void> signOut() async {
-    return await mobx.runInAction(() async {
+    try {
       await account.deleteSession(sessionId: 'current');
+    } catch (_) {}
+    mobx.runInAction(() {
+      _currentUser.value = null;
       _statusStreamController.add(AuthStatus.unauthenticated);
-    }, name: 'signOut');
+    });
   }
 
   Future<Preferences> getUserPreferences() async {

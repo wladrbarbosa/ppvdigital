@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_mobx/flutter_mobx.dart';
+import 'package:ppvdigital/app/login/login_controller.dart';
 import 'package:ppvdigital/core.dart';
 import 'package:ppvdigital/routes.g.dart';
 import 'package:routefly/routefly.dart';
@@ -100,15 +102,31 @@ class _LoginPageState extends State<LoginPage> {
                             children: <Widget>[
                               ElevatedButton(
                                 onPressed: () async {
-                                  await login(
-                                    emailController.text,
-                                    passwordController.text,
-                                  );
-
-                                  if (Core.loginController.status != null) {
-                                    Routefly.navigate(
-                                      routePaths.capacitacao.path,
+                                  try {
+                                    await login(
+                                      emailController.text,
+                                      passwordController.text,
                                     );
+
+                                    if (Core.loginController.status ==
+                                        AuthStatus.authenticated) {
+                                      Routefly.navigate(
+                                        routePaths.capacitacao.path,
+                                      );
+                                    }
+                                  } catch (e) {
+                                    if (mounted) {
+                                      ScaffoldMessenger.of(
+                                        context,
+                                      ).showSnackBar(
+                                        SnackBar(
+                                          content: Text(
+                                            'Erro ao entrar: ${e.toString()}',
+                                          ),
+                                          backgroundColor: Colors.red,
+                                        ),
+                                      );
+                                    }
                                   }
                                 },
                                 child: const Text('Entrar'),
@@ -146,12 +164,39 @@ class _LoginPageState extends State<LoginPage> {
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: <Widget>[
                               ElevatedButton(
-                                onPressed: () {
-                                  register(
-                                    emailController.text,
-                                    passwordController.text,
-                                    nameController.text,
-                                  );
+                                onPressed: () async {
+                                  try {
+                                    await register(
+                                      emailController.text,
+                                      passwordController.text,
+                                      nameController.text,
+                                    );
+                                    if (mounted) {
+                                      ScaffoldMessenger.of(
+                                        context,
+                                      ).showSnackBar(
+                                        const SnackBar(
+                                          content: Text(
+                                            'Conta cadastrada com sucesso! Faça login para entrar.',
+                                          ),
+                                          backgroundColor: Colors.green,
+                                        ),
+                                      );
+                                    }
+                                  } catch (e) {
+                                    if (mounted) {
+                                      ScaffoldMessenger.of(
+                                        context,
+                                      ).showSnackBar(
+                                        SnackBar(
+                                          content: Text(
+                                            'Erro ao cadastrar: ${e.toString()}',
+                                          ),
+                                          backgroundColor: Colors.red,
+                                        ),
+                                      );
+                                    }
+                                  }
                                 },
                                 child: const Text('Cadastrar'),
                               ),
@@ -163,10 +208,14 @@ class _LoginPageState extends State<LoginPage> {
                   ),
                 ),
                 const SizedBox(height: 16.0),
-                Text(
-                  Core.loginController.currentUser != null
-                      ? 'Autenticado como ${Core.loginController.currentUser!.name}'
-                      : 'Não autenticado',
+                Observer(
+                  builder: (context) {
+                    return Text(
+                      Core.loginController.currentUser != null
+                          ? 'Autenticado como ${Core.loginController.currentUser!.name}'
+                          : 'Não autenticado',
+                    );
+                  },
                 ),
               ],
             ),

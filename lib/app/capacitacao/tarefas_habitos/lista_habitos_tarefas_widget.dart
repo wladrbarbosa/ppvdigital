@@ -25,18 +25,22 @@ extension RoundCorrectNum on num {
   }
 }
 
-class ListaHabitosTarefasPage extends StatefulWidget {
-  const ListaHabitosTarefasPage({super.key});
+class ListaHabitosTarefasWidget extends StatefulWidget {
+  const ListaHabitosTarefasWidget({super.key, this.onlyTipo});
+
+  final String? onlyTipo;
 
   @override
-  State<ListaHabitosTarefasPage> createState() =>
-      ListaHabitosTarefasPageState();
+  State<ListaHabitosTarefasWidget> createState() =>
+      ListaHabitosTarefasWidgetState();
 }
 
-class ListaHabitosTarefasPageState extends State<ListaHabitosTarefasPage> {
+class ListaHabitosTarefasWidgetState extends State<ListaHabitosTarefasWidget> {
   final double width = 260.0;
   final double height = 120.0;
   static int? qtdItems;
+
+  final Set<String> _animatingCompletedTaskIds = {};
 
   @override
   void initState() {
@@ -44,6 +48,22 @@ class ListaHabitosTarefasPageState extends State<ListaHabitosTarefasPage> {
     TarefasHabitosController.tarefasHabitosFuture = Core
         .tarefasHabitosController
         .loadDocuments();
+  }
+
+  void _completeTask(String taskId) {
+    setState(() {
+      _animatingCompletedTaskIds.add(taskId);
+    });
+
+    // Delay database/MobX update by 500ms to allow fade-out animation to complete
+    Future.delayed(const Duration(milliseconds: 500), () {
+      if (mounted) {
+        Core.tarefasHabitosController.completeTarefa(taskId);
+        setState(() {
+          _animatingCompletedTaskIds.remove(taskId);
+        });
+      }
+    });
   }
 
   double _calculateCycleProgress(TarefaHabitoQtdModel qtd) {
@@ -136,7 +156,33 @@ class ListaHabitosTarefasPageState extends State<ListaHabitosTarefasPage> {
             snapshot.connectionState == ConnectionState.done) {
           return Observer(
             builder: (context) {
-              final list = Core.tarefasHabitosController.tarefasHabitosList;
+              final rawList = Core.tarefasHabitosController.tarefasHabitosList;
+              
+              // Filter list based on onlyTipo parameter
+              final list = rawList.where((item) {
+                if (widget.onlyTipo != null && item.tipo != widget.onlyTipo) {
+                  return false;
+                }
+                if (item.tipo == 'tarefa') {
+                  // Show tasks only if they are not completed OR are currently animating out
+                  return !item.concluida || _animatingCompletedTaskIds.contains(item.id);
+                }
+                return true;
+              }).toList();
+
+              if (list.isEmpty) {
+                return Center(
+                  child: Text(
+                    widget.onlyTipo == 'tarefa'
+                        ? 'Nenhuma tarefa pendente.'
+                        : widget.onlyTipo == 'habito'
+                            ? 'Nenhum hábito cadastrado.'
+                            : 'Nenhuma tarefa ou hábito cadastrado.',
+                    style: const TextStyle(fontSize: 16, color: Colors.grey),
+                  ),
+                );
+              }
+
               return Container(
                 padding: const EdgeInsets.all(16.0),
                 child: GridView.builder(
@@ -162,7 +208,8 @@ class ListaHabitosTarefasPageState extends State<ListaHabitosTarefasPage> {
                         item.tarefasHabitosQtd.every(
                           (el) => el.vezesPraticado >= el.metaVezes,
                         );
-                    final bool showAnimation = progress >= 0.25 && !metaBatida;
+                    final bool showAnimation = progress >= 0.25 && !metaBatida && item.tipo == 'habito';
+                    final bool isAnimatingOut = _animatingCompletedTaskIds.contains(item.id);
 
                     return LayoutBuilder(
                       builder: (BuildContext layoutContext, BoxConstraints constraints) {
@@ -205,12 +252,14 @@ class ListaHabitosTarefasPageState extends State<ListaHabitosTarefasPage> {
                               children.add(
                                 Expanded(
                                   child: LiquidCustomProgressIndicator(
-                                    value:
-                                        item
-                                            .tarefasHabitosQtd[i]
-                                            .vezesPraticado *
-                                        1.05 /
-                                        greaterMeta,
+                                    // For tasks, do not fill with color (keep progress at 0.0)
+                                    value: item.tipo == 'tarefa'
+                                        ? 0.0
+                                        : item
+                                                .tarefasHabitosQtd[i]
+                                                .vezesPraticado *
+                                            1.05 /
+                                            greaterMeta,
                                     backgroundColor: indicatorBgColor,
                                     valueColor: liquidColor != null
                                         ? AlwaysStoppedAnimation(liquidColor)
@@ -225,7 +274,7 @@ class ListaHabitosTarefasPageState extends State<ListaHabitosTarefasPage> {
                                             ((constraints.maxWidth - 10) /
                                                 item.tarefasHabitosQtd.length),
                                             constraints.maxHeight - 10,
-                                          ),
+                                            ),
                                           topLeft: Radius.circular(
                                             i == 0 ? 20 : 0,
                                           ),
@@ -400,11 +449,17 @@ class ListaHabitosTarefasPageState extends State<ListaHabitosTarefasPage> {
                                             padding: EdgeInsets.zero,
                                             constraints: const BoxConstraints(),
                                             onPressed: () {
-                                              Core.tarefasHabitosController
-                                                  .incrementQtdHabito(item.id);
+                                              if (item.tipo == 'tarefa') {
+                                                _completeTask(item.id);
+                                              } else {
+                                                Core.tarefasHabitosController
+                                                    .incrementQtdHabito(item.id);
+                                              }
                                             },
                                             icon: Icon(
-                                              Icons.add_circle,
+                                              item.tipo == 'tarefa'
+                                                  ? Icons.check_circle_outline
+                                                  : Icons.add_circle,
                                               size: 32.0,
                                               color: item.tipo == 'habito'
                                                   ? habitColor
@@ -419,7 +474,15 @@ class ListaHabitosTarefasPageState extends State<ListaHabitosTarefasPage> {
                               ],
                             );
 
-                            if (showAnimation) {
+                            if (isAnimatingOut) {
+                              return cardWidget
+                                  .animate()
+                                  .fade(
+                                    begin: 1.0,
+                                    end: 0.0,
+                                    duration: const Duration(milliseconds: 500),
+                                  );
+                            } else if (showAnimation) {
                               return cardWidget
                                   .animate(
                                     onPlay: (controller) =>

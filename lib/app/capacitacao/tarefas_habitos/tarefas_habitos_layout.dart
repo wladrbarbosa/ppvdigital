@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_expandable_fab/flutter_expandable_fab.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
-import 'package:ppvdigital/app/capacitacao/tarefas_habitos/lista_habitos_tarefas_page.dart';
+import 'package:ppvdigital/app/capacitacao/tarefas_habitos/tarefas_page.dart';
 import 'package:ppvdigital/core.dart';
 import 'package:ppvdigital/routes.g.dart';
 import 'package:routefly/routefly.dart';
@@ -56,13 +56,16 @@ class TarefasPageState extends State<TarefasPage>
     // Precisa acontecer sempre para que funcione a troca visual das tabs na TabBar
     switch (Routefly.currentUri.path) {
       case final String url
+          when url == routePaths.capacitacao.tarefasHabitos.habitos:
+        tabController = TabController(initialIndex: 1, vsync: this, length: 4);
+      case final String url
           when url == routePaths.capacitacao.tarefasHabitos.calendario:
-        tabController = TabController(initialIndex: 1, vsync: this, length: 3);
+        tabController = TabController(initialIndex: 2, vsync: this, length: 4);
       case final String url
           when url == routePaths.capacitacao.tarefasHabitos.categorias:
-        tabController = TabController(initialIndex: 2, vsync: this, length: 3);
+        tabController = TabController(initialIndex: 3, vsync: this, length: 4);
       default:
-        tabController = TabController(vsync: this, length: 3);
+        tabController = TabController(vsync: this, length: 4);
     }
 
     tabController?.addListener(tabListening);
@@ -74,12 +77,14 @@ class TarefasPageState extends State<TarefasPage>
 
       switch (tabController?.index) {
         case 1:
-          Routefly.navigate(routePaths.capacitacao.tarefasHabitos.calendario);
+          Routefly.navigate(routePaths.capacitacao.tarefasHabitos.habitos);
         case 2:
+          Routefly.navigate(routePaths.capacitacao.tarefasHabitos.calendario);
+        case 3:
           Routefly.navigate(routePaths.capacitacao.tarefasHabitos.categorias);
         default:
           Routefly.navigate(
-            routePaths.capacitacao.tarefasHabitos.listaHabitosTarefas,
+            routePaths.capacitacao.tarefasHabitos.tarefas,
           );
       }
     }
@@ -233,15 +238,16 @@ class TarefasPageState extends State<TarefasPage>
             child: TabBar(
               controller: tabController,
               tabs: const [
-                Tab(icon: Icon(Icons.task), text: 'Tarefas/Hábitos'),
+                Tab(icon: Icon(Icons.task_alt), text: 'Tarefas'),
+                Tab(icon: Icon(Icons.star_border), text: 'Hábitos'),
                 Tab(icon: Icon(Icons.calendar_month), text: 'Calendário'),
                 Tab(icon: Icon(Icons.category), text: 'Categorias'),
               ],
             ),
           ),
         ),
-        body: RouterOutlet(
-          defaultWidget: ListaHabitosTarefasPage(key: GlobalKey()),
+        body: const RouterOutlet(
+          defaultWidget: TarefasListPage(),
         ),
         floatingActionButtonLocation: ExpandableFab.location,
         floatingActionButton: ExpandableFab(

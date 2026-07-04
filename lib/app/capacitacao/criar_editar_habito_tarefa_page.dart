@@ -388,33 +388,46 @@ class _CriarHabitoTarefaPageState extends State<CriarHabitoTarefaPage> {
                         builder: (context) {
                           final categorias =
                               Core.categoriasController.categoriasList;
+                          final bool exists = categorias.any((cat) => cat.id == meta.selectedCategoryId);
+
+                          final List<DropdownMenuItem<String>> dropdownItems = [
+                            const DropdownMenuItem<String>(
+                              value: null,
+                              child: Text('Nenhuma'),
+                            ),
+                            ...categorias.map((cat) {
+                              return DropdownMenuItem<String>(
+                                value: cat.id,
+                                child: Row(
+                                  children: [
+                                    CircleAvatar(
+                                      backgroundColor: cat.cor,
+                                      radius: 8,
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Text(cat.nome),
+                                  ],
+                                ),
+                              );
+                            }),
+                          ];
+
+                          if (meta.selectedCategoryId != null && !exists) {
+                            dropdownItems.add(
+                              DropdownMenuItem<String>(
+                                value: meta.selectedCategoryId,
+                                child: const Text('Carregando categoria...'),
+                              ),
+                            );
+                          }
+
                           return DropdownButtonFormField<String>(
                             value: meta.selectedCategoryId,
                             decoration: const InputDecoration(
                               labelText: 'Categoria (Opcional)',
                               border: OutlineInputBorder(),
                             ),
-                            items: [
-                              const DropdownMenuItem<String>(
-                                value: null,
-                                child: Text('Nenhuma'),
-                              ),
-                              ...categorias.map((cat) {
-                                return DropdownMenuItem<String>(
-                                  value: cat.id,
-                                  child: Row(
-                                    children: [
-                                      CircleAvatar(
-                                        backgroundColor: cat.cor,
-                                        radius: 8,
-                                      ),
-                                      const SizedBox(width: 8),
-                                      Text(cat.nome),
-                                    ],
-                                  ),
-                                );
-                              }),
-                            ],
+                            items: dropdownItems,
                             onChanged: (val) {
                               setState(() {
                                 meta.selectedCategoryId = val;
