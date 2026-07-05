@@ -6,6 +6,9 @@ class TarefasListPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const ListaHabitosTarefasWidget(onlyTipo: 'tarefa');
+    return const ListaHabitosTarefasWidget(
+      key: ValueKey('tarefa'),
+      onlyTipo: 'tarefa',
+    );
   }
 }

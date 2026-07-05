@@ -6,6 +6,9 @@ class HabitosListPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const ListaHabitosTarefasWidget(onlyTipo: 'habito');
+    return const ListaHabitosTarefasWidget(
+      key: ValueKey('habito'),
+      onlyTipo: 'habito',
+    );
   }
 }

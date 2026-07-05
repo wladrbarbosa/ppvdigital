@@ -1,4 +1,4 @@
-﻿#!/bin/bash
+#!/bin/bash
 # Script de Compilação e Empacotamento para Appwrite Sites (Flutter Web)
 
 set -e
@@ -12,7 +12,14 @@ if [ -d ".fvm" ]; then
     FLUTTER_CMD="fvm flutter"
 fi
 
-# 1. Compila o Flutter Web como WASM
+# 1. Limpa caches e obtém dependências limpas
+echo -e "\033[0;90mExecutando: $FLUTTER_CMD clean\033[0m"
+$FLUTTER_CMD clean
+
+echo -e "\033[0;90mExecutando: $FLUTTER_CMD pub get\033[0m"
+$FLUTTER_CMD pub get
+
+# 2. Compila o Flutter Web como WASM
 echo -e "\033[0;90mExecutando: $FLUTTER_CMD build web --wasm\033[0m"
 $FLUTTER_CMD build web --wasm
 

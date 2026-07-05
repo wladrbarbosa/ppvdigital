@@ -10,7 +10,14 @@ if (Test-Path ".fvm") {
     Write-Host "FVM detectado. Usando fvm flutter..." -ForegroundColor Yellow
     $flutterCmd = "fvm flutter"
 }
-# 1. Compila o Flutter Web como WASM
+# 1. Limpa caches e obtém dependências limpas
+Write-Host "Executando: $flutterCmd clean" -ForegroundColor Gray
+Invoke-Expression "$flutterCmd clean"
+
+Write-Host "Executando: $flutterCmd pub get" -ForegroundColor Gray
+Invoke-Expression "$flutterCmd pub get"
+
+# 2. Compila o Flutter Web como WASM
 Write-Host "Executando: $flutterCmd build web --wasm" -ForegroundColor Gray
 Invoke-Expression "$flutterCmd build web --wasm"
 

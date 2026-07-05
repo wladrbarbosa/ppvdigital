@@ -298,35 +298,53 @@ class ListaHabitosTarefasWidgetState extends State<ListaHabitosTarefasWidget> {
     try {
       final prefs = await SharedPreferences.getInstance();
       final keySuffix = widget.onlyTipo ?? 'all';
-      final savedFieldIndex = prefs.getInt(
-        'pref_tarefa_habito_sort_field_index_$keySuffix',
+      debugPrint('SORT PERSISTENCE: Loading preferences. Available keys in SharedPreferences: ${prefs.getKeys()}');
+      
+      final savedFieldIndexStr = prefs.getString(
+        'pref_tarefa_habito_sort_field_index_str_$keySuffix',
       );
       final savedFieldStr = prefs.getString(
         'pref_tarefa_habito_sort_field_$keySuffix',
       );
-      final savedAscending = prefs.getBool(
-        'pref_tarefa_habito_sort_ascending_$keySuffix',
+      final savedAscendingStr = prefs.getString(
+        'pref_tarefa_habito_sort_ascending_str_$keySuffix',
       );
+
+      debugPrint('SORT PERSISTENCE: Loaded raw values - savedFieldIndexStr: $savedFieldIndexStr, savedFieldStr: $savedFieldStr, savedAscendingStr: $savedAscendingStr');
 
       if (!mounted) return;
 
       setState(() {
-        if (savedFieldIndex != null &&
-            savedFieldIndex >= 0 &&
-            savedFieldIndex < TarefaHabitoSortField.values.length) {
-          _sortField = TarefaHabitoSortField.values[savedFieldIndex];
+        if (savedFieldIndexStr != null) {
+          final index = int.tryParse(savedFieldIndexStr);
+          if (index != null &&
+              index >= 0 &&
+              index < TarefaHabitoSortField.values.length) {
+            _sortField = TarefaHabitoSortField.values[index];
+          }
         } else if (savedFieldStr != null) {
+          // Fallback to legacy string representation
           _sortField = TarefaHabitoSortField.values.firstWhere(
             (e) => e.toString() == savedFieldStr,
             orElse: () => TarefaHabitoSortField.nome,
           );
         }
-        if (savedAscending != null) {
-          _sortAscending = savedAscending;
+
+        if (savedAscendingStr != null) {
+          _sortAscending = savedAscendingStr == 'true';
+        } else {
+          // Fallback to legacy boolean key
+          final savedAscending = prefs.getBool(
+            'pref_tarefa_habito_sort_ascending_$keySuffix',
+          );
+          if (savedAscending != null) {
+            _sortAscending = savedAscending;
+          }
         }
       });
+      debugPrint('SORT PERSISTENCE: Set state applied - field: $_sortField, ascending: $_sortAscending');
     } catch (e) {
-      // Ignored
+      debugPrint('SORT PERSISTENCE: Error loading preferences: $e');
     }
   }
 
@@ -334,6 +352,19 @@ class ListaHabitosTarefasWidgetState extends State<ListaHabitosTarefasWidget> {
     try {
       final prefs = await SharedPreferences.getInstance();
       final keySuffix = widget.onlyTipo ?? 'all';
+      
+      debugPrint('SORT PERSISTENCE: Saving preferences. Current values - field: $_sortField (index: ${_sortField.index}), ascending: $_sortAscending');
+
+      await prefs.setString(
+        'pref_tarefa_habito_sort_field_index_str_$keySuffix',
+        _sortField.index.toString(),
+      );
+      await prefs.setString(
+        'pref_tarefa_habito_sort_ascending_str_$keySuffix',
+        _sortAscending.toString(),
+      );
+
+      // Keep legacy keys for backward compatibility
       await prefs.setInt(
         'pref_tarefa_habito_sort_field_index_$keySuffix',
         _sortField.index,
@@ -346,8 +377,9 @@ class ListaHabitosTarefasWidgetState extends State<ListaHabitosTarefasWidget> {
         'pref_tarefa_habito_sort_ascending_$keySuffix',
         _sortAscending,
       );
+      debugPrint('SORT PERSISTENCE: Preferences saved successfully.');
     } catch (e) {
-      // Ignored
+      debugPrint('SORT PERSISTENCE: Error saving preferences: $e');
     }
   }
 
@@ -364,6 +396,14 @@ class ListaHabitosTarefasWidgetState extends State<ListaHabitosTarefasWidget> {
         .tarefasHabitosController
         .loadDocuments();
     _loadPreferences();
+  }
+
+  @override
+  void didUpdateWidget(covariant ListaHabitosTarefasWidget oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.onlyTipo != widget.onlyTipo) {
+      _loadPreferences();
+    }
   }
 
   void _completeTask(String taskId) {
