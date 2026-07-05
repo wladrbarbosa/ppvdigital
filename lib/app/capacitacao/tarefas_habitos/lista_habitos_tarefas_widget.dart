@@ -298,13 +298,24 @@ class ListaHabitosTarefasWidgetState extends State<ListaHabitosTarefasWidget> {
     try {
       final prefs = await SharedPreferences.getInstance();
       final keySuffix = widget.onlyTipo ?? 'all';
-      final savedFieldStr = prefs.getString('pref_tarefa_habito_sort_field_$keySuffix');
-      final savedAscending = prefs.getBool('pref_tarefa_habito_sort_ascending_$keySuffix');
+      final savedFieldIndex = prefs.getInt(
+        'pref_tarefa_habito_sort_field_index_$keySuffix',
+      );
+      final savedFieldStr = prefs.getString(
+        'pref_tarefa_habito_sort_field_$keySuffix',
+      );
+      final savedAscending = prefs.getBool(
+        'pref_tarefa_habito_sort_ascending_$keySuffix',
+      );
 
       if (!mounted) return;
 
       setState(() {
-        if (savedFieldStr != null) {
+        if (savedFieldIndex != null &&
+            savedFieldIndex >= 0 &&
+            savedFieldIndex < TarefaHabitoSortField.values.length) {
+          _sortField = TarefaHabitoSortField.values[savedFieldIndex];
+        } else if (savedFieldStr != null) {
           _sortField = TarefaHabitoSortField.values.firstWhere(
             (e) => e.toString() == savedFieldStr,
             orElse: () => TarefaHabitoSortField.nome,
@@ -323,11 +334,18 @@ class ListaHabitosTarefasWidgetState extends State<ListaHabitosTarefasWidget> {
     try {
       final prefs = await SharedPreferences.getInstance();
       final keySuffix = widget.onlyTipo ?? 'all';
+      await prefs.setInt(
+        'pref_tarefa_habito_sort_field_index_$keySuffix',
+        _sortField.index,
+      );
       await prefs.setString(
         'pref_tarefa_habito_sort_field_$keySuffix',
         _sortField.toString(),
       );
-      await prefs.setBool('pref_tarefa_habito_sort_ascending_$keySuffix', _sortAscending);
+      await prefs.setBool(
+        'pref_tarefa_habito_sort_ascending_$keySuffix',
+        _sortAscending,
+      );
     } catch (e) {
       // Ignored
     }
