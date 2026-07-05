@@ -39,185 +39,191 @@ class _LoginPageState extends State<LoginPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Center(
-        child: SizedBox(
-          width: 400,
-          child: DefaultTabController(
-            length: 2,
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: <Widget>[
-                Image.asset(
-                  'assets/images/logo.png',
-                  height: 260,
-                  fit: BoxFit.contain,
-                  errorBuilder: (context, error, stackTrace) {
-                    return Text(
-                      'Seapruma',
-                      maxLines: 2,
-                      textAlign: TextAlign.center,
-                      style: Theme.of(context).textTheme.displayLarge,
-                    );
-                  },
-                ),
-                const SizedBox(height: 16.0),
-                const TabBar(
-                  dividerHeight: 0,
-                  tabs: [
-                    Tab(icon: Icon(Icons.login_outlined), text: 'Entrar'),
-                    Tab(
-                      icon: Icon(Icons.add_reaction_rounded),
-                      text: 'Cadastrar',
+      body: SafeArea(
+        child: Center(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
+            child: Container(
+              constraints: const BoxConstraints(maxWidth: 400),
+              child: DefaultTabController(
+                length: 2,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: <Widget>[
+                    Image.asset(
+                      'assets/images/logo.png',
+                      height: 260,
+                      fit: BoxFit.contain,
+                      errorBuilder: (context, error, stackTrace) {
+                        return Text(
+                          'Seapruma',
+                          maxLines: 2,
+                          textAlign: TextAlign.center,
+                          style: Theme.of(context).textTheme.displayLarge,
+                        );
+                      },
+                    ),
+                    const SizedBox(height: 16.0),
+                    const TabBar(
+                      dividerHeight: 0,
+                      tabs: [
+                        Tab(icon: Icon(Icons.login_outlined), text: 'Entrar'),
+                        Tab(
+                          icon: Icon(Icons.add_reaction_rounded),
+                          text: 'Cadastrar',
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16.0),
+                    SizedBox(
+                      height: 250,
+                      child: TabBarView(
+                        children: [
+                          Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              TextField(
+                                controller: emailController,
+                                autofillHints: const [AutofillHints.username],
+                                keyboardType: TextInputType.emailAddress,
+                                decoration: const InputDecoration(
+                                  labelText: 'Email',
+                                ),
+                              ),
+                              const SizedBox(height: 16.0),
+                              TextField(
+                                controller: passwordController,
+                                autofillHints: const [AutofillHints.password],
+                                decoration: const InputDecoration(
+                                  labelText: 'Senha',
+                                ),
+                                obscureText: true,
+                              ),
+                              const SizedBox(height: 16.0),
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: <Widget>[
+                                  ElevatedButton(
+                                    onPressed: () async {
+                                      try {
+                                        await login(
+                                          emailController.text,
+                                          passwordController.text,
+                                        );
+
+                                        if (Core.loginController.status ==
+                                            AuthStatus.authenticated) {
+                                          Routefly.navigate(
+                                            routePaths.capacitacao.path,
+                                          );
+                                        }
+                                      } catch (e) {
+                                        if (mounted) {
+                                          ScaffoldMessenger.of(
+                                            context,
+                                          ).showSnackBar(
+                                            SnackBar(
+                                              content: Text(
+                                                'Erro ao entrar: ${e.toString()}',
+                                              ),
+                                              backgroundColor: Colors.red,
+                                            ),
+                                          );
+                                        }
+                                      }
+                                    },
+                                    child: const Text('Entrar'),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                          Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              TextField(
+                                controller: emailController,
+                                decoration: const InputDecoration(
+                                  labelText: 'Email',
+                                ),
+                              ),
+                              const SizedBox(height: 16.0),
+                              TextField(
+                                controller: passwordController,
+                                decoration: const InputDecoration(
+                                  labelText: 'Senha',
+                                ),
+                                obscureText: true,
+                              ),
+                              const SizedBox(height: 16.0),
+                              TextField(
+                                controller: nameController,
+                                decoration: const InputDecoration(
+                                  labelText: 'Nome',
+                                ),
+                              ),
+                              const SizedBox(height: 16.0),
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: <Widget>[
+                                  ElevatedButton(
+                                    onPressed: () async {
+                                      try {
+                                        await register(
+                                          emailController.text,
+                                          passwordController.text,
+                                          nameController.text,
+                                        );
+                                        if (mounted) {
+                                          ScaffoldMessenger.of(
+                                            context,
+                                          ).showSnackBar(
+                                            const SnackBar(
+                                              content: Text(
+                                                'Conta cadastrada com sucesso! Faça login para entrar.',
+                                              ),
+                                              backgroundColor: Colors.green,
+                                            ),
+                                          );
+                                        }
+                                      } catch (e) {
+                                        if (mounted) {
+                                          ScaffoldMessenger.of(
+                                            context,
+                                          ).showSnackBar(
+                                            SnackBar(
+                                              content: Text(
+                                                'Erro ao cadastrar: ${e.toString()}',
+                                              ),
+                                              backgroundColor: Colors.red,
+                                            ),
+                                          );
+                                        }
+                                      }
+                                    },
+                                    child: const Text('Cadastrar'),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 16.0),
+                    Observer(
+                      builder: (context) {
+                        return Text(
+                          Core.loginController.currentUser != null
+                              ? 'Autenticado como ${Core.loginController.currentUser!.name}'
+                              : 'Não autenticado',
+                        );
+                      },
                     ),
                   ],
                 ),
-                const SizedBox(height: 16.0),
-                SizedBox(
-                  height: 250,
-                  child: TabBarView(
-                    children: [
-                      Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          TextField(
-                            controller: emailController,
-                            autofillHints: const [AutofillHints.username],
-                            keyboardType: TextInputType.emailAddress,
-                            decoration: const InputDecoration(
-                              labelText: 'Email',
-                            ),
-                          ),
-                          const SizedBox(height: 16.0),
-                          TextField(
-                            controller: passwordController,
-                            autofillHints: const [AutofillHints.password],
-                            decoration: const InputDecoration(
-                              labelText: 'Senha',
-                            ),
-                            obscureText: true,
-                          ),
-                          const SizedBox(height: 16.0),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: <Widget>[
-                              ElevatedButton(
-                                onPressed: () async {
-                                  try {
-                                    await login(
-                                      emailController.text,
-                                      passwordController.text,
-                                    );
-
-                                    if (Core.loginController.status ==
-                                        AuthStatus.authenticated) {
-                                      Routefly.navigate(
-                                        routePaths.capacitacao.path,
-                                      );
-                                    }
-                                  } catch (e) {
-                                    if (mounted) {
-                                      ScaffoldMessenger.of(
-                                        context,
-                                      ).showSnackBar(
-                                        SnackBar(
-                                          content: Text(
-                                            'Erro ao entrar: ${e.toString()}',
-                                          ),
-                                          backgroundColor: Colors.red,
-                                        ),
-                                      );
-                                    }
-                                  }
-                                },
-                                child: const Text('Entrar'),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                      Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          TextField(
-                            controller: emailController,
-                            decoration: const InputDecoration(
-                              labelText: 'Email',
-                            ),
-                          ),
-                          const SizedBox(height: 16.0),
-                          TextField(
-                            controller: passwordController,
-                            decoration: const InputDecoration(
-                              labelText: 'Senha',
-                            ),
-                            obscureText: true,
-                          ),
-                          const SizedBox(height: 16.0),
-                          TextField(
-                            controller: nameController,
-                            decoration: const InputDecoration(
-                              labelText: 'Nome',
-                            ),
-                          ),
-                          const SizedBox(height: 16.0),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: <Widget>[
-                              ElevatedButton(
-                                onPressed: () async {
-                                  try {
-                                    await register(
-                                      emailController.text,
-                                      passwordController.text,
-                                      nameController.text,
-                                    );
-                                    if (mounted) {
-                                      ScaffoldMessenger.of(
-                                        context,
-                                      ).showSnackBar(
-                                        const SnackBar(
-                                          content: Text(
-                                            'Conta cadastrada com sucesso! Faça login para entrar.',
-                                          ),
-                                          backgroundColor: Colors.green,
-                                        ),
-                                      );
-                                    }
-                                  } catch (e) {
-                                    if (mounted) {
-                                      ScaffoldMessenger.of(
-                                        context,
-                                      ).showSnackBar(
-                                        SnackBar(
-                                          content: Text(
-                                            'Erro ao cadastrar: ${e.toString()}',
-                                          ),
-                                          backgroundColor: Colors.red,
-                                        ),
-                                      );
-                                    }
-                                  }
-                                },
-                                child: const Text('Cadastrar'),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 16.0),
-                Observer(
-                  builder: (context) {
-                    return Text(
-                      Core.loginController.currentUser != null
-                          ? 'Autenticado como ${Core.loginController.currentUser!.name}'
-                          : 'Não autenticado',
-                    );
-                  },
-                ),
-              ],
+              ),
             ),
           ),
         ),

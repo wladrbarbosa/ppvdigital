@@ -3,6 +3,7 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:liquid_progress_indicator_v2/liquid_progress_indicator.dart';
 import 'package:ppvdigital/app/capacitacao/tarefas_habitos/tarefas_habitos_controller.dart';
 import 'package:ppvdigital/core.dart';
@@ -25,6 +26,16 @@ extension RoundCorrectNum on num {
   }
 }
 
+enum TarefaHabitoSortField {
+  nome,
+  agendamento,
+  categoria,
+  valor,
+  meta,
+  progresso,
+  proximidadeFimCiclo,
+}
+
 class ListaHabitosTarefasWidget extends StatefulWidget {
   const ListaHabitosTarefasWidget({super.key, this.onlyTipo});
 
@@ -36,6 +47,291 @@ class ListaHabitosTarefasWidget extends StatefulWidget {
 }
 
 class ListaHabitosTarefasWidgetState extends State<ListaHabitosTarefasWidget> {
+  TarefaHabitoSortField _sortField = TarefaHabitoSortField.nome;
+  bool _sortAscending = true;
+
+  Duration _getCycleRemainingDuration(TarefaHabitoQtdModel qtd) {
+    final DateTime now = DateTime.now();
+    final DateTime origBeginning = qtd.createdAt.toLocal();
+    final DateTime beginning = DateTime(
+      origBeginning.year,
+      origBeginning.month,
+      origBeginning.day,
+    );
+    final String reiniciaEmTipo = qtd.reiniciaEmTipo;
+    final int reiniciaEmQtd = qtd.reiniciaEmQtd;
+
+    final Duration beginningNowDiff = now.difference(beginning);
+    DateTime endPeriod = beginning;
+
+    switch (reiniciaEmTipo) {
+      case 'dias':
+        final int blocks = beginningNowDiff.inDays ~/ reiniciaEmQtd;
+        final startPeriod = beginning.add(
+          Duration(days: blocks * reiniciaEmQtd),
+        );
+        endPeriod = startPeriod.add(Duration(days: reiniciaEmQtd));
+        break;
+      case 'semanas':
+        final int blocks = beginningNowDiff.inDays ~/ (7 * reiniciaEmQtd);
+        final startPeriod = beginning.add(
+          Duration(days: blocks * 7 * reiniciaEmQtd),
+        );
+        endPeriod = startPeriod.add(Duration(days: 7 * reiniciaEmQtd));
+        break;
+      case 'meses':
+        final int monthDiff =
+            (now.year - beginning.year) * 12 + (now.month - beginning.month);
+        final int blocks = monthDiff ~/ reiniciaEmQtd;
+        final startPeriod = DateTime(
+          beginning.year,
+          beginning.month + (blocks * reiniciaEmQtd),
+          beginning.day,
+        );
+        endPeriod = DateTime(
+          startPeriod.year,
+          startPeriod.month + reiniciaEmQtd,
+          startPeriod.day,
+        );
+        break;
+      case 'anos':
+        final int yearDiff = now.year - beginning.year;
+        final int blocks = yearDiff ~/ reiniciaEmQtd;
+        final startPeriod = DateTime(
+          beginning.year + (blocks * reiniciaEmQtd),
+          beginning.month,
+          beginning.day,
+        );
+        endPeriod = DateTime(
+          startPeriod.year + reiniciaEmQtd,
+          startPeriod.month,
+          startPeriod.day,
+        );
+        break;
+      default:
+        final int blocks = beginningNowDiff.inDays ~/ reiniciaEmQtd;
+        final startPeriod = beginning.add(
+          Duration(days: blocks * reiniciaEmQtd),
+        );
+        endPeriod = startPeriod.add(Duration(days: reiniciaEmQtd));
+        break;
+    }
+
+    return endPeriod.difference(now);
+  }
+
+  void _sortList(List<TarefaHabitoModel> list) {
+    list.sort((a, b) {
+      int cmp = 0;
+      switch (_sortField) {
+        case TarefaHabitoSortField.nome:
+          cmp = a.nome.toLowerCase().compareTo(b.nome.toLowerCase());
+          break;
+        case TarefaHabitoSortField.agendamento:
+          final aDate = a.agendamento ?? DateTime.fromMillisecondsSinceEpoch(0);
+          final bDate = b.agendamento ?? DateTime.fromMillisecondsSinceEpoch(0);
+          cmp = aDate.compareTo(bDate);
+          break;
+        case TarefaHabitoSortField.categoria:
+          final aCat =
+              a.tarefasHabitosQtd.firstOrNull?.categoriasTarefasHabitos?.nome ??
+              '';
+          final bCat =
+              b.tarefasHabitosQtd.firstOrNull?.categoriasTarefasHabitos?.nome ??
+              '';
+          cmp = aCat.toLowerCase().compareTo(bCat.toLowerCase());
+          break;
+        case TarefaHabitoSortField.valor:
+          final aVal = a.tarefasHabitosQtd.firstOrNull?.valor ?? 0.0;
+          final bVal = b.tarefasHabitosQtd.firstOrNull?.valor ?? 0.0;
+          cmp = aVal.compareTo(bVal);
+          break;
+        case TarefaHabitoSortField.meta:
+          final aMeta = a.tarefasHabitosQtd.firstOrNull?.metaVezes ?? 0;
+          final bMeta = b.tarefasHabitosQtd.firstOrNull?.metaVezes ?? 0;
+          cmp = aMeta.compareTo(bMeta);
+          break;
+        case TarefaHabitoSortField.progresso:
+          final aQtd = a.tarefasHabitosQtd.firstOrNull;
+          final bQtd = b.tarefasHabitosQtd.firstOrNull;
+          final aProg = aQtd != null && aQtd.metaVezes > 0
+              ? (aQtd.vezesPraticado / aQtd.metaVezes)
+              : 0.0;
+          final bProg = bQtd != null && bQtd.metaVezes > 0
+              ? (bQtd.vezesPraticado / bQtd.metaVezes)
+              : 0.0;
+          cmp = aProg.compareTo(bProg);
+          break;
+        case TarefaHabitoSortField.proximidadeFimCiclo:
+          final aQtd = a.tarefasHabitosQtd.firstOrNull;
+          final bQtd = b.tarefasHabitosQtd.firstOrNull;
+          final aDur = aQtd != null
+              ? _getCycleRemainingDuration(aQtd)
+              : const Duration(days: 999999);
+          final bDur = bQtd != null
+              ? _getCycleRemainingDuration(bQtd)
+              : const Duration(days: 999999);
+          cmp = aDur.compareTo(bDur);
+          break;
+      }
+      return _sortAscending ? cmp : -cmp;
+    });
+  }
+
+  Widget _buildSortHeader() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    String fieldLabel = '';
+    switch (_sortField) {
+      case TarefaHabitoSortField.nome:
+        fieldLabel = 'Nome';
+        break;
+      case TarefaHabitoSortField.agendamento:
+        fieldLabel = 'Data de Agendamento';
+        break;
+      case TarefaHabitoSortField.categoria:
+        fieldLabel = 'Categoria';
+        break;
+      case TarefaHabitoSortField.valor:
+        fieldLabel = 'Valor';
+        break;
+      case TarefaHabitoSortField.meta:
+        fieldLabel = 'Meta';
+        break;
+      case TarefaHabitoSortField.progresso:
+        fieldLabel = 'Progresso';
+        break;
+      case TarefaHabitoSortField.proximidadeFimCiclo:
+        fieldLabel = 'Fim do Ciclo';
+        break;
+    }
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 8.0),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(
+            widget.onlyTipo == 'tarefa'
+                ? 'Minhas Tarefas'
+                : widget.onlyTipo == 'habito'
+                ? 'Meus Hábitos'
+                : 'Tarefas e Hábitos',
+            style: TextStyle(
+              fontSize: 15,
+              fontWeight: FontWeight.bold,
+              color: isDark ? Colors.white70 : Colors.black54,
+            ),
+          ),
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                'Ord.: $fieldLabel',
+                style: TextStyle(
+                  fontSize: 12,
+                  color: isDark ? Colors.white70 : Colors.black87,
+                ),
+              ),
+              PopupMenuButton<TarefaHabitoSortField>(
+                icon: const Icon(Icons.sort, size: 20),
+                tooltip: 'Escolher campo de ordenação',
+                onSelected: (field) {
+                  setState(() {
+                    _sortField = field;
+                  });
+                  _savePreferences();
+                },
+                itemBuilder: (context) => [
+                  const PopupMenuItem(
+                    value: TarefaHabitoSortField.nome,
+                    child: Text('Nome'),
+                  ),
+                  const PopupMenuItem(
+                    value: TarefaHabitoSortField.agendamento,
+                    child: Text('Data de Agendamento'),
+                  ),
+                  const PopupMenuItem(
+                    value: TarefaHabitoSortField.categoria,
+                    child: Text('Categoria'),
+                  ),
+                  const PopupMenuItem(
+                    value: TarefaHabitoSortField.valor,
+                    child: Text('Valor'),
+                  ),
+                  const PopupMenuItem(
+                    value: TarefaHabitoSortField.meta,
+                    child: Text('Meta de Vezes'),
+                  ),
+                  const PopupMenuItem(
+                    value: TarefaHabitoSortField.progresso,
+                    child: Text('Progresso'),
+                  ),
+                  const PopupMenuItem(
+                    value: TarefaHabitoSortField.proximidadeFimCiclo,
+                    child: Text('Proximidade do Fim de Ciclo'),
+                  ),
+                ],
+              ),
+              IconButton(
+                icon: Icon(
+                  _sortAscending ? Icons.arrow_upward : Icons.arrow_downward,
+                  size: 18,
+                ),
+                tooltip: _sortAscending
+                    ? 'Ordem Crescente'
+                    : 'Ordem Decrescente',
+                onPressed: () {
+                  setState(() {
+                    _sortAscending = !_sortAscending;
+                  });
+                  _savePreferences();
+                },
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _loadPreferences() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final savedFieldStr = prefs.getString('pref_tarefa_habito_sort_field');
+      final savedAscending = prefs.getBool('pref_tarefa_habito_sort_ascending');
+
+      if (savedFieldStr != null) {
+        final matchedField = TarefaHabitoSortField.values.firstWhere(
+          (e) => e.toString() == savedFieldStr,
+          orElse: () => TarefaHabitoSortField.nome,
+        );
+        setState(() {
+          _sortField = matchedField;
+        });
+      }
+      if (savedAscending != null) {
+        setState(() {
+          _sortAscending = savedAscending;
+        });
+      }
+    } catch (e) {
+      // Ignored
+    }
+  }
+
+  Future<void> _savePreferences() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(
+        'pref_tarefa_habito_sort_field',
+        _sortField.toString(),
+      );
+      await prefs.setBool('pref_tarefa_habito_sort_ascending', _sortAscending);
+    } catch (e) {
+      // Ignored
+    }
+  }
+
   final double width = 260.0;
   final double height = 120.0;
   static int? qtdItems;
@@ -48,6 +344,7 @@ class ListaHabitosTarefasWidgetState extends State<ListaHabitosTarefasWidget> {
     TarefasHabitosController.tarefasHabitosFuture = Core
         .tarefasHabitosController
         .loadDocuments();
+    _loadPreferences();
   }
 
   void _completeTask(String taskId) {
@@ -157,7 +454,7 @@ class ListaHabitosTarefasWidgetState extends State<ListaHabitosTarefasWidget> {
           return Observer(
             builder: (context) {
               final rawList = Core.tarefasHabitosController.tarefasHabitosList;
-              
+
               // Filter list based on onlyTipo parameter
               final list = rawList.where((item) {
                 if (widget.onlyTipo != null && item.tipo != widget.onlyTipo) {
@@ -165,345 +462,433 @@ class ListaHabitosTarefasWidgetState extends State<ListaHabitosTarefasWidget> {
                 }
                 if (item.tipo == 'tarefa') {
                   // Show tasks only if they are not completed OR are currently animating out
-                  return !item.concluida || _animatingCompletedTaskIds.contains(item.id);
+                  return !item.concluida ||
+                      _animatingCompletedTaskIds.contains(item.id);
                 }
                 return true;
               }).toList();
 
               if (list.isEmpty) {
-                return Center(
-                  child: Text(
-                    widget.onlyTipo == 'tarefa'
-                        ? 'Nenhuma tarefa pendente.'
-                        : widget.onlyTipo == 'habito'
-                            ? 'Nenhum hábito cadastrado.'
-                            : 'Nenhuma tarefa ou hábito cadastrado.',
-                    style: const TextStyle(fontSize: 16, color: Colors.grey),
-                  ),
+                return Column(
+                  children: [
+                    _buildSortHeader(),
+                    Expanded(
+                      child: Center(
+                        child: Text(
+                          widget.onlyTipo == 'tarefa'
+                              ? 'Nenhuma tarefa pendente.'
+                              : widget.onlyTipo == 'habito'
+                              ? 'Nenhum hábito cadastrado.'
+                              : 'Nenhuma tarefa ou hábito cadastrado.',
+                          style: const TextStyle(
+                            fontSize: 16,
+                            color: Colors.grey,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
                 );
               }
 
-              return Container(
-                padding: const EdgeInsets.all(16.0),
-                child: GridView.builder(
-                  gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
-                    maxCrossAxisExtent: width,
-                    mainAxisExtent: height,
-                    mainAxisSpacing: 10.0,
-                    crossAxisSpacing: 10.0,
-                  ),
-                  itemCount: list.length,
-                  itemBuilder: (itemContext, index) {
-                    final item = list[index];
-                    final qtd = item.tarefasHabitosQtd.firstOrNull;
-                    final double progress = qtd != null
-                        ? _calculateCycleProgress(qtd)
-                        : 0.0;
-                    final int animDurationMs = (3000 * (1.0 - progress))
-                        .clamp(300, 3000)
-                        .toInt();
+              _sortList(list);
 
-                    final bool metaBatida =
-                        item.tarefasHabitosQtd.isNotEmpty &&
-                        item.tarefasHabitosQtd.every(
-                          (el) => el.vezesPraticado >= el.metaVezes,
-                        );
-                    final bool showAnimation = progress >= 0.25 && !metaBatida && item.tipo == 'habito';
-                    final bool isAnimatingOut = _animatingCompletedTaskIds.contains(item.id);
+              return Column(
+                children: [
+                  _buildSortHeader(),
+                  Expanded(
+                    child: Container(
+                      padding: const EdgeInsets.all(16.0),
+                      child: GridView.builder(
+                        gridDelegate: MediaQuery.of(context).size.width < 600
+                            ? SliverGridDelegateWithFixedCrossAxisCount(
+                                crossAxisCount: 1,
+                                mainAxisExtent: height,
+                                mainAxisSpacing: 10.0,
+                                crossAxisSpacing: 10.0,
+                              )
+                            : SliverGridDelegateWithMaxCrossAxisExtent(
+                                maxCrossAxisExtent: width,
+                                mainAxisExtent: height,
+                                mainAxisSpacing: 10.0,
+                                crossAxisSpacing: 10.0,
+                              ),
+                        itemCount: list.length,
+                        itemBuilder: (itemContext, index) {
+                          final item = list[index];
+                          final qtd = item.tarefasHabitosQtd.firstOrNull;
+                          final double progress = qtd != null
+                              ? _calculateCycleProgress(qtd)
+                              : 0.0;
+                          final int animDurationMs = (3000 * (1.0 - progress))
+                              .clamp(300, 3000)
+                              .toInt();
 
-                    return LayoutBuilder(
-                      builder: (BuildContext layoutContext, BoxConstraints constraints) {
-                        return Observer(
-                          warnWhenNoObservables: true,
-                          name: 'tarefas_habitos',
-                          builder: (observerContext) {
-                            final List<Widget> children = [];
-                            final Color habitColor =
-                                Core.tarefasHabitosController.habitColor.value;
-                            final Color taskColor =
-                                Core.tarefasHabitosController.taskColor.value;
-
-                            for (
-                              int i = 0;
-                              i < item.tarefasHabitosQtd.length;
-                              i++
-                            ) {
-                              final int greaterMeta = item.tarefasHabitosQtd
-                                  .fold(
-                                    0,
-                                    (previousValue, el) =>
-                                        el.metaVezes > previousValue
-                                        ? el.metaVezes
-                                        : previousValue,
-                                  );
-                              final Color? liquidColor =
-                                  item.tarefasHabitosQtd.isNotEmpty
-                                  ? item
-                                        .tarefasHabitosQtd[i]
-                                        .categoriasTarefasHabitos
-                                        ?.cor
-                                  : null;
-
-                              final Color indicatorBgColor =
-                                  item.tipo == 'habito'
-                                  ? habitColor.withOpacity(0.08)
-                                  : taskColor.withOpacity(0.08);
-
-                              children.add(
-                                Expanded(
-                                  child: LiquidCustomProgressIndicator(
-                                    // For tasks, do not fill with color (keep progress at 0.0)
-                                    value: item.tipo == 'tarefa'
-                                        ? 0.0
-                                        : item
-                                                .tarefasHabitosQtd[i]
-                                                .vezesPraticado *
-                                            1.05 /
-                                            greaterMeta,
-                                    backgroundColor: indicatorBgColor,
-                                    valueColor: liquidColor != null
-                                        ? AlwaysStoppedAnimation(liquidColor)
-                                        : null,
-                                    direction: Axis.vertical,
-                                    shapePath: Path()
-                                      ..addRRect(
-                                        RRect.fromRectAndCorners(
-                                          Rect.fromLTWH(
-                                            i == 0 ? 5 : 0,
-                                            5,
-                                            ((constraints.maxWidth - 10) /
-                                                item.tarefasHabitosQtd.length),
-                                            constraints.maxHeight - 10,
-                                            ),
-                                          topLeft: Radius.circular(
-                                            i == 0 ? 20 : 0,
-                                          ),
-                                          topRight: Radius.circular(
-                                            i ==
-                                                    item
-                                                            .tarefasHabitosQtd
-                                                            .length -
-                                                        1
-                                                ? 20
-                                                : 0,
-                                          ),
-                                          bottomLeft: Radius.circular(
-                                            i == 0 ? 20 : 0,
-                                          ),
-                                          bottomRight: Radius.circular(
-                                            i ==
-                                                    item
-                                                            .tarefasHabitosQtd
-                                                            .length -
-                                                        1
-                                                ? 20
-                                                : 0,
-                                          ),
-                                        ),
-                                      ),
-                                  ),
-                                ),
+                          final bool metaBatida =
+                              item.tarefasHabitosQtd.isNotEmpty &&
+                              item.tarefasHabitosQtd.every(
+                                (el) => el.vezesPraticado >= el.metaVezes,
                               );
-                            }
+                          final bool showAnimation =
+                              progress >= 0.25 &&
+                              !metaBatida &&
+                              item.tipo == 'habito';
+                          final bool isAnimatingOut = _animatingCompletedTaskIds
+                              .contains(item.id);
 
-                            final cardWidget = Stack(
-                              children: [
-                                Row(children: children),
-                                Card(
-                                  clipBehavior: Clip.hardEdge,
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(22),
-                                    side: BorderSide(
-                                      color: item.tipo == 'habito'
-                                          ? habitColor.withOpacity(0.4)
-                                          : taskColor.withOpacity(0.4),
-                                      width: 1.5,
-                                    ),
-                                  ),
-                                  color: Colors.transparent,
-                                  child: InkWell(
-                                    onTap: () {
-                                      Routefly.pushNavigate(
-                                        routePaths
-                                            .capacitacao
-                                            .criarEditarHabitoTarefa,
-                                        arguments: {
-                                          'lastRoute': Routefly.currentUri.path,
-                                          'tarefaHabito': item,
-                                        },
-                                      );
-                                    },
-                                    child: Padding(
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 12.0,
-                                        vertical: 10.0,
-                                      ),
-                                      child: Row(
-                                        children: [
+                          return LayoutBuilder(
+                            builder:
+                                (
+                                  BuildContext layoutContext,
+                                  BoxConstraints constraints,
+                                ) {
+                                  return Observer(
+                                    warnWhenNoObservables: true,
+                                    name: 'tarefas_habitos',
+                                    builder: (observerContext) {
+                                      final List<Widget> children = [];
+                                      final Color habitColor = Core
+                                          .tarefasHabitosController
+                                          .habitColor
+                                          .value;
+                                      final Color taskColor = Core
+                                          .tarefasHabitosController
+                                          .taskColor
+                                          .value;
+
+                                      for (
+                                        int i = 0;
+                                        i < item.tarefasHabitosQtd.length;
+                                        i++
+                                      ) {
+                                        final int greaterMeta = item
+                                            .tarefasHabitosQtd
+                                            .fold(
+                                              0,
+                                              (previousValue, el) =>
+                                                  el.metaVezes > previousValue
+                                                  ? el.metaVezes
+                                                  : previousValue,
+                                            );
+                                        final Color? liquidColor =
+                                            item.tarefasHabitosQtd.isNotEmpty
+                                            ? item
+                                                  .tarefasHabitosQtd[i]
+                                                  .categoriasTarefasHabitos
+                                                  ?.cor
+                                            : null;
+
+                                        final Color indicatorBgColor =
+                                            item.tipo == 'habito'
+                                            ? habitColor.withOpacity(0.08)
+                                            : taskColor.withOpacity(0.08);
+
+                                        children.add(
                                           Expanded(
-                                            child: Column(
-                                              crossAxisAlignment:
-                                                  CrossAxisAlignment.start,
-                                              mainAxisAlignment:
-                                                  MainAxisAlignment
-                                                      .spaceBetween,
-                                              children: [
-                                                Row(
-                                                  mainAxisAlignment:
-                                                      MainAxisAlignment
-                                                          .spaceBetween,
+                                            child: LiquidCustomProgressIndicator(
+                                              // For tasks, do not fill with color (keep progress at 0.0)
+                                              value: item.tipo == 'tarefa'
+                                                  ? 0.0
+                                                  : item
+                                                            .tarefasHabitosQtd[i]
+                                                            .vezesPraticado *
+                                                        1.05 /
+                                                        greaterMeta,
+                                              backgroundColor: indicatorBgColor,
+                                              valueColor: liquidColor != null
+                                                  ? AlwaysStoppedAnimation(
+                                                      liquidColor,
+                                                    )
+                                                  : null,
+                                              direction: Axis.vertical,
+                                              shapePath: Path()
+                                                ..addRRect(
+                                                  RRect.fromRectAndCorners(
+                                                    Rect.fromLTWH(
+                                                      i == 0 ? 5 : 0,
+                                                      5,
+                                                      ((constraints.maxWidth -
+                                                              10) /
+                                                          item
+                                                              .tarefasHabitosQtd
+                                                              .length),
+                                                      constraints.maxHeight -
+                                                          10,
+                                                    ),
+                                                    topLeft: Radius.circular(
+                                                      i == 0 ? 20 : 0,
+                                                    ),
+                                                    topRight: Radius.circular(
+                                                      i ==
+                                                              item
+                                                                      .tarefasHabitosQtd
+                                                                      .length -
+                                                                  1
+                                                          ? 20
+                                                          : 0,
+                                                    ),
+                                                    bottomLeft: Radius.circular(
+                                                      i == 0 ? 20 : 0,
+                                                    ),
+                                                    bottomRight: Radius.circular(
+                                                      i ==
+                                                              item
+                                                                      .tarefasHabitosQtd
+                                                                      .length -
+                                                                  1
+                                                          ? 20
+                                                          : 0,
+                                                    ),
+                                                  ),
+                                                ),
+                                            ),
+                                          ),
+                                        );
+                                      }
+
+                                      final cardWidget = Stack(
+                                        children: [
+                                          Row(children: children),
+                                          Card(
+                                            clipBehavior: Clip.hardEdge,
+                                            shape: RoundedRectangleBorder(
+                                              borderRadius:
+                                                  BorderRadius.circular(22),
+                                              side: BorderSide(
+                                                color: item.tipo == 'habito'
+                                                    ? habitColor.withOpacity(
+                                                        0.4,
+                                                      )
+                                                    : taskColor.withOpacity(
+                                                        0.4,
+                                                      ),
+                                                width: 1.5,
+                                              ),
+                                            ),
+                                            color: Colors.transparent,
+                                            child: InkWell(
+                                              onTap: () {
+                                                Routefly.pushNavigate(
+                                                  routePaths
+                                                      .capacitacao
+                                                      .criarEditarHabitoTarefa,
+                                                  arguments: {
+                                                    'lastRoute': Routefly
+                                                        .currentUri
+                                                        .path,
+                                                    'tarefaHabito': item,
+                                                  },
+                                                );
+                                              },
+                                              child: Padding(
+                                                padding:
+                                                    const EdgeInsets.symmetric(
+                                                      horizontal: 12.0,
+                                                      vertical: 10.0,
+                                                    ),
+                                                child: Row(
                                                   children: [
                                                     Expanded(
-                                                      child: Text(
-                                                        item.nome,
-                                                        style: const TextStyle(
-                                                          fontWeight:
-                                                              FontWeight.bold,
-                                                          fontSize: 13.0,
-                                                        ),
-                                                        maxLines: 2,
-                                                        overflow: TextOverflow
-                                                            .ellipsis,
+                                                      child: Column(
+                                                        crossAxisAlignment:
+                                                            CrossAxisAlignment
+                                                                .start,
+                                                        mainAxisAlignment:
+                                                            MainAxisAlignment
+                                                                .spaceBetween,
+                                                        children: [
+                                                          Row(
+                                                            mainAxisAlignment:
+                                                                MainAxisAlignment
+                                                                    .spaceBetween,
+                                                            children: [
+                                                              Expanded(
+                                                                child: Text(
+                                                                  item.nome,
+                                                                  style: const TextStyle(
+                                                                    fontWeight:
+                                                                        FontWeight
+                                                                            .bold,
+                                                                    fontSize:
+                                                                        13.0,
+                                                                  ),
+                                                                  maxLines: 2,
+                                                                  overflow:
+                                                                      TextOverflow
+                                                                          .ellipsis,
+                                                                ),
+                                                              ),
+                                                              const SizedBox(
+                                                                width: 4.0,
+                                                              ),
+                                                              // Subtle Type Badge
+                                                              Container(
+                                                                padding:
+                                                                    const EdgeInsets.symmetric(
+                                                                      horizontal:
+                                                                          6.0,
+                                                                      vertical:
+                                                                          2.0,
+                                                                    ),
+                                                                decoration: BoxDecoration(
+                                                                  color:
+                                                                      (item.tipo ==
+                                                                                  'habito'
+                                                                              ? habitColor
+                                                                              : taskColor)
+                                                                          .withOpacity(
+                                                                            0.2,
+                                                                          ),
+                                                                  borderRadius:
+                                                                      BorderRadius.circular(
+                                                                        8.0,
+                                                                      ),
+                                                                ),
+                                                                child: Text(
+                                                                  item.tipo ==
+                                                                          'habito'
+                                                                      ? 'Hábito'
+                                                                      : 'Tarefa',
+                                                                  style: TextStyle(
+                                                                    fontSize:
+                                                                        8.5,
+                                                                    fontWeight:
+                                                                        FontWeight
+                                                                            .bold,
+                                                                    color:
+                                                                        item.tipo ==
+                                                                            'habito'
+                                                                        ? habitColor
+                                                                        : taskColor,
+                                                                  ),
+                                                                ),
+                                                              ),
+                                                            ],
+                                                          ),
+                                                          const SizedBox(
+                                                            height: 2.0,
+                                                          ),
+                                                          if (item.tipo ==
+                                                                  'tarefa' &&
+                                                              item.agendamento !=
+                                                                  null) ...[
+                                                            Row(
+                                                              children: [
+                                                                const Icon(
+                                                                  Icons
+                                                                      .calendar_today,
+                                                                  size: 11.0,
+                                                                  color: Colors
+                                                                      .black54,
+                                                                ),
+                                                                const SizedBox(
+                                                                  width: 4.0,
+                                                                ),
+                                                                Text(
+                                                                  '${item.agendamento!.day.toString().padLeft(2, '0')}/${item.agendamento!.month.toString().padLeft(2, '0')} ${item.agendamento!.hour.toString().padLeft(2, '0')}:${item.agendamento!.minute.toString().padLeft(2, '0')}',
+                                                                  style: const TextStyle(
+                                                                    fontSize:
+                                                                        10.0,
+                                                                    color: Colors
+                                                                        .white54,
+                                                                  ),
+                                                                ),
+                                                              ],
+                                                            ),
+                                                          ],
+                                                          const SizedBox(
+                                                            height: 2.0,
+                                                          ),
+                                                          if (item.tipo ==
+                                                              'habito')
+                                                            Text(
+                                                              _getProgressText(
+                                                                item,
+                                                              ),
+                                                              style: const TextStyle(
+                                                                fontSize: 11.5,
+                                                                fontWeight:
+                                                                    FontWeight
+                                                                        .w500,
+                                                                color: Colors
+                                                                    .white70,
+                                                              ),
+                                                            ),
+                                                        ],
                                                       ),
                                                     ),
                                                     const SizedBox(width: 4.0),
-                                                    // Subtle Type Badge
-                                                    Container(
-                                                      padding:
-                                                          const EdgeInsets.symmetric(
-                                                            horizontal: 6.0,
-                                                            vertical: 2.0,
-                                                          ),
-                                                      decoration: BoxDecoration(
+                                                    IconButton(
+                                                      padding: EdgeInsets.zero,
+                                                      constraints:
+                                                          const BoxConstraints(),
+                                                      onPressed: () {
+                                                        if (item.tipo ==
+                                                            'tarefa') {
+                                                          _completeTask(
+                                                            item.id,
+                                                          );
+                                                        } else {
+                                                          Core.tarefasHabitosController
+                                                              .incrementQtdHabito(
+                                                                item.id,
+                                                              );
+                                                        }
+                                                      },
+                                                      icon: Icon(
+                                                        item.tipo == 'tarefa'
+                                                            ? Icons
+                                                                  .check_circle_outline
+                                                            : Icons.add_circle,
+                                                        size: 32.0,
                                                         color:
-                                                            (item.tipo ==
-                                                                        'habito'
-                                                                    ? habitColor
-                                                                    : taskColor)
-                                                                .withOpacity(
-                                                                  0.2,
-                                                                ),
-                                                        borderRadius:
-                                                            BorderRadius.circular(
-                                                              8.0,
-                                                            ),
-                                                      ),
-                                                      child: Text(
-                                                        item.tipo == 'habito'
-                                                            ? 'Hábito'
-                                                            : 'Tarefa',
-                                                        style: TextStyle(
-                                                          fontSize: 8.5,
-                                                          fontWeight:
-                                                              FontWeight.bold,
-                                                          color:
-                                                              item.tipo ==
-                                                                  'habito'
-                                                              ? habitColor
-                                                              : taskColor,
-                                                        ),
+                                                            item.tipo ==
+                                                                'habito'
+                                                            ? habitColor
+                                                            : taskColor,
                                                       ),
                                                     ),
                                                   ],
                                                 ),
-                                                const SizedBox(height: 2.0),
-                                                if (item.tipo == 'tarefa' &&
-                                                    item.agendamento !=
-                                                        null) ...[
-                                                  Row(
-                                                    children: [
-                                                      const Icon(
-                                                        Icons.calendar_today,
-                                                        size: 11.0,
-                                                        color: Colors.black54,
-                                                      ),
-                                                      const SizedBox(
-                                                        width: 4.0,
-                                                      ),
-                                                      Text(
-                                                        '${item.agendamento!.day.toString().padLeft(2, '0')}/${item.agendamento!.month.toString().padLeft(2, '0')} ${item.agendamento!.hour.toString().padLeft(2, '0')}:${item.agendamento!.minute.toString().padLeft(2, '0')}',
-                                                        style: const TextStyle(
-                                                          fontSize: 10.0,
-                                                          color: Colors.white54,
-                                                        ),
-                                                      ),
-                                                    ],
-                                                  ),
-                                                ],
-                                                const SizedBox(height: 2.0),
-                                                if (item.tipo == 'habito')
-                                                  Text(
-                                                    _getProgressText(item),
-                                                    style: const TextStyle(
-                                                      fontSize: 11.5,
-                                                      fontWeight:
-                                                          FontWeight.w500,
-                                                      color: Colors.white70,
-                                                    ),
-                                                  ),
-                                              ],
-                                            ),
-                                          ),
-                                          const SizedBox(width: 4.0),
-                                          IconButton(
-                                            padding: EdgeInsets.zero,
-                                            constraints: const BoxConstraints(),
-                                            onPressed: () {
-                                              if (item.tipo == 'tarefa') {
-                                                _completeTask(item.id);
-                                              } else {
-                                                Core.tarefasHabitosController
-                                                    .incrementQtdHabito(item.id);
-                                              }
-                                            },
-                                            icon: Icon(
-                                              item.tipo == 'tarefa'
-                                                  ? Icons.check_circle_outline
-                                                  : Icons.add_circle,
-                                              size: 32.0,
-                                              color: item.tipo == 'habito'
-                                                  ? habitColor
-                                                  : taskColor,
+                                              ),
                                             ),
                                           ),
                                         ],
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            );
+                                      );
 
-                            if (isAnimatingOut) {
-                              return cardWidget
-                                  .animate()
-                                  .fade(
-                                    begin: 1.0,
-                                    end: 0.0,
-                                    duration: const Duration(milliseconds: 500),
+                                      if (isAnimatingOut) {
+                                        return cardWidget.animate().fade(
+                                          begin: 1.0,
+                                          end: 0.0,
+                                          duration: const Duration(
+                                            milliseconds: 500,
+                                          ),
+                                        );
+                                      } else if (showAnimation) {
+                                        return cardWidget
+                                            .animate(
+                                              onPlay: (controller) => controller
+                                                  .repeat(reverse: true),
+                                            )
+                                            .fade(
+                                              begin: 1.0,
+                                              end: 0.1,
+                                              duration: Duration(
+                                                milliseconds: animDurationMs,
+                                              ),
+                                            );
+                                      } else {
+                                        return cardWidget;
+                                      }
+                                    },
                                   );
-                            } else if (showAnimation) {
-                              return cardWidget
-                                  .animate(
-                                    onPlay: (controller) =>
-                                        controller.repeat(reverse: true),
-                                  )
-                                  .fade(
-                                    begin: 1.0,
-                                    end: 0.1,
-                                    duration: Duration(
-                                      milliseconds: animDurationMs,
-                                    ),
-                                  );
-                            } else {
-                              return cardWidget;
-                            }
-                          },
-                        );
-                      },
-                    );
-                  },
-                ),
+                                },
+                          );
+                        },
+                      ),
+                    ),
+                  ),
+                ],
               );
             },
           );

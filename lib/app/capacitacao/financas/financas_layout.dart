@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_expandable_fab/flutter_expandable_fab.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
@@ -20,6 +22,11 @@ class _FinancasLayoutState extends State<FinancasLayout>
     with SingleTickerProviderStateMixin {
   bool _mostrarDivisoes = false;
   DateTime _selectedMonth = DateTime.now();
+  DateTime _appliedMonth = DateTime.now();
+  bool _isMonthChanging = false;
+  Timer? _monthChangeTimer;
+  String _descricaoQuery = '';
+  final TextEditingController _descricaoFilterController = TextEditingController();
   bool _somarAcumulado = false;
   final Set<String> _selectedContas = {};
   final Set<String> _selectedTransIds = {};
@@ -59,6 +66,8 @@ class _FinancasLayoutState extends State<FinancasLayout>
   void dispose() {
     _tabController.dispose();
     _transacoesScrollController.dispose();
+    _monthChangeTimer?.cancel();
+    _descricaoFilterController.dispose();
     super.dispose();
   }
 
@@ -284,6 +293,24 @@ class _FinancasLayoutState extends State<FinancasLayout>
     );
   }
 
+  void _onMonthChanged(DateTime newMonth) {
+    setState(() {
+      _selectedMonth = newMonth;
+      _isMonthChanging = true;
+    });
+
+    _monthChangeTimer?.cancel();
+    _monthChangeTimer = Timer(const Duration(seconds: 2), () {
+      if (!mounted) return;
+      setState(() {
+        _appliedMonth = _selectedMonth;
+        _isMonthChanging = false;
+        FinancasController.financasFuture = Core.financasController
+            .loadDocuments(selectedMonth: _appliedMonth);
+      });
+    });
+  }
+
   bool _anyFilterActive() {
     return _selectedContas.isNotEmpty ||
         _selectedCategorias.isNotEmpty ||
@@ -457,114 +484,138 @@ class _FinancasLayoutState extends State<FinancasLayout>
                   }
 
                   // Apply Month filter
+                  final query = _descricaoQuery.trim().toLowerCase();
                   final filteredTransList = accountFilteredList
                       .where(
                         (t) =>
-                            t.dataCompetencia.year == _selectedMonth.year &&
-                            t.dataCompetencia.month == _selectedMonth.month,
+                            t.dataCompetencia.year == _appliedMonth.year &&
+                            t.dataCompetencia.month == _appliedMonth.month &&
+                            (query.isEmpty || t.descricao.toLowerCase().contains(query)),
                       )
                       .toList();
 
                   Widget mainContent;
 
-                  if (filteredTransList.isEmpty) {
-                    mainContent = Column(
-                      children: [
-                        _buildMonthSelector(),
-                        const Expanded(
-                          child: Center(
-                            child: Text(
-                              'Nenhuma transação encontrada para este mês.',
-                            ),
-                          ),
-                        ),
-                      ],
-                    );
-                  } else {
-                    final grouped = _agruparPorDia(filteredTransList);
-                    final Map<String, double> saldosDiarios =
-                        _calcularSaldosDiarios(
-                          grouped,
-                          accountFilteredList,
-                          activeUser,
-                        );
+                  final grouped = _agruparPorDia(filteredTransList);
+                  final Map<String, double> saldosDiarios =
+                      _calcularSaldosDiarios(
+                        grouped,
+                        accountFilteredList,
+                        activeUser,
+                      );
 
-                    mainContent = Column(
-                      children: [
-                        _buildMonthSelector(),
-                        if (filteredTransList.isNotEmpty)
-                          Padding(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 16.0,
-                              vertical: 4.0,
+                  mainContent = Column(
+                    children: [
+                      _buildMonthSelector(),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16.0,
+                          vertical: 4.0,
+                        ),
+                        child: Row(
+                          children: [
+                            Checkbox(
+                              value: _selectedTransIds.isEmpty
+                                  ? false
+                                  : (_selectedTransIds.length ==
+                                            filteredTransList.length
+                                        ? true
+                                        : null),
+                              tristate: true,
+                              onChanged: (val) {
+                                setState(() {
+                                  if (val == true) {
+                                    _selectedTransIds.addAll(
+                                      filteredTransList.map((t) => t.id),
+                                    );
+                                  } else {
+                                    _selectedTransIds.clear();
+                                  }
+                                });
+                              },
                             ),
-                            child: Row(
-                              children: [
-                                Checkbox(
-                                  value: _selectedTransIds.isEmpty
-                                      ? false
-                                      : (_selectedTransIds.length ==
-                                                filteredTransList.length
-                                            ? true
-                                            : null),
-                                  tristate: true,
+                            const Text(
+                              'Selecionar tudo',
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                color: Colors.grey,
+                              ),
+                            ),
+                            Expanded(
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(horizontal: 12.0),
+                                child: TextField(
+                                  controller: _descricaoFilterController,
+                                  decoration: const InputDecoration(
+                                    hintText: 'Filtrar por descrição...',
+                                    prefixIcon: Icon(Icons.search, size: 18),
+                                    isDense: true,
+                                    contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                                    border: OutlineInputBorder(
+                                      borderRadius: BorderRadius.all(Radius.circular(8)),
+                                    ),
+                                  ),
                                   onChanged: (val) {
                                     setState(() {
-                                      if (val == true) {
-                                        _selectedTransIds.addAll(
-                                          filteredTransList.map((t) => t.id),
-                                        );
-                                      } else {
-                                        _selectedTransIds.clear();
-                                      }
+                                      _descricaoQuery = val;
                                     });
                                   },
                                 ),
-                                const Text(
-                                  'Selecionar tudo',
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.grey,
-                                  ),
-                                ),
-                                const Spacer(),
-                                if (_selectedTransIds.isNotEmpty)
-                                  Text(
-                                    '${_selectedTransIds.length} selecionadas',
-                                    style: const TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                      color: Colors.blueGrey,
-                                    ),
-                                  ),
-                              ],
-                            ),
-                          ),
-                        Expanded(
-                          child: Scrollbar(
-                            controller: _transacoesScrollController,
-                            thumbVisibility: true,
-                            interactive: true,
-                            child: SingleChildScrollView(
-                              controller: _transacoesScrollController,
-                              padding: const EdgeInsets.only(bottom: 80.0),
-                              child: Column(
-                                children: [
-                                  for (final dateKey in grouped.keys)
-                                    _buildDayGroup(
-                                      context: context,
-                                      dateKey: dateKey,
-                                      dayTrans: grouped[dateKey]!,
-                                      saldosDiarios: saldosDiarios,
-                                      activeUser: activeUser,
-                                    ),
-                                ],
                               ),
                             ),
-                          ),
+                            if (_selectedTransIds.isNotEmpty)
+                              Text(
+                                '${_selectedTransIds.length} selecionadas',
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.blueGrey,
+                                ),
+                              ),
+                          ],
                         ),
-                      ],
-                    );
-                  }
+                      ),
+                      Expanded(
+                        child: Stack(
+                          children: [
+                            filteredTransList.isEmpty
+                                ? const Center(
+                                    child: Text(
+                                      'Nenhuma transação encontrada.',
+                                    ),
+                                  )
+                                : Scrollbar(
+                                    controller: _transacoesScrollController,
+                                    thumbVisibility: true,
+                                    interactive: true,
+                                    child: SingleChildScrollView(
+                                      controller: _transacoesScrollController,
+                                      padding: const EdgeInsets.only(bottom: 80.0),
+                                      child: Column(
+                                        children: [
+                                          for (final dateKey in grouped.keys)
+                                            _buildDayGroup(
+                                              context: context,
+                                              dateKey: dateKey,
+                                              dayTrans: grouped[dateKey]!,
+                                              saldosDiarios: saldosDiarios,
+                                              activeUser: activeUser,
+                                            ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                            if (_isMonthChanging)
+                              Container(
+                                color: Colors.black.withOpacity(0.3),
+                                child: const Center(
+                                  child: CircularProgressIndicator(),
+                                ),
+                              ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  );
 
                   return Row(
                     children: [
@@ -974,28 +1025,18 @@ class _FinancasLayoutState extends State<FinancasLayout>
                   tooltip: 'Mês anterior',
                   icon: const Icon(Icons.chevron_left),
                   onPressed: () {
-                    setState(() {
-                      _selectedMonth = DateTime(
-                        _selectedMonth.year,
-                        _selectedMonth.month - 1,
-                        1,
-                      );
-                      FinancasController.financasFuture = Core
-                          .financasController
-                          .loadDocuments(selectedMonth: _selectedMonth);
-                    });
+                    _onMonthChanged(DateTime(
+                      _selectedMonth.year,
+                      _selectedMonth.month - 1,
+                      1,
+                    ));
                   },
                 ),
                 IconButton(
                   tooltip: 'Mês atual',
                   icon: const Icon(Icons.today, color: Colors.blue),
                   onPressed: () {
-                    setState(() {
-                      _selectedMonth = DateTime.now();
-                      FinancasController.financasFuture = Core
-                          .financasController
-                          .loadDocuments(selectedMonth: _selectedMonth);
-                    });
+                    _onMonthChanged(DateTime.now());
                   },
                 ),
               ],
@@ -1027,15 +1068,11 @@ class _FinancasLayoutState extends State<FinancasLayout>
               tooltip: 'Próximo mês',
               icon: const Icon(Icons.chevron_right),
               onPressed: () {
-                setState(() {
-                  _selectedMonth = DateTime(
-                    _selectedMonth.year,
-                    _selectedMonth.month + 1,
-                    1,
-                  );
-                  FinancasController.financasFuture = Core.financasController
-                      .loadDocuments(selectedMonth: _selectedMonth);
-                });
+                _onMonthChanged(DateTime(
+                  _selectedMonth.year,
+                  _selectedMonth.month + 1,
+                  1,
+                ));
               },
             ),
           ],
@@ -1111,12 +1148,7 @@ class _FinancasLayoutState extends State<FinancasLayout>
                         _selectedMonth.month == monthIndex;
                     return InkWell(
                       onTap: () {
-                        setState(() {
-                          _selectedMonth = DateTime(tempYear, monthIndex, 1);
-                          FinancasController.financasFuture = Core
-                              .financasController
-                              .loadDocuments(selectedMonth: _selectedMonth);
-                        });
+                        _onMonthChanged(DateTime(tempYear, monthIndex, 1));
                         Navigator.of(context).pop();
                       },
                       borderRadius: BorderRadius.circular(8),
@@ -1723,6 +1755,8 @@ class _FinancasLayoutState extends State<FinancasLayout>
                   _selectedContatos.clear();
                   _mostrarDivisoes = false;
                   _somarAcumulado = false;
+                  _descricaoQuery = '';
+                  _descricaoFilterController.clear();
                 });
               },
               child: const Text('Limpar Filtros'),
