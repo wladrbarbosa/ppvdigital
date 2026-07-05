@@ -297,23 +297,23 @@ class ListaHabitosTarefasWidgetState extends State<ListaHabitosTarefasWidget> {
   Future<void> _loadPreferences() async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      final savedFieldStr = prefs.getString('pref_tarefa_habito_sort_field');
-      final savedAscending = prefs.getBool('pref_tarefa_habito_sort_ascending');
+      final keySuffix = widget.onlyTipo ?? 'all';
+      final savedFieldStr = prefs.getString('pref_tarefa_habito_sort_field_$keySuffix');
+      final savedAscending = prefs.getBool('pref_tarefa_habito_sort_ascending_$keySuffix');
 
-      if (savedFieldStr != null) {
-        final matchedField = TarefaHabitoSortField.values.firstWhere(
-          (e) => e.toString() == savedFieldStr,
-          orElse: () => TarefaHabitoSortField.nome,
-        );
-        setState(() {
-          _sortField = matchedField;
-        });
-      }
-      if (savedAscending != null) {
-        setState(() {
+      if (!mounted) return;
+
+      setState(() {
+        if (savedFieldStr != null) {
+          _sortField = TarefaHabitoSortField.values.firstWhere(
+            (e) => e.toString() == savedFieldStr,
+            orElse: () => TarefaHabitoSortField.nome,
+          );
+        }
+        if (savedAscending != null) {
           _sortAscending = savedAscending;
-        });
-      }
+        }
+      });
     } catch (e) {
       // Ignored
     }
@@ -322,11 +322,12 @@ class ListaHabitosTarefasWidgetState extends State<ListaHabitosTarefasWidget> {
   Future<void> _savePreferences() async {
     try {
       final prefs = await SharedPreferences.getInstance();
+      final keySuffix = widget.onlyTipo ?? 'all';
       await prefs.setString(
-        'pref_tarefa_habito_sort_field',
+        'pref_tarefa_habito_sort_field_$keySuffix',
         _sortField.toString(),
       );
-      await prefs.setBool('pref_tarefa_habito_sort_ascending', _sortAscending);
+      await prefs.setBool('pref_tarefa_habito_sort_ascending_$keySuffix', _sortAscending);
     } catch (e) {
       // Ignored
     }

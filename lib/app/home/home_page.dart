@@ -66,7 +66,9 @@ class _HomePageState extends State<HomePage> {
           ),
           behavior: SnackBarBehavior.floating,
           duration: const Duration(seconds: 2),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10),
+          ),
         ),
       );
     }
@@ -89,35 +91,43 @@ class _HomePageState extends State<HomePage> {
           final double normalRadius = isMobile ? 65.0 : 90.0;
           final double touchedRadius = isMobile ? 80.0 : 105.0;
 
-          final List<PieChartSectionData> sliceList = List.generate(categories.length, (i) {
-            final isTouched = touchedIndex == i;
-            final cat = categories[i];
-            return PieChartSectionData(
-              radius: isTouched ? touchedRadius : normalRadius,
-              showTitle: false, // Clean look, title in legend/list
-              color: cat['color'] as Color,
-              value: 20.0, // Equal sections
-              badgeWidget: isTouched
-                  ? Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: Colors.black87,
-                        borderRadius: BorderRadius.circular(8),
-                        boxShadow: const [BoxShadow(color: Colors.black26, blurRadius: 4)],
-                      ),
-                      child: Text(
-                        cat['title'] as String,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 10,
-                          fontWeight: FontWeight.bold,
+          final List<PieChartSectionData> sliceList = List.generate(
+            categories.length,
+            (i) {
+              final isTouched = touchedIndex == i;
+              final cat = categories[i];
+              return PieChartSectionData(
+                radius: isTouched ? touchedRadius : normalRadius,
+                showTitle: false, // Clean look, title in legend/list
+                color: cat['color'] as Color,
+                value: 20.0, // Equal sections
+                badgeWidget: isTouched
+                    ? Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 4,
                         ),
-                      ),
-                    )
-                  : null,
-              badgePositionPercentageOffset: 0.9,
-            );
-          });
+                        decoration: BoxDecoration(
+                          color: Colors.black87,
+                          borderRadius: BorderRadius.circular(8),
+                          boxShadow: const [
+                            BoxShadow(color: Colors.black26, blurRadius: 4),
+                          ],
+                        ),
+                        child: Text(
+                          cat['title'] as String,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      )
+                    : null,
+                badgePositionPercentageOffset: 0.9,
+              );
+            },
+          );
 
           final chartWidget = Center(
             child: SizedBox(
@@ -135,7 +145,8 @@ class _HomePageState extends State<HomePage> {
                           return;
                         }
                         touchedIndex = pieTouchResponse
-                            .touchedSection!.touchedSectionIndex;
+                            .touchedSection!
+                            .touchedSectionIndex;
 
                         if (event is FlTapUpEvent) {
                           if (touchedIndex >= 0) {
@@ -179,7 +190,10 @@ class _HomePageState extends State<HomePage> {
                     borderRadius: BorderRadius.circular(12),
                     onTap: () => _handleCategoryAction(i),
                     child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 14.0),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16.0,
+                        vertical: 14.0,
+                      ),
                       child: Row(
                         children: [
                           Container(
@@ -208,10 +222,15 @@ class _HomePageState extends State<HomePage> {
                                     if (cat['available'] == true) ...[
                                       const SizedBox(width: 8),
                                       Container(
-                                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 6,
+                                          vertical: 2,
+                                        ),
                                         decoration: BoxDecoration(
                                           color: baseColor.withOpacity(0.2),
-                                          borderRadius: BorderRadius.circular(6),
+                                          borderRadius: BorderRadius.circular(
+                                            6,
+                                          ),
                                         ),
                                         child: Text(
                                           'Ativo',
@@ -238,7 +257,9 @@ class _HomePageState extends State<HomePage> {
                           ),
                           Icon(
                             Icons.chevron_right,
-                            color: isSelected ? baseColor : Theme.of(context).hintColor,
+                            color: isSelected
+                                ? baseColor
+                                : Theme.of(context).hintColor,
                           ),
                         ],
                       ),
@@ -257,7 +278,11 @@ class _HomePageState extends State<HomePage> {
                 children: [
                   const Text(
                     'Selecione uma área para navegar',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.grey),
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.grey,
+                    ),
                   ),
                   const SizedBox(height: 20),
                   chartWidget,
@@ -281,7 +306,11 @@ class _HomePageState extends State<HomePage> {
                         children: [
                           const Text(
                             'Selecione uma área para navegar',
-                            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.grey),
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.grey,
+                            ),
                           ),
                           const SizedBox(height: 32),
                           chartWidget,
