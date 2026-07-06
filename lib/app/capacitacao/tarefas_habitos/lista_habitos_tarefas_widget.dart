@@ -649,6 +649,7 @@ class ListaHabitosTarefasWidgetState extends State<ListaHabitosTarefasWidget> {
                                           .tarefasHabitosController
                                           .taskColor
                                           .value;
+                                      final categoria = item.tarefasHabitosQtd.firstOrNull?.categoriasTarefasHabitos;
 
                                       for (
                                         int i = 0;
@@ -887,6 +888,37 @@ class ListaHabitosTarefasWidgetState extends State<ListaHabitosTarefasWidget> {
                                                               ],
                                                             ],
                                                           ),
+                                                          if (item.tipo == 'tarefa' && categoria != null) ...[
+                                                            const SizedBox(
+                                                              height: 4.0,
+                                                            ),
+                                                            Row(
+                                                              children: [
+                                                                Container(
+                                                                  padding: const EdgeInsets.symmetric(
+                                                                    horizontal: 6.0,
+                                                                    vertical: 2.0,
+                                                                  ),
+                                                                  decoration: BoxDecoration(
+                                                                    color: categoria.cor.withOpacity(0.15),
+                                                                    borderRadius: BorderRadius.circular(6.0),
+                                                                    border: Border.all(
+                                                                      color: categoria.cor.withOpacity(0.5),
+                                                                      width: 1.0,
+                                                                    ),
+                                                                  ),
+                                                                  child: Text(
+                                                                    categoria.nome,
+                                                                    style: TextStyle(
+                                                                      fontSize: 10.0,
+                                                                      fontWeight: FontWeight.bold,
+                                                                      color: categoria.cor,
+                                                                    ),
+                                                                  ),
+                                                                ),
+                                                              ],
+                                                            ),
+                                                          ],
                                                           const SizedBox(
                                                             height: 2.0,
                                                           ),

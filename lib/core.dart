@@ -63,5 +63,5 @@ class Core {
   static CategoriasController categoriasController = CategoriasController();
   static FinancasController financasController = FinancasController();
   static GlobalKey<TarefasPageState> globalKey = GlobalKey<TarefasPageState>();
-  static const String appVersion = 'b0.13.0+1';
+  static const String appVersion = 'b0.16.0+1';
 }
