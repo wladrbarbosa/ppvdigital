@@ -109,6 +109,7 @@ class FinancasController {
           tableId: Core.tableContas, // contas
           queries: [
             Query.equal('userId', [user]),
+            Query.limit(5000),
           ],
         );
         _contasList.clear();
@@ -122,6 +123,7 @@ class FinancasController {
           tableId: Core.tableCategoriasTransacoes,
           queries: [
             Query.equal('userId', [user]),
+            Query.limit(5000),
           ],
         );
         _categoriasList.clear();

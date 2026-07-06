@@ -285,6 +285,7 @@ class TarefasHabitosController {
             Query.equal('usuario', [
               Core.loginController.currentUser?.$id ?? '',
             ]),
+            Query.limit(5000),
           ],
         );
 

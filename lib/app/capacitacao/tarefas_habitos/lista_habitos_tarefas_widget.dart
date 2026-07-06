@@ -298,8 +298,10 @@ class ListaHabitosTarefasWidgetState extends State<ListaHabitosTarefasWidget> {
     try {
       final prefs = await SharedPreferences.getInstance();
       final keySuffix = widget.onlyTipo ?? 'all';
-      debugPrint('SORT PERSISTENCE: Loading preferences. Available keys in SharedPreferences: ${prefs.getKeys()}');
-      
+      debugPrint(
+        'SORT PERSISTENCE: Loading preferences. Available keys in SharedPreferences: ${prefs.getKeys()}',
+      );
+
       final savedFieldIndexStr = prefs.getString(
         'pref_tarefa_habito_sort_field_index_str_$keySuffix',
       );
@@ -310,7 +312,9 @@ class ListaHabitosTarefasWidgetState extends State<ListaHabitosTarefasWidget> {
         'pref_tarefa_habito_sort_ascending_str_$keySuffix',
       );
 
-      debugPrint('SORT PERSISTENCE: Loaded raw values - savedFieldIndexStr: $savedFieldIndexStr, savedFieldStr: $savedFieldStr, savedAscendingStr: $savedAscendingStr');
+      debugPrint(
+        'SORT PERSISTENCE: Loaded raw values - savedFieldIndexStr: $savedFieldIndexStr, savedFieldStr: $savedFieldStr, savedAscendingStr: $savedAscendingStr',
+      );
 
       if (!mounted) return;
 
@@ -342,7 +346,9 @@ class ListaHabitosTarefasWidgetState extends State<ListaHabitosTarefasWidget> {
           }
         }
       });
-      debugPrint('SORT PERSISTENCE: Set state applied - field: $_sortField, ascending: $_sortAscending');
+      debugPrint(
+        'SORT PERSISTENCE: Set state applied - field: $_sortField, ascending: $_sortAscending',
+      );
     } catch (e) {
       debugPrint('SORT PERSISTENCE: Error loading preferences: $e');
     }
@@ -352,8 +358,10 @@ class ListaHabitosTarefasWidgetState extends State<ListaHabitosTarefasWidget> {
     try {
       final prefs = await SharedPreferences.getInstance();
       final keySuffix = widget.onlyTipo ?? 'all';
-      
-      debugPrint('SORT PERSISTENCE: Saving preferences. Current values - field: $_sortField (index: ${_sortField.index}), ascending: $_sortAscending');
+
+      debugPrint(
+        'SORT PERSISTENCE: Saving preferences. Current values - field: $_sortField (index: ${_sortField.index}), ascending: $_sortAscending',
+      );
 
       await prefs.setString(
         'pref_tarefa_habito_sort_field_index_str_$keySuffix',
@@ -642,67 +650,70 @@ class ListaHabitosTarefasWidgetState extends State<ListaHabitosTarefasWidget> {
                                             ? habitColor.withOpacity(0.08)
                                             : taskColor.withOpacity(0.08);
 
-                                        children.add(
-                                          Expanded(
-                                            child: LiquidCustomProgressIndicator(
-                                              // For tasks, do not fill with color (keep progress at 0.0)
-                                              value: item.tipo == 'tarefa'
-                                                  ? 0.0
-                                                  : item
-                                                            .tarefasHabitosQtd[i]
-                                                            .vezesPraticado *
-                                                        1.05 /
-                                                        greaterMeta,
-                                              backgroundColor: indicatorBgColor,
-                                              valueColor: liquidColor != null
-                                                  ? AlwaysStoppedAnimation(
-                                                      liquidColor,
-                                                    )
-                                                  : null,
-                                              direction: Axis.vertical,
-                                              shapePath: Path()
-                                                ..addRRect(
-                                                  RRect.fromRectAndCorners(
-                                                    Rect.fromLTWH(
-                                                      i == 0 ? 5 : 0,
-                                                      5,
-                                                      ((constraints.maxWidth -
-                                                              10) /
-                                                          item
-                                                              .tarefasHabitosQtd
-                                                              .length),
-                                                      constraints.maxHeight -
-                                                          10,
-                                                    ),
-                                                    topLeft: Radius.circular(
-                                                      i == 0 ? 20 : 0,
-                                                    ),
-                                                    topRight: Radius.circular(
-                                                      i ==
-                                                              item
-                                                                      .tarefasHabitosQtd
-                                                                      .length -
-                                                                  1
-                                                          ? 20
-                                                          : 0,
-                                                    ),
-                                                    bottomLeft: Radius.circular(
-                                                      i == 0 ? 20 : 0,
-                                                    ),
-                                                    bottomRight: Radius.circular(
-                                                      i ==
-                                                              item
-                                                                      .tarefasHabitosQtd
-                                                                      .length -
-                                                                  1
-                                                          ? 20
-                                                          : 0,
+                                        // Para tarefas, não preencher com cor (manter progresso em 0.0)
+                                        if (item.tipo == 'habito') {
+                                          children.add(
+                                            Expanded(
+                                              child: LiquidCustomProgressIndicator(
+                                                value:
+                                                    item
+                                                        .tarefasHabitosQtd[i]
+                                                        .vezesPraticado *
+                                                    1.05 /
+                                                    greaterMeta,
+                                                backgroundColor:
+                                                    indicatorBgColor,
+                                                valueColor: liquidColor != null
+                                                    ? AlwaysStoppedAnimation(
+                                                        liquidColor,
+                                                      )
+                                                    : null,
+                                                direction: Axis.vertical,
+                                                shapePath: Path()
+                                                  ..addRRect(
+                                                    RRect.fromRectAndCorners(
+                                                      Rect.fromLTWH(
+                                                        i == 0 ? 5 : 0,
+                                                        5,
+                                                        ((constraints.maxWidth -
+                                                                10) /
+                                                            item
+                                                                .tarefasHabitosQtd
+                                                                .length),
+                                                        constraints.maxHeight -
+                                                            10,
+                                                      ),
+                                                      topLeft: Radius.circular(
+                                                        i == 0 ? 20 : 0,
+                                                      ),
+                                                      topRight: Radius.circular(
+                                                        i ==
+                                                                item
+                                                                        .tarefasHabitosQtd
+                                                                        .length -
+                                                                    1
+                                                            ? 20
+                                                            : 0,
+                                                      ),
+                                                      bottomLeft:
+                                                          Radius.circular(
+                                                            i == 0 ? 20 : 0,
+                                                          ),
+                                                      bottomRight: Radius.circular(
+                                                        i ==
+                                                                item
+                                                                        .tarefasHabitosQtd
+                                                                        .length -
+                                                                    1
+                                                            ? 20
+                                                            : 0,
+                                                      ),
                                                     ),
                                                   ),
-                                                ),
+                                              ),
                                             ),
-                                          ),
-                                        );
+                                          );
+                                        }
                                       }
 
                                       final cardWidget = Stack(
