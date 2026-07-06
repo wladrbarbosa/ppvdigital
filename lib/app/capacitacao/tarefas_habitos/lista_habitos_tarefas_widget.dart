@@ -34,6 +34,7 @@ enum TarefaHabitoSortField {
   meta,
   progresso,
   proximidadeFimCiclo,
+  duracao,
 }
 
 class ListaHabitosTarefasWidget extends StatefulWidget {
@@ -173,6 +174,11 @@ class ListaHabitosTarefasWidgetState extends State<ListaHabitosTarefasWidget> {
               : const Duration(days: 999999);
           cmp = aDur.compareTo(bDur);
           break;
+        case TarefaHabitoSortField.duracao:
+          final aDur = a.duration ?? 0;
+          final bDur = b.duration ?? 0;
+          cmp = aDur.compareTo(bDur);
+          break;
       }
       return _sortAscending ? cmp : -cmp;
     });
@@ -202,6 +208,9 @@ class ListaHabitosTarefasWidgetState extends State<ListaHabitosTarefasWidget> {
         break;
       case TarefaHabitoSortField.proximidadeFimCiclo:
         fieldLabel = 'Fim do Ciclo';
+        break;
+      case TarefaHabitoSortField.duracao:
+        fieldLabel = 'Duração';
         break;
     }
 
@@ -269,6 +278,10 @@ class ListaHabitosTarefasWidgetState extends State<ListaHabitosTarefasWidget> {
                   const PopupMenuItem(
                     value: TarefaHabitoSortField.proximidadeFimCiclo,
                     child: Text('Proximidade do Fim de Ciclo'),
+                  ),
+                  const PopupMenuItem(
+                    value: TarefaHabitoSortField.duracao,
+                    child: Text('Duração'),
                   ),
                 ],
               ),
@@ -509,6 +522,20 @@ class ListaHabitosTarefasWidgetState extends State<ListaHabitosTarefasWidget> {
         .where((el) => el.vezesPraticado >= el.metaVezes)
         .length;
     return '$completedCount / ${item.tarefasHabitosQtd.length} metas';
+  }
+
+  String _formatDuration(int? minutes) {
+    if (minutes == null || minutes <= 0) return '';
+    final int hours = minutes ~/ 60;
+    final int mins = minutes % 60;
+    if (hours > 0) {
+      if (mins > 0) {
+        return '${hours}h${mins}m';
+      } else {
+        return '${hours}h';
+      }
+    }
+    return '${mins}m';
   }
 
   @override
@@ -791,48 +818,73 @@ class ListaHabitosTarefasWidgetState extends State<ListaHabitosTarefasWidget> {
                                                               const SizedBox(
                                                                 width: 4.0,
                                                               ),
-                                                              // Subtle Type Badge
-                                                              Container(
-                                                                padding:
-                                                                    const EdgeInsets.symmetric(
-                                                                      horizontal:
-                                                                          6.0,
-                                                                      vertical:
-                                                                          2.0,
-                                                                    ),
-                                                                decoration: BoxDecoration(
-                                                                  color:
-                                                                      (item.tipo ==
+                                                              // Subtle Type Badge replaced by Duration Chip
+                                                              if (item.duration !=
+                                                                      null &&
+                                                                  item.duration! >
+                                                                      0) ...[
+                                                                Container(
+                                                                  padding:
+                                                                      const EdgeInsets.symmetric(
+                                                                        horizontal:
+                                                                            6.0,
+                                                                        vertical:
+                                                                            2.0,
+                                                                      ),
+                                                                  decoration: BoxDecoration(
+                                                                    color:
+                                                                        (item.tipo ==
+                                                                                    'habito'
+                                                                                ? habitColor
+                                                                                : taskColor)
+                                                                            .withOpacity(
+                                                                              0.2,
+                                                                            ),
+                                                                    borderRadius:
+                                                                        BorderRadius.circular(
+                                                                          8.0,
+                                                                        ),
+                                                                  ),
+                                                                  child: Row(
+                                                                    mainAxisSize:
+                                                                        MainAxisSize
+                                                                            .min,
+                                                                    children: [
+                                                                      Icon(
+                                                                        Icons
+                                                                            .access_time,
+                                                                        size:
+                                                                            10.0,
+                                                                        color:
+                                                                            item.tipo ==
+                                                                                'habito'
+                                                                            ? habitColor
+                                                                            : taskColor,
+                                                                      ),
+                                                                      const SizedBox(
+                                                                        width:
+                                                                            3.0,
+                                                                      ),
+                                                                      Text(
+                                                                        _formatDuration(
+                                                                          item.duration,
+                                                                        ),
+                                                                        style: TextStyle(
+                                                                          fontSize:
+                                                                              9.0,
+                                                                          fontWeight:
+                                                                              FontWeight.bold,
+                                                                          color:
+                                                                              item.tipo ==
                                                                                   'habito'
                                                                               ? habitColor
-                                                                              : taskColor)
-                                                                          .withOpacity(
-                                                                            0.2,
-                                                                          ),
-                                                                  borderRadius:
-                                                                      BorderRadius.circular(
-                                                                        8.0,
+                                                                              : taskColor,
+                                                                        ),
                                                                       ),
-                                                                ),
-                                                                child: Text(
-                                                                  item.tipo ==
-                                                                          'habito'
-                                                                      ? 'Hábito'
-                                                                      : 'Tarefa',
-                                                                  style: TextStyle(
-                                                                    fontSize:
-                                                                        8.5,
-                                                                    fontWeight:
-                                                                        FontWeight
-                                                                            .bold,
-                                                                    color:
-                                                                        item.tipo ==
-                                                                            'habito'
-                                                                        ? habitColor
-                                                                        : taskColor,
+                                                                    ],
                                                                   ),
                                                                 ),
-                                                              ),
+                                                              ],
                                                             ],
                                                           ),
                                                           const SizedBox(

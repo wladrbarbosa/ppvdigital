@@ -78,6 +78,7 @@ class CriarHabitoTarefaPage extends StatefulWidget {
 class _CriarHabitoTarefaPageState extends State<CriarHabitoTarefaPage> {
   final _formKey = GlobalKey<FormState>();
   final _nomeController = TextEditingController();
+  final _durationController = TextEditingController();
   final List<MetaItem> _metas = [];
 
   String _tipo = 'habito'; // 'habito' or 'tarefa'
@@ -93,6 +94,7 @@ class _CriarHabitoTarefaPageState extends State<CriarHabitoTarefaPage> {
       _nomeController.text = item.nome;
       _tipo = item.tipo;
       _agendamento = item.agendamento;
+      _durationController.text = item.duration?.toString() ?? '';
 
       for (final qtd in item.tarefasHabitosQtd) {
         _metas.add(
@@ -125,6 +127,7 @@ class _CriarHabitoTarefaPageState extends State<CriarHabitoTarefaPage> {
   @override
   void dispose() {
     _nomeController.dispose();
+    _durationController.dispose();
     for (final meta in _metas) {
       meta.dispose();
     }
@@ -163,6 +166,7 @@ class _CriarHabitoTarefaPageState extends State<CriarHabitoTarefaPage> {
     if (!_formKey.currentState!.validate()) return;
 
     final String nome = _nomeController.text.trim();
+    final int? duration = int.tryParse(_durationController.text.trim());
     final List<Map<String, dynamic>> metasData = _metas.map((meta) {
       return {
         'id': meta.id,
@@ -188,6 +192,7 @@ class _CriarHabitoTarefaPageState extends State<CriarHabitoTarefaPage> {
         metas: metasData,
         allExistingQtdRowIds: allExistingQtdRowIds,
         agendamento: _agendamento,
+        duration: duration,
       );
     } else {
       success = await Core.tarefasHabitosController.createTarefaHabito(
@@ -195,6 +200,7 @@ class _CriarHabitoTarefaPageState extends State<CriarHabitoTarefaPage> {
         tipo: _tipo,
         metas: metasData,
         agendamento: _agendamento,
+        duration: duration,
       );
     }
 
@@ -307,6 +313,23 @@ class _CriarHabitoTarefaPageState extends State<CriarHabitoTarefaPage> {
               validator: (value) {
                 if (value == null || value.trim().isEmpty) {
                   return 'Por favor, insira o nome.';
+                }
+                return null;
+              },
+            ),
+            const SizedBox(height: 16),
+            TextFormField(
+              controller: _durationController,
+              keyboardType: TextInputType.number,
+              decoration: const InputDecoration(
+                labelText: 'Duração (em minutos, Opcional)',
+                border: OutlineInputBorder(),
+              ),
+              validator: (value) {
+                if (value != null && value.trim().isNotEmpty) {
+                  if (int.tryParse(value) == null) {
+                    return 'Por favor, insira um valor numérico válido.';
+                  }
                 }
                 return null;
               },

@@ -20,6 +20,9 @@ extension CalendarioTransformMap on Map<String, dynamic> {
       tarefasHabitosQtd:
           (this['tarefasHabitosQtds'] as List<dynamic>?)
               .toTarefaHabitoQtdModelList(),
+      duration: this['duration'] is num
+          ? (this['duration'] as num).toInt()
+          : null,
     );
   }
 }

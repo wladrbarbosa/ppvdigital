@@ -19,6 +19,9 @@ extension HistoricoTransformMap on Map<String, dynamic> {
       concluida: this['concluida'] as bool,
       tarefasHabitosQtd: (this['tarefasHabitosQtds'] as List<dynamic>?)
           .toTarefaHabitoQtdModelList(),
+      duration: this['duration'] is num
+          ? (this['duration'] as num).toInt()
+          : null,
     );
   }
 }

@@ -175,6 +175,9 @@ extension TarefasHabitosTransformDocumentList on List<Row> {
           concluida: e1.data['concluida'] as bool,
           tarefasHabitosQtd: (e1.data['tarefasHabitosQtds'] as List<dynamic>?)
               .toTarefaHabitoQtdModelList(tarefaHabitoQtdList),
+          duration: e1.data['duration'] is num
+              ? (e1.data['duration'] as num).toInt()
+              : null,
         ),
       );
     }
@@ -366,9 +369,7 @@ class TarefasHabitosController {
           databaseId: Core.databaseId,
           tableId: Core.tableTarefasEHabitos,
           rowId: documentId,
-          data: {
-            'concluida': true,
-          },
+          data: {'concluida': true},
         );
       }, name: 'completeTarefa');
     } on AppwriteException catch (e) {
@@ -381,6 +382,7 @@ class TarefasHabitosController {
     required String tipo,
     required List<Map<String, dynamic>> metas,
     DateTime? agendamento,
+    int? duration,
   }) async {
     try {
       if (Core.loginController.currentUser == null) {
@@ -422,6 +424,7 @@ class TarefasHabitosController {
           'concluida': false,
           'agendamento': agendamento?.toIso8601String(),
           'tarefasHabitosQtds': qtdRowIds,
+          'duration': duration,
         },
       );
 
@@ -440,6 +443,7 @@ class TarefasHabitosController {
     required List<Map<String, dynamic>> metas,
     required List<String> allExistingQtdRowIds,
     DateTime? agendamento,
+    int? duration,
   }) async {
     try {
       if (Core.loginController.currentUser == null) {
@@ -502,6 +506,7 @@ class TarefasHabitosController {
           'usuario': user,
           'agendamento': agendamento?.toIso8601String(),
           'tarefasHabitosQtds': finalQtdRowIds,
+          'duration': duration,
         },
       );
 
