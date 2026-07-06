@@ -19,27 +19,21 @@ class RootAppWidget extends StatelessWidget {
     if (TarefasPageState.tabController != null &&
         routeInformation.uri.path.contains('/capacitacao/tarefas_habitos')) {
       if (!TarefasPageState.fromTabClick) {
-        switch (routeInformation.uri.path) {
-          case final String url
-              when url == routePaths.capacitacao.tarefasHabitos.habitos:
-            Core.globalKey.currentContext
-                ?.findAncestorStateOfType<TarefasPageState>()
-                ?.updateTabIndex(1);
-          case final String url
-              when url == routePaths.capacitacao.tarefasHabitos.calendario:
-            Core.globalKey.currentContext
-                ?.findAncestorStateOfType<TarefasPageState>()
-                ?.updateTabIndex(2);
-          case final String url
-              when url == routePaths.capacitacao.tarefasHabitos.categorias:
-            Core.globalKey.currentContext
-                ?.findAncestorStateOfType<TarefasPageState>()
-                ?.updateTabIndex(3);
-          default:
-            Core.globalKey.currentContext
-                ?.findAncestorStateOfType<TarefasPageState>()
-                ?.updateTabIndex(0);
-        }
+        final targetIndex = switch (routeInformation.uri.path) {
+          final String url
+              when url == routePaths.capacitacao.tarefasHabitos.habitos => 1,
+          final String url
+              when url == routePaths.capacitacao.tarefasHabitos.calendario => 2,
+          final String url
+              when url == routePaths.capacitacao.tarefasHabitos.categorias => 3,
+          _ => 0,
+        };
+
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          Core.globalKey.currentContext
+              ?.findAncestorStateOfType<TarefasPageState>()
+              ?.updateTabIndex(targetIndex);
+        });
       } else {
         TarefasPageState.fromTabClick = false;
       }
@@ -79,7 +73,7 @@ class RootAppWidget extends StatelessWidget {
         middlewares: [_guardRoute],
       ),
       debugShowCheckedModeBanner: false,
-      title: 'PPV Digital',
+      title: 'Seapruma',
       theme: brightness == Brightness.light ? theme.light() : theme.dark(),
     );
   }
