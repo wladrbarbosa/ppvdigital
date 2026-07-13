@@ -1,18 +1,18 @@
 import 'dart:developer';
+
 import 'package:appwrite/appwrite.dart';
 import 'package:appwrite/models.dart';
 import 'package:ppvdigital/core.dart';
 import 'package:ppvdigital/models/categoria_transacao_model.dart';
 import 'package:ppvdigital/models/conta_model.dart';
 import 'package:ppvdigital/models/contato_model.dart';
-import 'package:ppvdigital/models/transacao_model.dart';
 import 'package:ppvdigital/models/divisao_transacao_model.dart';
+import 'package:ppvdigital/models/transacao_model.dart';
 import 'package:ppvdigital/repositories/financas_repository.dart';
 
 class AppwriteFinancasRepository implements FinancasRepository {
-  final Databases databases;
-
   AppwriteFinancasRepository(this.databases);
+  final Databases databases;
 
   @override
   Future<List<ContatoModel>> getContatos({
@@ -23,10 +23,7 @@ class AppwriteFinancasRepository implements FinancasRepository {
     final contatosDocs = await tablesDB.listRows(
       databaseId: Core.databaseId,
       tableId: Core.tableContatos,
-      queries: [
-        Query.equal('ownerId', usuarioId),
-        Query.limit(5000),
-      ],
+      queries: [Query.equal('ownerId', usuarioId), Query.limit(5000)],
     );
     return contatosDocs.rows.map((d) {
       final map = Map<String, dynamic>.from(d.data);
@@ -68,10 +65,7 @@ class AppwriteFinancasRepository implements FinancasRepository {
     final accountsDocs = await tablesDB.listRows(
       databaseId: Core.databaseId,
       tableId: Core.tableContas,
-      queries: [
-        Query.equal('userId', usuarioId),
-        Query.limit(5000),
-      ],
+      queries: [Query.equal('userId', usuarioId), Query.limit(5000)],
     );
     return accountsDocs.rows.map((d) {
       final map = Map<String, dynamic>.from(d.data);
@@ -91,11 +85,7 @@ class AppwriteFinancasRepository implements FinancasRepository {
       databaseId: Core.databaseId,
       tableId: Core.tableContas,
       rowId: ID.unique(),
-      data: {
-        'name': name,
-        'userId': usuarioId,
-        'saldoAtual': saldoInicial,
-      },
+      data: {'name': name, 'userId': usuarioId, 'saldoAtual': saldoInicial},
     );
     return true;
   }
@@ -111,10 +101,7 @@ class AppwriteFinancasRepository implements FinancasRepository {
       databaseId: Core.databaseId,
       tableId: Core.tableContas,
       rowId: id,
-      data: {
-        'name': name,
-        'saldoAtual': saldoAtual,
-      },
+      data: {'name': name, 'saldoAtual': saldoAtual},
     );
     return true;
   }
@@ -139,10 +126,7 @@ class AppwriteFinancasRepository implements FinancasRepository {
     final catDocs = await tablesDB.listRows(
       databaseId: Core.databaseId,
       tableId: Core.tableCategoriasTransacoes,
-      queries: [
-        Query.equal('userId', usuarioId),
-        Query.limit(5000),
-      ],
+      queries: [Query.equal('userId', usuarioId), Query.limit(5000)],
     );
     return catDocs.rows.map((d) {
       final map = Map<String, dynamic>.from(d.data);
@@ -185,11 +169,7 @@ class AppwriteFinancasRepository implements FinancasRepository {
       databaseId: Core.databaseId,
       tableId: Core.tableCategoriasTransacoes,
       rowId: id,
-      data: {
-        'name': name,
-        'icone': icone,
-        'cor': hexColor,
-      },
+      data: {'name': name, 'icone': icone, 'cor': hexColor},
     );
     return true;
   }
@@ -249,12 +229,27 @@ class AppwriteFinancasRepository implements FinancasRepository {
     ];
 
     if (targetMonth != null) {
-      final firstDayOfMonth = DateTime(targetMonth.year, targetMonth.month, 1);
-      final lastDayOfMonth = DateTime(targetMonth.year, targetMonth.month + 1, 1).subtract(const Duration(milliseconds: 1));
-      baseQueries.add(Query.greaterThanEqual('dataCompetencia', firstDayOfMonth.toIso8601String()));
-      baseQueries.add(Query.lessThanEqual('dataCompetencia', lastDayOfMonth.toIso8601String()));
+      final firstDayOfMonth = DateTime(targetMonth.year, targetMonth.month);
+      final lastDayOfMonth = DateTime(
+        targetMonth.year,
+        targetMonth.month + 1,
+      ).subtract(const Duration(milliseconds: 1));
+      baseQueries.add(
+        Query.greaterThanEqual(
+          'dataCompetencia',
+          firstDayOfMonth.toIso8601String(),
+        ),
+      );
+      baseQueries.add(
+        Query.lessThanEqual(
+          'dataCompetencia',
+          lastDayOfMonth.toIso8601String(),
+        ),
+      );
     } else if (beforeDate != null) {
-      baseQueries.add(Query.lessThan('dataCompetencia', beforeDate.toIso8601String()));
+      baseQueries.add(
+        Query.lessThan('dataCompetencia', beforeDate.toIso8601String()),
+      );
     }
 
     if (contaIds.isNotEmpty) {
@@ -266,10 +261,7 @@ class AppwriteFinancasRepository implements FinancasRepository {
         final transDocs1 = await tablesDB.listRows(
           databaseId: Core.databaseId,
           tableId: Core.tableTransacoes,
-          queries: [
-            Query.equal('conta', chunkContaIds),
-            ...baseQueries,
-          ],
+          queries: [Query.equal('conta', chunkContaIds), ...baseQueries],
         );
         for (final doc in transDocs1.rows) {
           final map = Map<String, dynamic>.from(doc.data);
@@ -286,10 +278,7 @@ class AppwriteFinancasRepository implements FinancasRepository {
         final transDocs2 = await tablesDB.listRows(
           databaseId: Core.databaseId,
           tableId: Core.tableTransacoes,
-          queries: [
-            Query.equal('contaDestino', chunkContaIds),
-            ...baseQueries,
-          ],
+          queries: [Query.equal('contaDestino', chunkContaIds), ...baseQueries],
         );
         for (final doc in transDocs2.rows) {
           final map = Map<String, dynamic>.from(doc.data);
@@ -348,10 +337,7 @@ class AppwriteFinancasRepository implements FinancasRepository {
         final divsDocs = await tablesDB.listRows(
           databaseId: Core.databaseId,
           tableId: Core.tableDivisaoTransacoes,
-          queries: [
-            Query.equal('transacao', chunkIds),
-            Query.limit(5000),
-          ],
+          queries: [Query.equal('transacao', chunkIds), Query.limit(5000)],
         );
         allRecDivs.addAll(
           divsDocs.rows.map((d) => DivisaoTransacaoModel.fromMap(d.data)),
@@ -360,14 +346,15 @@ class AppwriteFinancasRepository implements FinancasRepository {
 
       for (int i = 0; i < allRecTrans.length; i++) {
         final t = allRecTrans[i];
-        final divsForT = allRecDivs.where((d) => d.transacaoId == t.id).toList();
+        final divsForT = allRecDivs
+            .where((d) => d.transacaoId == t.id)
+            .toList();
         allRecTrans[i] = t.copyWith(divisoes: divsForT);
       }
     }
 
     return allRecTrans;
   }
-
 
   @override
   Future<List<DivisaoTransacaoModel>> getDivisoes({
@@ -380,7 +367,9 @@ class AppwriteFinancasRepository implements FinancasRepository {
     for (int k = 0; k < contatoResponsavelIds.length; k += 100) {
       final chunkIds = contatoResponsavelIds.sublist(
         k,
-        k + 100 > contatoResponsavelIds.length ? contatoResponsavelIds.length : k + 100,
+        k + 100 > contatoResponsavelIds.length
+            ? contatoResponsavelIds.length
+            : k + 100,
       );
       final divsDocs = await tablesDB.listRows(
         databaseId: Core.databaseId,
@@ -434,9 +423,7 @@ class AppwriteFinancasRepository implements FinancasRepository {
       databaseId: Core.databaseId,
       tableId: Core.tableContas,
       rowId: contaId,
-      data: {
-        'saldoAtual': newSaldo,
-      },
+      data: {'saldoAtual': newSaldo},
     );
   }
 
@@ -469,19 +456,50 @@ class AppwriteFinancasRepository implements FinancasRepository {
   }
 
   @override
-  Future<void> executeBatchOperations(List<Map<String, dynamic>> operations) async {
+  Future<void> executeBatchOperations(
+    List<Map<String, dynamic>> operations,
+  ) async {
     final TablesDB tablesDB = TablesDB(databases.client);
-    for (int j = 0; j < operations.length; j += 100) {
-      final chunk = operations.sublist(
-        j,
-        j + 100 > operations.length ? operations.length : j + 100,
-      );
-      final String txId = (await tablesDB.createTransaction()).$id;
-      await tablesDB.createOperations(
-        transactionId: txId,
-        operations: chunk,
-      );
-      await tablesDB.updateTransaction(transactionId: txId, commit: true);
+    try {
+      for (int j = 0; j < operations.length; j += 100) {
+        final chunk = operations.sublist(
+          j,
+          j + 100 > operations.length ? operations.length : j + 100,
+        );
+        final String txId = (await tablesDB.createTransaction()).$id;
+        await tablesDB.createOperations(transactionId: txId, operations: chunk);
+        await tablesDB.updateTransaction(transactionId: txId, commit: true);
+      }
+    } catch (e) {
+      log('Appwrite transaction failed: $e. Falling back to individual operations...');
+      for (final op in operations) {
+        final action = op['action'] as String;
+        final tableId = op['tableId'] as String;
+        final rowId = op['rowId'] as String;
+        final data = op['data'] as Map<String, dynamic>?;
+
+        if (action == 'update' && data != null) {
+          await tablesDB.updateRow(
+            databaseId: Core.databaseId,
+            tableId: tableId,
+            rowId: rowId,
+            data: data,
+          );
+        } else if (action == 'create' && data != null) {
+          await tablesDB.createRow(
+            databaseId: Core.databaseId,
+            tableId: tableId,
+            rowId: rowId,
+            data: data,
+          );
+        } else if (action == 'delete') {
+          await tablesDB.deleteRow(
+            databaseId: Core.databaseId,
+            tableId: tableId,
+            rowId: rowId,
+          );
+        }
+      }
     }
   }
 

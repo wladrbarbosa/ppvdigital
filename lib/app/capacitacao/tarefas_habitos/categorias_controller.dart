@@ -71,6 +71,12 @@ class CategoriasController {
     }, name: 'loadCategorias');
   }
 
+  void reset() {
+    mobx.runInAction(() {
+      _categoriasList.clear();
+    });
+  }
+
   Future<bool> createCategory({
     required String nome,
     required Color cor,

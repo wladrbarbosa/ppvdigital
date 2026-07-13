@@ -14,10 +14,10 @@ class CriarEditarCategoriaPage extends StatefulWidget {
 class _CriarEditarCategoriaPageState extends State<CriarEditarCategoriaPage> {
   final _formKey = GlobalKey<FormState>();
   final _nomeController = TextEditingController();
-  
+
   Color _selectedColor = const Color(0xFF4FC3F7); // Default light blue
   String? _parentCategoryId;
-  
+
   final List<Color> _presetColors = const [
     Color(0xFFE57373), // Red
     Color(0xFFF06292), // Pink
@@ -60,7 +60,7 @@ class _CriarEditarCategoriaPageState extends State<CriarEditarCategoriaPage> {
     if (!_formKey.currentState!.validate()) return;
 
     final String nome = _nomeController.text.trim();
-    
+
     final bool success;
     if (_editingCategory != null) {
       success = await Core.categoriasController.updateCategory(
@@ -97,12 +97,16 @@ class _CriarEditarCategoriaPageState extends State<CriarEditarCategoriaPage> {
   Widget build(BuildContext context) {
     // List available parent categories, excluding current one if editing
     final otherCategories = Core.categoriasController.categoriasList
-        .where((el) => _editingCategory == null || el.id != _editingCategory!.id)
+        .where(
+          (el) => _editingCategory == null || el.id != _editingCategory!.id,
+        )
         .toList();
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(_editingCategory == null ? 'Criar Categoria' : 'Editar Categoria'),
+        title: Text(
+          _editingCategory == null ? 'Criar Categoria' : 'Editar Categoria',
+        ),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
           onPressed: () {
@@ -159,9 +163,7 @@ class _CriarEditarCategoriaPageState extends State<CriarEditarCategoriaPage> {
                         decoration: BoxDecoration(
                           color: color,
                           shape: BoxShape.circle,
-                          border: isSelected
-                              ? Border.all(width: 3)
-                              : null,
+                          border: isSelected ? Border.all(width: 3) : null,
                           boxShadow: [
                             if (isSelected)
                               const BoxShadow(

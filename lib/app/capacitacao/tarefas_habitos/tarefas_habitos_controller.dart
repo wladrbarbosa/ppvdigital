@@ -1,17 +1,18 @@
 import 'dart:async';
 import 'dart:developer';
+
 import 'package:appwrite/appwrite.dart';
 import 'package:appwrite/models.dart';
+import 'package:drift/drift.dart' hide Column, Query;
 import 'package:flutter/material.dart' hide Row;
 import 'package:mobx/mobx.dart' as mobx;
 import 'package:ppvdigital/app/capacitacao/tarefas_habitos/historico_controller.dart';
 import 'package:ppvdigital/core.dart';
 import 'package:ppvdigital/models/categorias_tarefas_habitos_model.dart';
 import 'package:ppvdigital/models/historico_item_model.dart';
+import 'package:ppvdigital/models/local/app_database.dart';
 import 'package:ppvdigital/models/tarefas_habitos_model.dart';
 import 'package:ppvdigital/models/tarefas_habitos_qtd_model.dart';
-import 'package:drift/drift.dart' hide Column, Query;
-import 'package:ppvdigital/models/local/app_database.dart';
 import 'package:ppvdigital/repositories/tarefa_habito_repository.dart';
 
 extension TarefasHabitosTransformList on List<dynamic>? {
@@ -19,21 +20,30 @@ extension TarefasHabitosTransformList on List<dynamic>? {
     List<HistoricoItemModel>? tarefaHabitoHistoricoList,
   ]) {
     return this?.map<TarefaHabitoQtdModel>((e2) {
-          final Map<String, dynamic> e2Map = e2 is Map ? Map<String, dynamic>.from(e2) : <String, dynamic>{};
+          final Map<String, dynamic> e2Map = e2 is Map
+              ? Map<String, dynamic>.from(e2)
+              : <String, dynamic>{};
           List<HistoricoItemModel> withPeriodFilter = [];
-          final rawCreatedAt = (e2Map[r'$createdAt'] ?? e2Map['createdAt'] ?? e2Map['dataCriacao']);
+          final rawCreatedAt =
+              e2Map[r'$createdAt'] ??
+              e2Map['createdAt'] ??
+              e2Map['dataCriacao'];
           DateTime parsedBeginning = DateTime.now();
           if (rawCreatedAt is String) {
-            parsedBeginning = DateTime.tryParse(rawCreatedAt)?.toLocal() ?? DateTime.now();
+            parsedBeginning =
+                DateTime.tryParse(rawCreatedAt)?.toLocal() ?? DateTime.now();
           } else if (rawCreatedAt is int) {
-            parsedBeginning = DateTime.fromMillisecondsSinceEpoch(rawCreatedAt).toLocal();
+            parsedBeginning = DateTime.fromMillisecondsSinceEpoch(
+              rawCreatedAt,
+            ).toLocal();
           }
           DateTime beginning = DateTime(
             parsedBeginning.year,
             parsedBeginning.month,
             parsedBeginning.day,
           );
-          final String reiniciaEmTipo = (e2Map['reiniciaEmTipo'] as String?) ?? 'dias';
+          final String reiniciaEmTipo =
+              (e2Map['reiniciaEmTipo'] as String?) ?? 'dias';
           final int reiniciaEmQtd = (e2Map['reiniciaEmQtd'] as int?) ?? 1;
           final DateTime nowToday = DateTime.now();
           final DateTime now = DateTime(
@@ -50,7 +60,7 @@ extension TarefasHabitosTransformList on List<dynamic>? {
             switch (reiniciaEmTipo) {
               case 'dias':
                 final Duration durationToStartPeriod = Duration(
-                  days: (beginningNowDiff.inDays ~/ reiniciaEmQtd),
+                  days: beginningNowDiff.inDays ~/ reiniciaEmQtd,
                 );
                 beginning = DateTime(
                   beginning.year,
@@ -58,7 +68,6 @@ extension TarefasHabitosTransformList on List<dynamic>? {
                   beginning.day,
                 );
                 startPeriod = beginning.add(durationToStartPeriod);
-                break;
               case 'semanas':
                 final Duration durationToStartPeriod = Duration(
                   days:
@@ -71,7 +80,6 @@ extension TarefasHabitosTransformList on List<dynamic>? {
                   beginning.day,
                 );
                 startPeriod = beginning.add(durationToStartPeriod);
-                break;
               case 'meses':
                 final int monthDiff =
                     (now.year - beginning.year) * 12 +
@@ -79,17 +87,10 @@ extension TarefasHabitosTransformList on List<dynamic>? {
                 startPeriod = DateTime(
                   beginning.year,
                   now.month - (monthDiff % reiniciaEmQtd),
-                  1,
                 );
-                break;
               case 'anos':
                 final int yearDiff = now.year - beginning.year;
-                startPeriod = DateTime(
-                  now.year - (yearDiff % reiniciaEmQtd),
-                  1,
-                  1,
-                );
-                break;
+                startPeriod = DateTime(now.year - (yearDiff % reiniciaEmQtd));
               default:
                 final Duration durationToStartPeriod = Duration(
                   days: beginningNowDiff.inDays ~/ reiniciaEmQtd,
@@ -100,7 +101,6 @@ extension TarefasHabitosTransformList on List<dynamic>? {
                   beginning.day,
                 );
                 startPeriod = beginning.add(durationToStartPeriod);
-                break;
             }
 
             withPeriodFilter = tarefaHabitoHistoricoList.where((el) {
@@ -120,8 +120,11 @@ extension TarefasHabitosTransformList on List<dynamic>? {
                 collectionId;
           }
 
-          final Map<String, dynamic>? rawCategoryMap = e2Map['categoriasTarefasHabitos'] is Map
-              ? Map<String, dynamic>.from(e2Map['categoriasTarefasHabitos'] as Map)
+          final Map<String, dynamic>? rawCategoryMap =
+              e2Map['categoriasTarefasHabitos'] is Map
+              ? Map<String, dynamic>.from(
+                  e2Map['categoriasTarefasHabitos'] as Map,
+                )
               : null;
 
           return TarefaHabitoQtdModel(
@@ -135,7 +138,8 @@ extension TarefasHabitosTransformList on List<dynamic>? {
             valor: (e2Map['valor'] as num?) ?? 1.0,
             reiniciaEmQtd: reiniciaEmQtd,
             reiniciaEmTipo: reiniciaEmTipo,
-            vezesPraticado: withPeriodFilter.length * ((e2Map['valor'] as num?) ?? 1.0),
+            vezesPraticado:
+                withPeriodFilter.length * ((e2Map['valor'] as num?) ?? 1.0),
             createdAt: beginning,
           );
         }).toList() ??
@@ -207,12 +211,11 @@ extension TarefasHabitosTransformDocumentList on List<Row> {
 }
 
 class TarefasHabitosController {
-  final TarefaHabitoRepository repository;
-
   // Constructor
   TarefasHabitosController(this.repository) {
     loadConfiguredColors();
   }
+  final TarefaHabitoRepository repository;
 
   static String? tarefasHabitosQtdCollectionId;
   static Future<void>? tarefasHabitosFuture;
@@ -254,7 +257,7 @@ class TarefasHabitosController {
       habitColor.value = color;
     });
     try {
-      final value = color.value.toRadixString(16);
+      final value = color.toARGB32().toRadixString(16);
       await Core.database
           .into(Core.database.appSettings)
           .insert(
@@ -271,7 +274,7 @@ class TarefasHabitosController {
       taskColor.value = color;
     });
     try {
-      final value = color.value.toRadixString(16);
+      final value = color.toARGB32().toRadixString(16);
       await Core.database
           .into(Core.database.appSettings)
           .insert(
@@ -323,13 +326,17 @@ class TarefasHabitosController {
 
   Future<void> _syncRemoteDataInBackground(String userId) async {
     try {
-      await repository.getTarefasEHabitos(
-        usuarioId: userId,
-        forceLocal: false,
-      );
+      await repository.getTarefasEHabitos(usuarioId: userId);
     } catch (e) {
       log('Background sync of habits failed: $e');
     }
+  }
+
+  void reset() {
+    _tarefasHabitosSub?.cancel();
+    mobx.runInAction(() {
+      _tarefasHabitosList.clear();
+    });
   }
 
   Future<void> incrementQtdHabito(String documentId) async {

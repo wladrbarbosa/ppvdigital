@@ -29,7 +29,8 @@ class _CalendarioPageState extends State<CalendarioPage> {
   }
 
   void _showDeleteDialog(BuildContext context, HistoricoItemModel item) {
-    final dateStr = '${item.createdAt.day.toString().padLeft(2, '0')}/${item.createdAt.month.toString().padLeft(2, '0')}/${item.createdAt.year} às ${item.createdAt.hour.toString().padLeft(2, '0')}:${item.createdAt.minute.toString().padLeft(2, '0')}';
+    final dateStr =
+        '${item.createdAt.day.toString().padLeft(2, '0')}/${item.createdAt.month.toString().padLeft(2, '0')}/${item.createdAt.year} às ${item.createdAt.hour.toString().padLeft(2, '0')}:${item.createdAt.minute.toString().padLeft(2, '0')}';
 
     showDialog(
       context: context,
@@ -40,14 +41,18 @@ class _CalendarioPageState extends State<CalendarioPage> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text('Deseja realmente remover este registro do histórico?'),
+              const Text(
+                'Deseja realmente remover este registro do histórico?',
+              ),
               const SizedBox(height: 16),
               Text(
                 'Item: ${item.tarefasEHabitos.nome}',
                 style: const TextStyle(fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 4),
-              Text('Tipo: ${item.tarefasEHabitos.tipo == 'habito' ? 'Hábito' : 'Tarefa'}'),
+              Text(
+                'Tipo: ${item.tarefasEHabitos.tipo == 'habito' ? 'Hábito' : 'Tarefa'}',
+              ),
               const SizedBox(height: 4),
               Text('Concluído em: $dateStr'),
             ],
@@ -94,8 +99,6 @@ class _CalendarioPageState extends State<CalendarioPage> {
 
               return LayoutBuilder(
                 builder: (context, constraints) {
-
-
                   final calendarWidget = SfCalendar(
                     controller: _calendarController,
                     dataSource: dataSource,

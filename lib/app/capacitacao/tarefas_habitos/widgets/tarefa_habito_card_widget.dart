@@ -1,18 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:ppvdigital/app/capacitacao/tarefas_habitos/lista_habitos_tarefas_widget.dart';
-import 'package:ppvdigital/core.dart';
 import 'package:ppvdigital/models/tarefas_habitos_model.dart';
-import 'package:ppvdigital/models/tarefas_habitos_qtd_model.dart';
-import 'package:ppvdigital/util.dart';
 
 class TarefaHabitoCardWidget extends StatelessWidget {
-  final TarefaHabitoModel item;
-  final Color habitColor;
-  final Color taskColor;
-  final VoidCallback onTap;
-  final VoidCallback onActionPressed;
-
   const TarefaHabitoCardWidget({
     super.key,
     required this.item,
@@ -21,6 +12,11 @@ class TarefaHabitoCardWidget extends StatelessWidget {
     required this.onTap,
     required this.onActionPressed,
   });
+  final TarefaHabitoModel item;
+  final Color habitColor;
+  final Color taskColor;
+  final VoidCallback onTap;
+  final VoidCallback onActionPressed;
 
   String _getProgressText(TarefaHabitoModel item) {
     if (item.tarefasHabitosQtd.isEmpty) return 'Sem metas';
@@ -61,8 +57,8 @@ class TarefaHabitoCardWidget extends StatelessWidget {
             borderRadius: BorderRadius.circular(22),
             side: BorderSide(
               color: item.tipo == 'habito'
-                  ? habitColor.withOpacity(0.4)
-                  : taskColor.withOpacity(0.4),
+                  ? habitColor.withValues(alpha: 0.4)
+                  : taskColor.withValues(alpha: 0.4),
               width: 1.5,
             ),
           ),
@@ -105,14 +101,13 @@ class TarefaHabitoCardWidget extends StatelessWidget {
                                 ),
                                 decoration: BoxDecoration(
                                   color: item.tipo == 'habito'
-                                      ? habitColor.withOpacity(0.15)
-                                      : taskColor.withOpacity(0.15),
+                                      ? habitColor.withValues(alpha: 0.15)
+                                      : taskColor.withValues(alpha: 0.15),
                                   borderRadius: BorderRadius.circular(8.0),
                                   border: Border.all(
                                     color: item.tipo == 'habito'
-                                        ? habitColor.withOpacity(0.4)
-                                        : taskColor.withOpacity(0.4),
-                                    width: 1.0,
+                                        ? habitColor.withValues(alpha: 0.4)
+                                        : taskColor.withValues(alpha: 0.4),
                                   ),
                                 ),
                                 child: Row(
@@ -152,11 +147,10 @@ class TarefaHabitoCardWidget extends StatelessWidget {
                                   vertical: 2.0,
                                 ),
                                 decoration: BoxDecoration(
-                                  color: categoria.cor.withOpacity(0.15),
+                                  color: categoria.cor.withValues(alpha: 0.15),
                                   borderRadius: BorderRadius.circular(6.0),
                                   border: Border.all(
-                                    color: categoria.cor.withOpacity(0.5),
-                                    width: 1.0,
+                                    color: categoria.cor.withValues(alpha: 0.5),
                                   ),
                                 ),
                                 child: Text(

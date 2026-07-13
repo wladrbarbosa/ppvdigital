@@ -39,11 +39,7 @@ Route routeBuilder(BuildContext context, RouteSettings settings) {
 }
 
 class CriarEditarContaPage extends StatefulWidget {
-  const CriarEditarContaPage({
-    super.key,
-    this.editingItem,
-    this.lastRoute,
-  });
+  const CriarEditarContaPage({super.key, this.editingItem, this.lastRoute});
 
   final ContaModel? editingItem;
   final String? lastRoute;
@@ -100,18 +96,18 @@ class _CriarEditarContaPageState extends State<CriarEditarContaPage> {
     });
 
     if (success && mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Conta salva com sucesso!')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Conta salva com sucesso!')));
       if (widget.lastRoute != null) {
         Routefly.navigate(widget.lastRoute!);
       } else {
         Navigator.of(context).pop();
       }
     } else if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Erro ao salvar conta.')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Erro ao salvar conta.')));
     }
   }
 
@@ -121,7 +117,8 @@ class _CriarEditarContaPageState extends State<CriarEditarContaPage> {
       builder: (context) => AlertDialog(
         title: const Text('Remover conta'),
         content: const Text(
-            'Deseja realmente remover esta conta? As transações vinculadas a ela não serão removidas automaticamente.'),
+          'Deseja realmente remover esta conta? As transações vinculadas a ela não serão removidas automaticamente.',
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
@@ -141,8 +138,9 @@ class _CriarEditarContaPageState extends State<CriarEditarContaPage> {
       _isLoading = true;
     });
 
-    final bool success =
-        await Core.financasController.deleteConta(widget.editingItem!.id);
+    final bool success = await Core.financasController.deleteConta(
+      widget.editingItem!.id,
+    );
 
     setState(() {
       _isLoading = false;
@@ -158,9 +156,9 @@ class _CriarEditarContaPageState extends State<CriarEditarContaPage> {
         Navigator.of(context).pop();
       }
     } else if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Erro ao excluir conta.')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Erro ao excluir conta.')));
     }
   }
 
@@ -214,7 +212,9 @@ class _CriarEditarContaPageState extends State<CriarEditarContaPage> {
             const SizedBox(height: 16),
             TextFormField(
               controller: _saldoController,
-              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              keyboardType: const TextInputType.numberWithOptions(
+                decimal: true,
+              ),
               decoration: const InputDecoration(
                 labelText: 'Saldo Atual (R\$)',
                 border: OutlineInputBorder(),

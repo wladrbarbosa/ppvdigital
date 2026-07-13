@@ -5,13 +5,6 @@ import 'package:ppvdigital/models/tarefas_habitos_model.dart';
 import 'package:routefly/routefly.dart';
 
 class MetaItem {
-  String? id;
-  final TextEditingController metaVezesController;
-  final TextEditingController valorController;
-  final TextEditingController reiniciaEmQtdController;
-  String reiniciaEmTipo;
-  String? selectedCategoryId;
-
   MetaItem({
     this.id,
     required String metaVezes,
@@ -22,6 +15,12 @@ class MetaItem {
   }) : metaVezesController = TextEditingController(text: metaVezes),
        valorController = TextEditingController(text: valor),
        reiniciaEmQtdController = TextEditingController(text: reiniciaEmQtd);
+  String? id;
+  final TextEditingController metaVezesController;
+  final TextEditingController valorController;
+  final TextEditingController reiniciaEmQtdController;
+  String reiniciaEmTipo;
+  String? selectedCategoryId;
 
   void dispose() {
     metaVezesController.dispose();
@@ -411,11 +410,12 @@ class _CriarHabitoTarefaPageState extends State<CriarHabitoTarefaPage> {
                         builder: (context) {
                           final categorias =
                               Core.categoriasController.categoriasList;
-                          final bool exists = categorias.any((cat) => cat.id == meta.selectedCategoryId);
+                          final bool exists = categorias.any(
+                            (cat) => cat.id == meta.selectedCategoryId,
+                          );
 
                           final List<DropdownMenuItem<String>> dropdownItems = [
                             const DropdownMenuItem<String>(
-                              value: null,
                               child: Text('Nenhuma'),
                             ),
                             ...categorias.map((cat) {
@@ -445,7 +445,7 @@ class _CriarHabitoTarefaPageState extends State<CriarHabitoTarefaPage> {
                           }
 
                           return DropdownButtonFormField<String>(
-                            value: meta.selectedCategoryId,
+                            initialValue: meta.selectedCategoryId,
                             decoration: const InputDecoration(
                               labelText: 'Categoria (Opcional)',
                               border: OutlineInputBorder(),
@@ -529,7 +529,7 @@ class _CriarHabitoTarefaPageState extends State<CriarHabitoTarefaPage> {
                             const SizedBox(width: 12),
                             Expanded(
                               child: DropdownButtonFormField<String>(
-                                value: meta.reiniciaEmTipo,
+                                initialValue: meta.reiniciaEmTipo,
                                 decoration: const InputDecoration(
                                   labelText: 'Tipo Período',
                                   border: OutlineInputBorder(),

@@ -38,11 +38,14 @@ class _CategoriasPageState extends State<CategoriasPage> {
             TextButton(
               onPressed: () async {
                 Navigator.of(context).pop();
-                final success =
-                    await Core.categoriasController.deleteCategory(categoryId);
+                final success = await Core.categoriasController.deleteCategory(
+                  categoryId,
+                );
                 if (success && context.mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Categoria removida com sucesso!')),
+                    const SnackBar(
+                      content: Text('Categoria removida com sucesso!'),
+                    ),
                   );
                 }
               },

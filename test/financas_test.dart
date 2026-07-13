@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:ppvdigital/models/transacao_model.dart';
 import 'package:ppvdigital/models/divisao_transacao_model.dart';
+import 'package:ppvdigital/models/transacao_model.dart';
 
 void main() {
   group('Financas Unit Tests', () {
@@ -13,8 +13,18 @@ void main() {
         dataCompetencia: DateTime(2026, 6, 28),
         consolidada: true,
         divisoes: [
-          DivisaoTransacaoModel(id: 'd1', transacaoId: 't1', contatoResponsavel: 'userA', peso: 2.0),
-          DivisaoTransacaoModel(id: 'd2', transacaoId: 't1', contatoResponsavel: 'userB', peso: 1.0),
+          DivisaoTransacaoModel(
+            id: 'd1',
+            transacaoId: 't1',
+            contatoResponsavel: 'userA',
+            peso: 2.0,
+          ),
+          DivisaoTransacaoModel(
+            id: 'd2',
+            transacaoId: 't1',
+            contatoResponsavel: 'userB',
+            peso: 1.0,
+          ),
         ],
       );
 
@@ -22,10 +32,18 @@ void main() {
       // userA weight is 2.0, so share is 2/3 of 1500 = 1000
       // userB weight is 1.0, so share is 1/3 of 1500 = 500
 
-      double calcularValorDivisao(TransacaoModel transaction, String contatoId) {
+      double calcularValorDivisao(
+        TransacaoModel transaction,
+        String contatoId,
+      ) {
         if (transaction.divisoes.isEmpty) return transaction.valor;
-        final double totalPeso = transaction.divisoes.fold(0.0, (sum, div) => sum + div.peso);
-        final userDiv = transaction.divisoes.where((div) => div.contatoResponsavel == contatoId);
+        final double totalPeso = transaction.divisoes.fold(
+          0.0,
+          (sum, div) => sum + div.peso,
+        );
+        final userDiv = transaction.divisoes.where(
+          (div) => div.contatoResponsavel == contatoId,
+        );
         if (userDiv.isEmpty) return 0.0;
         final double userPeso = userDiv.first.peso;
         return transaction.valor * (userPeso / totalPeso);

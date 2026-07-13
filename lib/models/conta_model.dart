@@ -1,17 +1,28 @@
 import 'dart:convert';
 
 class ContaModel {
-  final String id;
-  final String name;
-  final String userId;
-  final double saldoAtual;
-
   ContaModel({
     required this.id,
     required this.name,
     required this.userId,
     required this.saldoAtual,
   });
+
+  factory ContaModel.fromMap(Map<String, dynamic> map) {
+    return ContaModel(
+      id: map[r'$id'] as String? ?? map['id'] as String? ?? '',
+      name: map['name'] as String? ?? '',
+      userId: map['userId'] as String? ?? '',
+      saldoAtual: (map['saldoAtual'] as num?)?.toDouble() ?? 0.0,
+    );
+  }
+
+  factory ContaModel.fromJson(String source) =>
+      ContaModel.fromMap(json.decode(source) as Map<String, dynamic>);
+  final String id;
+  final String name;
+  final String userId;
+  final double saldoAtual;
 
   ContaModel copyWith({
     String? id,
@@ -35,19 +46,7 @@ class ContaModel {
     };
   }
 
-  factory ContaModel.fromMap(Map<String, dynamic> map) {
-    return ContaModel(
-      id: map[r'$id'] as String? ?? map['id'] as String? ?? '',
-      name: map['name'] as String? ?? '',
-      userId: map['userId'] as String? ?? '',
-      saldoAtual: (map['saldoAtual'] as num?)?.toDouble() ?? 0.0,
-    );
-  }
-
   String toJson() => json.encode(toMap());
-
-  factory ContaModel.fromJson(String source) =>
-      ContaModel.fromMap(json.decode(source) as Map<String, dynamic>);
 
   @override
   String toString() {

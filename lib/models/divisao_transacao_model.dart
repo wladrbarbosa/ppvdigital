@@ -1,39 +1,12 @@
 import 'dart:convert';
 
 class DivisaoTransacaoModel {
-  final String id;
-  final String transacaoId;
-  final String contatoResponsavel;
-  final double peso;
-
   DivisaoTransacaoModel({
     required this.id,
     required this.transacaoId,
     required this.contatoResponsavel,
     required this.peso,
   });
-
-  DivisaoTransacaoModel copyWith({
-    String? id,
-    String? transacaoId,
-    String? contatoResponsavel,
-    double? peso,
-  }) {
-    return DivisaoTransacaoModel(
-      id: id ?? this.id,
-      transacaoId: transacaoId ?? this.transacaoId,
-      contatoResponsavel: contatoResponsavel ?? this.contatoResponsavel,
-      peso: peso ?? this.peso,
-    );
-  }
-
-  Map<String, dynamic> toMap() {
-    return <String, dynamic>{
-      'transacao': transacaoId,
-      'contatoResponsavel': contatoResponsavel,
-      'peso': peso,
-    };
-  }
 
   factory DivisaoTransacaoModel.fromMap(Map<String, dynamic> map) {
     // transacao relationship might be a string or a nested map
@@ -61,12 +34,38 @@ class DivisaoTransacaoModel {
     );
   }
 
-  String toJson() => json.encode(toMap());
-
   factory DivisaoTransacaoModel.fromJson(String source) =>
       DivisaoTransacaoModel.fromMap(
         json.decode(source) as Map<String, dynamic>,
       );
+  final String id;
+  final String transacaoId;
+  final String contatoResponsavel;
+  final double peso;
+
+  DivisaoTransacaoModel copyWith({
+    String? id,
+    String? transacaoId,
+    String? contatoResponsavel,
+    double? peso,
+  }) {
+    return DivisaoTransacaoModel(
+      id: id ?? this.id,
+      transacaoId: transacaoId ?? this.transacaoId,
+      contatoResponsavel: contatoResponsavel ?? this.contatoResponsavel,
+      peso: peso ?? this.peso,
+    );
+  }
+
+  Map<String, dynamic> toMap() {
+    return <String, dynamic>{
+      'transacao': transacaoId,
+      'contatoResponsavel': contatoResponsavel,
+      'peso': peso,
+    };
+  }
+
+  String toJson() => json.encode(toMap());
 
   @override
   String toString() {
@@ -84,6 +83,9 @@ class DivisaoTransacaoModel {
 
   @override
   int get hashCode {
-    return id.hashCode ^ transacaoId.hashCode ^ contatoResponsavel.hashCode ^ peso.hashCode;
+    return id.hashCode ^
+        transacaoId.hashCode ^
+        contatoResponsavel.hashCode ^
+        peso.hashCode;
   }
 }

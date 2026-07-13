@@ -1,13 +1,6 @@
 import 'dart:convert';
 
 class ContatoModel {
-  final String id;
-  final String ownerId;
-  final String nome;
-  final String? telefone;
-  final String? email;
-  final String? userId;
-
   ContatoModel({
     required this.id,
     required this.ownerId,
@@ -16,6 +9,26 @@ class ContatoModel {
     this.email,
     this.userId,
   });
+
+  factory ContatoModel.fromMap(Map<String, dynamic> map) {
+    return ContatoModel(
+      id: map[r'$id'] as String? ?? map['id'] as String? ?? '',
+      ownerId: map['ownerId'] as String? ?? '',
+      nome: map['nome'] as String? ?? '',
+      telefone: map['telefone'] as String?,
+      email: map['email'] as String?,
+      userId: map['userId'] as String?,
+    );
+  }
+
+  factory ContatoModel.fromJson(String source) =>
+      ContatoModel.fromMap(json.decode(source) as Map<String, dynamic>);
+  final String id;
+  final String ownerId;
+  final String nome;
+  final String? telefone;
+  final String? email;
+  final String? userId;
 
   ContatoModel copyWith({
     String? id,
@@ -45,19 +58,5 @@ class ContatoModel {
     };
   }
 
-  factory ContatoModel.fromMap(Map<String, dynamic> map) {
-    return ContatoModel(
-      id: map[r'$id'] as String? ?? map['id'] as String? ?? '',
-      ownerId: map['ownerId'] as String? ?? '',
-      nome: map['nome'] as String? ?? '',
-      telefone: map['telefone'] as String?,
-      email: map['email'] as String?,
-      userId: map['userId'] as String?,
-    );
-  }
-
   String toJson() => json.encode(toMap());
-
-  factory ContatoModel.fromJson(String source) =>
-      ContatoModel.fromMap(json.decode(source) as Map<String, dynamic>);
 }

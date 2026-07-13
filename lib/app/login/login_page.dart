@@ -42,7 +42,10 @@ class _LoginPageState extends State<LoginPage> {
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
+            padding: const EdgeInsets.symmetric(
+              horizontal: 24.0,
+              vertical: 16.0,
+            ),
             child: Container(
               constraints: const BoxConstraints(maxWidth: 400),
               child: DefaultTabController(
@@ -125,7 +128,7 @@ class _LoginPageState extends State<LoginPage> {
                                           ).showSnackBar(
                                             SnackBar(
                                               content: Text(
-                                                'Erro ao entrar: ${e.toString()}',
+                                                'Erro ao entrar: $e',
                                               ),
                                               backgroundColor: Colors.red,
                                             ),
@@ -194,7 +197,7 @@ class _LoginPageState extends State<LoginPage> {
                                           ).showSnackBar(
                                             SnackBar(
                                               content: Text(
-                                                'Erro ao cadastrar: ${e.toString()}',
+                                                'Erro ao cadastrar: $e',
                                               ),
                                               backgroundColor: Colors.red,
                                             ),

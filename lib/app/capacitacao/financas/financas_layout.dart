@@ -5,9 +5,10 @@ import 'package:flutter_expandable_fab/flutter_expandable_fab.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:intl/intl.dart';
 import 'package:ppvdigital/app/capacitacao/financas/financas_controller.dart';
+import 'package:ppvdigital/app/capacitacao/financas/widgets/seletor_mes_widget.dart';
 import 'package:ppvdigital/core.dart';
-import 'package:ppvdigital/models/transacao_model.dart';
 import 'package:ppvdigital/models/contato_model.dart';
+import 'package:ppvdigital/models/transacao_model.dart';
 import 'package:ppvdigital/routes.g.dart';
 import 'package:routefly/routefly.dart';
 
@@ -129,7 +130,7 @@ class _FinancasLayoutState extends State<FinancasLayout>
       children: [
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-          color: Colors.grey.withOpacity(0.1),
+          color: Colors.grey.withValues(alpha: 0.1),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -189,8 +190,8 @@ class _FinancasLayoutState extends State<FinancasLayout>
                 ),
                 CircleAvatar(
                   backgroundColor:
-                      t.categoria?.cor?.withOpacity(0.2) ??
-                      Colors.blue.withOpacity(0.2),
+                      t.categoria?.cor?.withValues(alpha: 0.2) ??
+                      Colors.blue.withValues(alpha: 0.2),
                   child: Icon(catIcon, color: t.categoria?.cor ?? Colors.blue),
                 ),
               ],
@@ -272,8 +273,8 @@ class _FinancasLayoutState extends State<FinancasLayout>
                   ),
                   decoration: BoxDecoration(
                     color: t.consolidada
-                        ? Colors.green.withOpacity(0.1)
-                        : Colors.amber.withOpacity(0.1),
+                        ? Colors.green.withValues(alpha: 0.1)
+                        : Colors.amber.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(4),
                   ),
                   child: Text(
@@ -409,7 +410,6 @@ class _FinancasLayoutState extends State<FinancasLayout>
               Observer(
                 builder: (context) {
                   final allTrans = Core.financasController.transacoesList;
-                  final splitTrans = Core.financasController.divisoesList;
                   final isSyncing = Core.financasController.isSyncing;
 
                   // Filter list based on toggle
@@ -505,11 +505,12 @@ class _FinancasLayoutState extends State<FinancasLayout>
 
                   mainContent = Column(
                     children: [
-                      _buildMonthSelector(),
+                      SeletorMesWidget(
+                        selectedMonth: _selectedMonth,
+                        onMonthChanged: _onMonthChanged,
+                      ),
                       if (isSyncing)
-                        const LinearProgressIndicator(
-                          minHeight: 2,
-                        ),
+                        const LinearProgressIndicator(minHeight: 2),
                       Padding(
                         padding: const EdgeInsets.symmetric(
                           horizontal: 16.0,
@@ -587,45 +588,44 @@ class _FinancasLayoutState extends State<FinancasLayout>
                       Expanded(
                         child: Stack(
                           children: [
-                            filteredTransList.isEmpty
-                                ? (snapshot.connectionState ==
-                                              ConnectionState.waiting ||
-                                          _isMonthChanging ||
-                                          isSyncing
-                                      ? const Center(
-                                          child: CircularProgressIndicator(),
-                                        )
-                                      : const Center(
-                                          child: Text(
-                                            'Nenhuma transação encontrada.',
-                                          ),
-                                        ))
-                                : Scrollbar(
-                                    controller: _transacoesScrollController,
-                                    thumbVisibility: true,
-                                    interactive: true,
-                                    child: SingleChildScrollView(
-                                      controller: _transacoesScrollController,
-                                      padding: const EdgeInsets.only(
-                                        bottom: 80.0,
+                            if (filteredTransList.isEmpty)
+                              snapshot.connectionState ==
+                                          ConnectionState.waiting ||
+                                      _isMonthChanging ||
+                                      isSyncing
+                                  ? const Center(
+                                      child: CircularProgressIndicator(),
+                                    )
+                                  : const Center(
+                                      child: Text(
+                                        'Nenhuma transação encontrada.',
                                       ),
-                                      child: Column(
-                                        children: [
-                                          for (final dateKey in grouped.keys)
-                                            _buildDayGroup(
-                                              context: context,
-                                              dateKey: dateKey,
-                                              dayTrans: grouped[dateKey]!,
-                                              saldosDiarios: saldosDiarios,
-                                              activeUser: activeUser,
-                                            ),
-                                        ],
-                                      ),
-                                    ),
+                                    )
+                            else
+                              Scrollbar(
+                                controller: _transacoesScrollController,
+                                thumbVisibility: true,
+                                interactive: true,
+                                child: SingleChildScrollView(
+                                  controller: _transacoesScrollController,
+                                  padding: const EdgeInsets.only(bottom: 80.0),
+                                  child: Column(
+                                    children: [
+                                      for (final dateKey in grouped.keys)
+                                        _buildDayGroup(
+                                          context: context,
+                                          dateKey: dateKey,
+                                          dayTrans: grouped[dateKey]!,
+                                          saldosDiarios: saldosDiarios,
+                                          activeUser: activeUser,
+                                        ),
+                                    ],
                                   ),
+                                ),
+                              ),
                             if (_isMonthChanging)
-                              Container(
-                                color: Colors.black.withOpacity(0.3),
+                              ColoredBox(
+                                color: Colors.black.withValues(alpha: 0.3),
                                 child: const Center(
                                   child: CircularProgressIndicator(),
                                 ),
@@ -658,7 +658,7 @@ class _FinancasLayoutState extends State<FinancasLayout>
                           decoration: BoxDecoration(
                             border: Border(
                               left: BorderSide(
-                                color: Colors.grey.withOpacity(0.2),
+                                color: Colors.grey.withValues(alpha: 0.2),
                               ),
                             ),
                             color: Theme.of(context).cardColor,
@@ -797,7 +797,8 @@ class _FinancasLayoutState extends State<FinancasLayout>
                           borderRadius: BorderRadius.circular(12),
                           side: BorderSide(
                             color:
-                                cat.cor?.withOpacity(0.3) ?? Colors.transparent,
+                                cat.cor?.withValues(alpha: 0.3) ??
+                                Colors.transparent,
                             width: 1.5,
                           ),
                         ),
@@ -821,8 +822,8 @@ class _FinancasLayoutState extends State<FinancasLayout>
                               children: [
                                 CircleAvatar(
                                   backgroundColor:
-                                      cat.cor?.withOpacity(0.15) ??
-                                      Colors.blue.withOpacity(0.15),
+                                      cat.cor?.withValues(alpha: 0.15) ??
+                                      Colors.blue.withValues(alpha: 0.15),
                                   child: Icon(
                                     icon,
                                     color: cat.cor ?? Colors.blue,
@@ -874,7 +875,7 @@ class _FinancasLayoutState extends State<FinancasLayout>
                           leading: CircleAvatar(
                             backgroundColor: Theme.of(
                               context,
-                            ).colorScheme.primary.withOpacity(0.1),
+                            ).colorScheme.primary.withValues(alpha: 0.1),
                             child: Text(
                               c.nome.isNotEmpty
                                   ? c.nome.substring(0, 1).toUpperCase()
@@ -1036,184 +1037,6 @@ class _FinancasLayoutState extends State<FinancasLayout>
     return userIn && otherIn;
   }
 
-  Widget _buildMonthSelector() {
-    final monthName = DateFormat('MMMM yyyy', 'pt_BR').format(_selectedMonth);
-    final capitalized = monthName[0].toUpperCase() + monthName.substring(1);
-
-    return Card(
-      margin: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 4.0, horizontal: 8.0),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Row(
-              children: [
-                IconButton(
-                  tooltip: 'Mês anterior',
-                  icon: const Icon(Icons.chevron_left),
-                  onPressed: () {
-                    _onMonthChanged(
-                      DateTime(
-                        _selectedMonth.year,
-                        _selectedMonth.month - 1,
-                        1,
-                      ),
-                    );
-                  },
-                ),
-                IconButton(
-                  tooltip: 'Mês atual',
-                  icon: const Icon(Icons.today, color: Colors.blue),
-                  onPressed: () {
-                    _onMonthChanged(DateTime.now());
-                  },
-                ),
-              ],
-            ),
-            InkWell(
-              onTap: () => _mostrarSeletorMesAno(context),
-              borderRadius: BorderRadius.circular(8),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12.0,
-                  vertical: 6.0,
-                ),
-                child: Row(
-                  children: [
-                    Text(
-                      capitalized,
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(width: 4),
-                    const Icon(Icons.arrow_drop_down, size: 20),
-                  ],
-                ),
-              ),
-            ),
-            IconButton(
-              tooltip: 'Próximo mês',
-              icon: const Icon(Icons.chevron_right),
-              onPressed: () {
-                _onMonthChanged(
-                  DateTime(_selectedMonth.year, _selectedMonth.month + 1, 1),
-                );
-              },
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  void _mostrarSeletorMesAno(BuildContext context) {
-    int tempYear = _selectedMonth.year;
-    final List<String> meses = [
-      'Jan',
-      'Fev',
-      'Mar',
-      'Abr',
-      'Mai',
-      'Jun',
-      'Jul',
-      'Ago',
-      'Set',
-      'Out',
-      'Nov',
-      'Dez',
-    ];
-
-    showDialog(
-      context: context,
-      builder: (context) {
-        return StatefulBuilder(
-          builder: (context, setDialogState) {
-            return AlertDialog(
-              title: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  IconButton(
-                    icon: const Icon(Icons.chevron_left),
-                    onPressed: () {
-                      setDialogState(() {
-                        tempYear--;
-                      });
-                    },
-                  ),
-                  Text(
-                    tempYear.toString(),
-                    style: const TextStyle(fontWeight: FontWeight.bold),
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.chevron_right),
-                    onPressed: () {
-                      setDialogState(() {
-                        tempYear++;
-                      });
-                    },
-                  ),
-                ],
-              ),
-              content: SizedBox(
-                width: 300,
-                height: 200,
-                child: GridView.builder(
-                  shrinkWrap: true,
-                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 4,
-                    mainAxisSpacing: 8,
-                    crossAxisSpacing: 8,
-                    childAspectRatio: 1.5,
-                  ),
-                  itemCount: 12,
-                  itemBuilder: (context, index) {
-                    final monthIndex = index + 1;
-                    final isSelected =
-                        _selectedMonth.year == tempYear &&
-                        _selectedMonth.month == monthIndex;
-                    return InkWell(
-                      onTap: () {
-                        _onMonthChanged(DateTime(tempYear, monthIndex, 1));
-                        Navigator.of(context).pop();
-                      },
-                      borderRadius: BorderRadius.circular(8),
-                      child: Container(
-                        decoration: BoxDecoration(
-                          color: isSelected
-                              ? Theme.of(context).primaryColor
-                              : Colors.transparent,
-                          border: Border.all(
-                            color: isSelected
-                                ? Theme.of(context).primaryColor
-                                : Colors.grey.withOpacity(0.3),
-                          ),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        alignment: Alignment.center,
-                        child: Text(
-                          meses[index],
-                          style: TextStyle(
-                            fontWeight: isSelected
-                                ? FontWeight.bold
-                                : FontWeight.normal,
-                            color: isSelected ? Colors.white : null,
-                          ),
-                        ),
-                      ),
-                    );
-                  },
-                ),
-              ),
-            );
-          },
-        );
-      },
-    );
-  }
-
   double _calcularSaldoAcumuladoAnterior(
     List<TransacaoModel> allTrans,
     String activeUserId,
@@ -1222,7 +1045,6 @@ class _FinancasLayoutState extends State<FinancasLayout>
     final firstDayOfSelectedMonth = DateTime(
       _selectedMonth.year,
       _selectedMonth.month,
-      1,
     );
     double total = 0.0;
     for (final t in allTrans) {
@@ -1284,7 +1106,7 @@ class _FinancasLayoutState extends State<FinancasLayout>
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.25),
+            color: Colors.black.withValues(alpha: 0.25),
             blurRadius: 16,
             spreadRadius: 2,
             offset: const Offset(0, 4),
@@ -1297,7 +1119,9 @@ class _FinancasLayoutState extends State<FinancasLayout>
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(16),
           side: BorderSide(
-            color: Theme.of(context).colorScheme.secondary.withOpacity(0.5),
+            color: Theme.of(
+              context,
+            ).colorScheme.secondary.withValues(alpha: 0.5),
             width: 1.5,
           ),
         ),
@@ -1317,7 +1141,7 @@ class _FinancasLayoutState extends State<FinancasLayout>
                     decoration: BoxDecoration(
                       color: Theme.of(
                         context,
-                      ).colorScheme.secondary.withOpacity(0.2),
+                      ).colorScheme.secondary.withValues(alpha: 0.2),
                       borderRadius: BorderRadius.circular(20),
                     ),
                     child: Text(
@@ -1389,7 +1213,7 @@ class _FinancasLayoutState extends State<FinancasLayout>
   }) {
     return Container(
       decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
+        color: color.withValues(alpha: 0.1),
         shape: BoxShape.circle,
       ),
       child: IconButton(
@@ -1805,9 +1629,9 @@ class _FinancasLayoutState extends State<FinancasLayout>
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
       decoration: BoxDecoration(
-        color: color.withOpacity(isDark ? 0.2 : 0.1),
+        color: color.withValues(alpha: isDark ? 0.2 : 0.1),
         borderRadius: BorderRadius.circular(4),
-        border: Border.all(color: color.withOpacity(0.3), width: 0.5),
+        border: Border.all(color: color.withValues(alpha: 0.3), width: 0.5),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -1819,7 +1643,7 @@ class _FinancasLayoutState extends State<FinancasLayout>
             style: TextStyle(
               fontSize: 9,
               fontWeight: FontWeight.w600,
-              color: isDark ? color.withOpacity(0.9) : color,
+              color: isDark ? color.withValues(alpha: 0.9) : color,
             ),
           ),
         ],

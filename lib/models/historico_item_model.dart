@@ -43,14 +43,17 @@ class HistoricoItemModel {
     return HistoricoItemModel(
       usuario: map['usuario'] as String,
       id: map['id'] as String,
-      tarefasEHabitos: TarefaHabitoModel.fromMap(map['tarefasEHabitos'] as Map<String,dynamic>),
+      tarefasEHabitos: TarefaHabitoModel.fromMap(
+        map['tarefasEHabitos'] as Map<String, dynamic>,
+      ),
       createdAt: DateTime.fromMillisecondsSinceEpoch(map['dataCriacao'] as int),
     );
   }
 
   String toJson() => json.encode(toMap());
 
-  factory HistoricoItemModel.fromJson(String source) => HistoricoItemModel.fromMap(json.decode(source) as Map<String, dynamic>);
+  factory HistoricoItemModel.fromJson(String source) =>
+      HistoricoItemModel.fromMap(json.decode(source) as Map<String, dynamic>);
 
   @override
   String toString() {
@@ -60,19 +63,18 @@ class HistoricoItemModel {
   @override
   bool operator ==(covariant HistoricoItemModel other) {
     if (identical(this, other)) return true;
-  
-    return 
-      other.usuario == usuario &&
-      other.id == id &&
-      other.tarefasEHabitos == tarefasEHabitos &&
-      other.createdAt == createdAt;
+
+    return other.usuario == usuario &&
+        other.id == id &&
+        other.tarefasEHabitos == tarefasEHabitos &&
+        other.createdAt == createdAt;
   }
 
   @override
   int get hashCode {
     return usuario.hashCode ^
-      id.hashCode ^
-      tarefasEHabitos.hashCode ^
-      createdAt.hashCode;
+        id.hashCode ^
+        tarefasEHabitos.hashCode ^
+        createdAt.hashCode;
   }
 }

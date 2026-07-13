@@ -1,17 +1,17 @@
 import 'dart:developer';
+
 import 'package:appwrite/appwrite.dart';
 import 'package:appwrite/models.dart';
+import 'package:ppvdigital/app/capacitacao/tarefas_habitos/historico_controller.dart';
+import 'package:ppvdigital/app/capacitacao/tarefas_habitos/tarefas_habitos_controller.dart';
 import 'package:ppvdigital/core.dart';
 import 'package:ppvdigital/models/historico_item_model.dart';
 import 'package:ppvdigital/models/tarefas_habitos_model.dart';
 import 'package:ppvdigital/repositories/tarefa_habito_repository.dart';
-import 'package:ppvdigital/app/capacitacao/tarefas_habitos/historico_controller.dart';
-import 'package:ppvdigital/app/capacitacao/tarefas_habitos/tarefas_habitos_controller.dart';
 
 class AppwriteTarefaHabitoRepository implements TarefaHabitoRepository {
-  final Databases databases;
-
   AppwriteTarefaHabitoRepository(this.databases);
+  final Databases databases;
 
   @override
   Future<List<TarefaHabitoModel>> getTarefasEHabitos({
@@ -94,7 +94,7 @@ class AppwriteTarefaHabitoRepository implements TarefaHabitoRepository {
     required String usuarioId,
   }) async {
     final TablesDB tablesDB = TablesDB(databases.client);
-    final String qtdCollectionId = Core.tableTarefasHabitosQtds;
+    const String qtdCollectionId = Core.tableTarefasHabitosQtds;
 
     final List<String> qtdRowIds = [];
 
@@ -146,7 +146,7 @@ class AppwriteTarefaHabitoRepository implements TarefaHabitoRepository {
     required String usuarioId,
   }) async {
     final TablesDB tablesDB = TablesDB(databases.client);
-    final String qtdCollectionId = Core.tableTarefasHabitosQtds;
+    const String qtdCollectionId = Core.tableTarefasHabitosQtds;
 
     final List<String> savedQtdRowIds = [];
     final List<String> finalQtdRowIds = [];
@@ -226,7 +226,7 @@ class AppwriteTarefaHabitoRepository implements TarefaHabitoRepository {
     required List<String> qtdRowIds,
   }) async {
     final TablesDB tablesDB = TablesDB(databases.client);
-    final String qtdCollectionId = Core.tableTarefasHabitosQtds;
+    const String qtdCollectionId = Core.tableTarefasHabitosQtds;
 
     for (final qtdRowId in qtdRowIds) {
       try {

@@ -156,7 +156,8 @@ class _CriarEditarCategoriaTransacaoPageState
       builder: (context) => AlertDialog(
         title: const Text('Remover categoria'),
         content: const Text(
-            'Deseja realmente remover esta categoria? As transações vinculadas continuarão existindo sem categoria.'),
+          'Deseja realmente remover esta categoria? As transações vinculadas continuarão existindo sem categoria.',
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
@@ -176,8 +177,9 @@ class _CriarEditarCategoriaTransacaoPageState
       _isLoading = true;
     });
 
-    final bool success =
-        await Core.financasController.deleteCategoria(widget.editingItem!.id);
+    final bool success = await Core.financasController.deleteCategoria(
+      widget.editingItem!.id,
+    );
 
     setState(() {
       _isLoading = false;
@@ -213,7 +215,9 @@ class _CriarEditarCategoriaTransacaoPageState
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  widget.editingItem == null ? 'Nova Categoria' : 'Editar Categoria',
+                  widget.editingItem == null
+                      ? 'Nova Categoria'
+                      : 'Editar Categoria',
                   style: const TextStyle(
                     fontSize: 20,
                     fontWeight: FontWeight.bold,
@@ -256,7 +260,8 @@ class _CriarEditarCategoriaTransacaoPageState
               spacing: 8,
               runSpacing: 8,
               children: _presetColors.map((color) {
-                final bool isSelected = _selectedColor.value == color.value;
+                final bool isSelected =
+                    _selectedColor.toARGB32() == color.toARGB32();
                 return GestureDetector(
                   onTap: () {
                     setState(() {
@@ -278,7 +283,7 @@ class _CriarEditarCategoriaTransacaoPageState
                                 color: Colors.black26,
                                 blurRadius: 4,
                                 offset: Offset(0, 2),
-                              )
+                              ),
                             ]
                           : null,
                     ),
@@ -315,8 +320,8 @@ class _CriarEditarCategoriaTransacaoPageState
                   child: Container(
                     decoration: BoxDecoration(
                       color: isSelected
-                          ? _selectedColor.withOpacity(0.2)
-                          : Colors.grey.withOpacity(0.1),
+                          ? _selectedColor.withValues(alpha: 0.2)
+                          : Colors.grey.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(8),
                       border: isSelected
                           ? Border.all(color: _selectedColor, width: 2)

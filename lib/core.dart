@@ -1,6 +1,6 @@
 import 'package:appwrite/appwrite.dart';
 import 'package:flutter/material.dart';
-import 'package:ppvdigital/models/local/app_database.dart';
+import 'package:get_it/get_it.dart';
 import 'package:ppvdigital/app/capacitacao/financas/financas_controller.dart';
 import 'package:ppvdigital/app/capacitacao/tarefas_habitos/calendario_controller.dart';
 import 'package:ppvdigital/app/capacitacao/tarefas_habitos/categorias_controller.dart';
@@ -8,14 +8,13 @@ import 'package:ppvdigital/app/capacitacao/tarefas_habitos/historico_controller.
 import 'package:ppvdigital/app/capacitacao/tarefas_habitos/tarefas_habitos_controller.dart';
 import 'package:ppvdigital/app/capacitacao/tarefas_habitos/tarefas_habitos_layout.dart';
 import 'package:ppvdigital/app/login/login_controller.dart';
+import 'package:ppvdigital/models/local/app_database.dart';
 import 'package:ppvdigital/repositories/appwrite_financas_repository.dart';
 import 'package:ppvdigital/repositories/appwrite_tarefa_habito_repository.dart';
-import 'package:ppvdigital/repositories/financas_repository.dart';
 import 'package:ppvdigital/repositories/drift_financas_repository.dart';
 import 'package:ppvdigital/repositories/drift_tarefa_habito_repository.dart';
+import 'package:ppvdigital/repositories/financas_repository.dart';
 import 'package:ppvdigital/repositories/tarefa_habito_repository.dart';
-
-import 'package:get_it/get_it.dart';
 
 extension HexColor on Color {
   /// String is in the format "aabbcc" or "ffaabbcc" with an optional leading "#".
@@ -68,20 +67,27 @@ class Core {
   static GetIt get getIt => GetIt.instance;
 
   static AppDatabase get database => getIt<AppDatabase>();
-  static TarefaHabitoRepository get tarefaHabitoRepository => getIt<TarefaHabitoRepository>();
-  static TarefasHabitosController get tarefasHabitosController => getIt<TarefasHabitosController>();
-  static FinancasRepository get financasRepository => getIt<FinancasRepository>();
-  static FinancasController get financasController => getIt<FinancasController>();
+  static TarefaHabitoRepository get tarefaHabitoRepository =>
+      getIt<TarefaHabitoRepository>();
+  static TarefasHabitosController get tarefasHabitosController =>
+      getIt<TarefasHabitosController>();
+  static FinancasRepository get financasRepository =>
+      getIt<FinancasRepository>();
+  static FinancasController get financasController =>
+      getIt<FinancasController>();
 
   static LoginController get loginController => getIt<LoginController>();
-  static HistoricoController get historicoController => getIt<HistoricoController>();
-  static CalendarioController get calendarioController => getIt<CalendarioController>();
-  static CategoriasController get categoriasController => getIt<CategoriasController>();
+  static HistoricoController get historicoController =>
+      getIt<HistoricoController>();
+  static CalendarioController get calendarioController =>
+      getIt<CalendarioController>();
+  static CategoriasController get categoriasController =>
+      getIt<CategoriasController>();
 
   static void initialize(AppDatabase dbInstance) {
     if (!getIt.isRegistered<AppDatabase>()) {
       getIt.registerSingleton<AppDatabase>(dbInstance);
-      
+
       getIt.registerSingleton<TarefaHabitoRepository>(
         DriftTarefaHabitoRepository(
           database: dbInstance,
@@ -106,6 +112,24 @@ class Core {
       getIt.registerSingleton<HistoricoController>(HistoricoController());
       getIt.registerSingleton<CalendarioController>(CalendarioController());
       getIt.registerSingleton<CategoriasController>(CategoriasController());
+    }
+  }
+
+  static void resetAllControllers() {
+    if (getIt.isRegistered<FinancasController>()) {
+      getIt<FinancasController>().reset();
+    }
+    if (getIt.isRegistered<TarefasHabitosController>()) {
+      getIt<TarefasHabitosController>().reset();
+    }
+    if (getIt.isRegistered<HistoricoController>()) {
+      getIt<HistoricoController>().reset();
+    }
+    if (getIt.isRegistered<CalendarioController>()) {
+      getIt<CalendarioController>().reset();
+    }
+    if (getIt.isRegistered<CategoriasController>()) {
+      getIt<CategoriasController>().reset();
     }
   }
 

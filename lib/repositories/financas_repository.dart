@@ -1,8 +1,8 @@
 import 'package:ppvdigital/models/categoria_transacao_model.dart';
 import 'package:ppvdigital/models/conta_model.dart';
 import 'package:ppvdigital/models/contato_model.dart';
-import 'package:ppvdigital/models/transacao_model.dart';
 import 'package:ppvdigital/models/divisao_transacao_model.dart';
+import 'package:ppvdigital/models/transacao_model.dart';
 
 abstract class FinancasRepository {
   Future<List<ContatoModel>> getContatos({

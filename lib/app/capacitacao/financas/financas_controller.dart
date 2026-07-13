@@ -2,7 +2,6 @@ import 'dart:async';
 import 'dart:developer';
 
 import 'package:appwrite/appwrite.dart';
-import 'package:appwrite/models.dart';
 import 'package:mobx/mobx.dart' as mobx;
 import 'package:ppvdigital/core.dart';
 import 'package:ppvdigital/models/categoria_transacao_model.dart';
@@ -13,9 +12,8 @@ import 'package:ppvdigital/models/transacao_model.dart';
 import 'package:ppvdigital/repositories/financas_repository.dart';
 
 class FinancasController {
-  final FinancasRepository repository;
-
   FinancasController(this.repository);
+  final FinancasRepository repository;
 
   DateTime _lastSelectedMonth = DateTime.now();
   DateTime get lastSelectedMonth => _lastSelectedMonth;
@@ -126,16 +124,11 @@ class FinancasController {
     final transacoesStream = repository.watchTransacoes(
       usuarioId: user,
       contaIds: [],
-      targetMonth: null,
     );
     try {
       final firstData = await transacoesStream.first;
       mobx.runInAction(() {
-        final firstDayOfMonth = DateTime(
-          targetMonth.year,
-          targetMonth.month,
-          1,
-        );
+        final firstDayOfMonth = DateTime(targetMonth.year, targetMonth.month);
         final loadedTrans = firstData
             .where(
               (t) => t.dataCompetencia.isAfter(
@@ -154,11 +147,7 @@ class FinancasController {
     } catch (_) {}
     _transacoesSub = transacoesStream.listen((data) {
       mobx.runInAction(() {
-        final firstDayOfMonth = DateTime(
-          targetMonth.year,
-          targetMonth.month,
-          1,
-        );
+        final firstDayOfMonth = DateTime(targetMonth.year, targetMonth.month);
         final loadedTrans = data
             .where(
               (t) => t.dataCompetencia.isAfter(
@@ -192,10 +181,7 @@ class FinancasController {
     });
     try {
       // 0. Fetch and cache contatos
-      final contatos = await repository.getContatos(
-        usuarioId: user,
-        forceLocal: false,
-      );
+      final contatos = await repository.getContatos(usuarioId: user);
 
       // Auto-create a contact for the current user if they don't have one
       final bool hasUserContato = contatos.any((c) => c.userId == user);
@@ -217,14 +203,11 @@ class FinancasController {
       }
 
       // 1. Fetch and cache contas
-      final contas = await repository.getContas(
-        usuarioId: user,
-        forceLocal: false,
-      );
+      final contas = await repository.getContas(usuarioId: user);
       final List<String> contaIds = contas.map((c) => c.id).toList();
 
       // 2. Fetch and cache categorias
-      await repository.getCategorias(usuarioId: user, forceLocal: false);
+      await repository.getCategorias(usuarioId: user);
 
       if (contaIds.isNotEmpty) {
         // 3. Fetch and cache transactions (for targetMonth)
@@ -232,20 +215,13 @@ class FinancasController {
           usuarioId: user,
           contaIds: contaIds,
           targetMonth: targetMonth,
-          forceLocal: false,
         );
 
-        final firstDayOfMonth = DateTime(
-          targetMonth.year,
-          targetMonth.month,
-          1,
-        );
+        final firstDayOfMonth = DateTime(targetMonth.year, targetMonth.month);
         await repository.getTransacoes(
           usuarioId: user,
           contaIds: contaIds,
           beforeDate: firstDayOfMonth,
-          lightweight: false,
-          forceLocal: false,
         );
       }
     } catch (e) {
@@ -255,6 +231,22 @@ class FinancasController {
         _isSyncing.value = false;
       });
     }
+  }
+
+  void reset() {
+    _contatosSub?.cancel();
+    _contasSub?.cancel();
+    _categoriasSub?.cancel();
+    _transacoesSub?.cancel();
+
+    mobx.runInAction(() {
+      _contasList.clear();
+      _categoriasList.clear();
+      _contatosList.clear();
+      _transacoesList.clear();
+      _divisoesList.clear();
+      _isSyncing.value = false;
+    });
   }
 
   Future<void> updateAccountBalance(String contaId, double amountDiff) async {
@@ -768,7 +760,6 @@ class FinancasController {
         }
       }
 
-      final delta = dataCompetencia.difference(original.dataCompetencia);
       String? updatedRecId = original.recorrencia?.id;
 
       // Local helper function to calculate recurrent dates
@@ -988,7 +979,7 @@ class FinancasController {
             }
             newMainDesc = totalParcelas == null
                 ? baseDesc
-                : '$baseDesc (Parcela ${(idxEdit != -1 ? idxEdit + 1 : 1)}/$totalParcelas)';
+                : '$baseDesc (Parcela ${idxEdit != -1 ? idxEdit + 1 : 1}/$totalParcelas)';
 
             for (int j = 0; j < allSeriesTrans.length; j++) {
               final t = allSeriesTrans[j];
@@ -1223,35 +1214,52 @@ class FinancasController {
 
       // Prepare updates
       for (final t in targetTransactions) {
-        final Map<String, dynamic> updateData = {};
+        final Map<String, dynamic> updateData = {
+          'descricao': t.descricao,
+          'valor': t.valor,
+          'tipo': t.tipo,
+          'dataCompetencia': t.dataCompetencia.toIso8601String(),
+          'consolidada': t.consolidada,
+          'conta': t.conta?.id,
+          'contaDestino': t.contaDestino?.id,
+          'categoria': t.categoria?.id,
+          'recorrencia': t.recorrencia?.id,
+          'devedorContato': t.devedorContato?.id,
+          'credorContato': t.credorContato?.id,
+        };
 
         if (action == 'consolidar') {
           updateData['consolidada'] = newValue as bool;
         } else if (action == 'dataCompetencia') {
           final DateTime newDate = newValue as DateTime;
-          TransacaoModel? originalForT;
-          for (final origId in transIds) {
-            final matchesOrig = transacoesList.where((o) => o.id == origId);
-            if (matchesOrig.isEmpty) continue;
-            final orig = matchesOrig.first;
-            if (t.recorrencia != null &&
-                orig.recorrencia != null &&
-                t.recorrencia!.id == orig.recorrencia!.id) {
-              originalForT = orig;
-              break;
+          if (transIds.contains(t.id)) {
+            updateData['dataCompetencia'] = newDate.toIso8601String();
+          } else {
+            TransacaoModel? originalForT;
+            for (final origId in transIds) {
+              final matchesOrig = transacoesList.where((o) => o.id == origId);
+              if (matchesOrig.isEmpty) continue;
+              final orig = matchesOrig.first;
+              if (t.recorrencia != null &&
+                  orig.recorrencia != null &&
+                  t.recorrencia!.id == orig.recorrencia!.id) {
+                if (orig.dataCompetencia.isBefore(t.dataCompetencia)) {
+                  if (originalForT == null ||
+                      orig.dataCompetencia.isAfter(originalForT.dataCompetencia)) {
+                    originalForT = orig;
+                  }
+                }
+              }
             }
-          }
-          if (originalForT != null) {
-            final delta = newDate.difference(originalForT.dataCompetencia);
-            if (t.id == originalForT.id) {
-              updateData['dataCompetencia'] = newDate.toIso8601String();
-            } else {
+
+            if (originalForT != null) {
+              final delta = newDate.difference(originalForT.dataCompetencia);
               updateData['dataCompetencia'] = t.dataCompetencia
                   .add(delta)
                   .toIso8601String();
+            } else {
+              updateData['dataCompetencia'] = newDate.toIso8601String();
             }
-          } else {
-            updateData['dataCompetencia'] = newDate.toIso8601String();
           }
         } else if (action == 'conta') {
           updateData['conta'] = newValue as String;

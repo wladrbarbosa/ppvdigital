@@ -1,9 +1,10 @@
 import 'dart:convert';
 import 'dart:developer';
+
 import 'package:drift/drift.dart';
 import 'package:drift_flutter/drift_flutter.dart';
-import 'package:ppvdigital/models/tarefas_habitos_qtd_model.dart';
 import 'package:ppvdigital/models/divisao_transacao_model.dart';
+import 'package:ppvdigital/models/tarefas_habitos_qtd_model.dart';
 import 'package:ppvdigital/models/transacao_recorrencia_model.dart';
 
 part 'app_database.g.dart';
@@ -174,7 +175,7 @@ class Transacaos extends Table {
   ],
 )
 class AppDatabase extends _$AppDatabase {
-  AppDatabase() : super(_openConnection());
+  AppDatabase([QueryExecutor? executor]) : super(executor ?? _openConnection());
 
   @override
   int get schemaVersion => 3;

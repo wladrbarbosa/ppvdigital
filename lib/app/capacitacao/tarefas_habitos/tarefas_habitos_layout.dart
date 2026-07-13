@@ -83,9 +83,7 @@ class TarefasPageState extends State<TarefasPage>
         case 3:
           Routefly.navigate(routePaths.capacitacao.tarefasHabitos.categorias);
         default:
-          Routefly.navigate(
-            routePaths.capacitacao.tarefasHabitos.tarefas,
-          );
+          Routefly.navigate(routePaths.capacitacao.tarefasHabitos.tarefas);
       }
     }
   }
@@ -136,7 +134,8 @@ class TarefasPageState extends State<TarefasPage>
                       spacing: 8,
                       runSpacing: 8,
                       children: _presetColors.map((color) {
-                        final bool isSelected = color.value == selectedColor.value;
+                        final bool isSelected =
+                            color.toARGB32() == selectedColor.toARGB32();
                         return GestureDetector(
                           onTap: () => onColorSelected(color),
                           child: Container(
@@ -147,14 +146,16 @@ class TarefasPageState extends State<TarefasPage>
                               shape: BoxShape.circle,
                               border: isSelected
                                   ? Border.all(color: Colors.white, width: 3)
-                                  : Border.all(color: Colors.grey.withOpacity(0.3), width: 1),
+                                  : Border.all(
+                                      color: Colors.grey.withValues(alpha: 0.3),
+                                    ),
                               boxShadow: isSelected
                                   ? [
                                       BoxShadow(
-                                        color: color.withOpacity(0.6),
+                                        color: color.withValues(alpha: 0.6),
                                         blurRadius: 6,
                                         spreadRadius: 2,
-                                      )
+                                      ),
                                     ]
                                   : null,
                             ),
@@ -246,9 +247,7 @@ class TarefasPageState extends State<TarefasPage>
             ),
           ),
         ),
-        body: const RouterOutlet(
-          defaultWidget: TarefasListPage(),
-        ),
+        body: const RouterOutlet(defaultWidget: TarefasListPage()),
         floatingActionButtonLocation: ExpandableFab.location,
         floatingActionButton: ExpandableFab(
           children: [

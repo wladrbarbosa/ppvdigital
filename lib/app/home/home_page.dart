@@ -227,7 +227,9 @@ class _HomePageState extends State<HomePage> {
                                           vertical: 2,
                                         ),
                                         decoration: BoxDecoration(
-                                          color: baseColor.withOpacity(0.2),
+                                          color: baseColor.withValues(
+                                            alpha: 0.2,
+                                          ),
                                           borderRadius: BorderRadius.circular(
                                             6,
                                           ),
@@ -274,7 +276,6 @@ class _HomePageState extends State<HomePage> {
             return SingleChildScrollView(
               padding: const EdgeInsets.all(20.0),
               child: Column(
-                crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
                   const Text(
                     'Selecione uma área para navegar',
@@ -297,7 +298,6 @@ class _HomePageState extends State<HomePage> {
                 constraints: const BoxConstraints(maxWidth: 1000),
                 padding: const EdgeInsets.all(32.0),
                 child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
                     Expanded(
                       flex: 4,

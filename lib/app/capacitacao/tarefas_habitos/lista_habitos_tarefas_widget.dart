@@ -1,13 +1,13 @@
 import 'dart:math';
 
+import 'package:drift/drift.dart' hide Column;
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
-import 'package:drift/drift.dart' hide Column;
-import 'package:ppvdigital/models/local/app_database.dart';
 import 'package:liquid_progress_indicator_v2/liquid_progress_indicator.dart';
 import 'package:ppvdigital/app/capacitacao/tarefas_habitos/tarefas_habitos_controller.dart';
 import 'package:ppvdigital/core.dart';
+import 'package:ppvdigital/models/local/app_database.dart';
 import 'package:ppvdigital/models/tarefas_habitos_model.dart';
 import 'package:ppvdigital/models/tarefas_habitos_qtd_model.dart';
 import 'package:ppvdigital/routes.g.dart';
@@ -73,14 +73,12 @@ class ListaHabitosTarefasWidgetState extends State<ListaHabitosTarefasWidget> {
           Duration(days: blocks * reiniciaEmQtd),
         );
         endPeriod = startPeriod.add(Duration(days: reiniciaEmQtd));
-        break;
       case 'semanas':
         final int blocks = beginningNowDiff.inDays ~/ (7 * reiniciaEmQtd);
         final startPeriod = beginning.add(
           Duration(days: blocks * 7 * reiniciaEmQtd),
         );
         endPeriod = startPeriod.add(Duration(days: 7 * reiniciaEmQtd));
-        break;
       case 'meses':
         final int monthDiff =
             (now.year - beginning.year) * 12 + (now.month - beginning.month);
@@ -95,7 +93,6 @@ class ListaHabitosTarefasWidgetState extends State<ListaHabitosTarefasWidget> {
           startPeriod.month + reiniciaEmQtd,
           startPeriod.day,
         );
-        break;
       case 'anos':
         final int yearDiff = now.year - beginning.year;
         final int blocks = yearDiff ~/ reiniciaEmQtd;
@@ -109,14 +106,12 @@ class ListaHabitosTarefasWidgetState extends State<ListaHabitosTarefasWidget> {
           startPeriod.month,
           startPeriod.day,
         );
-        break;
       default:
         final int blocks = beginningNowDiff.inDays ~/ reiniciaEmQtd;
         final startPeriod = beginning.add(
           Duration(days: blocks * reiniciaEmQtd),
         );
         endPeriod = startPeriod.add(Duration(days: reiniciaEmQtd));
-        break;
     }
 
     return endPeriod.difference(now);
@@ -128,12 +123,10 @@ class ListaHabitosTarefasWidgetState extends State<ListaHabitosTarefasWidget> {
       switch (_sortField) {
         case TarefaHabitoSortField.nome:
           cmp = a.nome.toLowerCase().compareTo(b.nome.toLowerCase());
-          break;
         case TarefaHabitoSortField.agendamento:
           final aDate = a.agendamento ?? DateTime.fromMillisecondsSinceEpoch(0);
           final bDate = b.agendamento ?? DateTime.fromMillisecondsSinceEpoch(0);
           cmp = aDate.compareTo(bDate);
-          break;
         case TarefaHabitoSortField.categoria:
           final aCat =
               a.tarefasHabitosQtd.firstOrNull?.categoriasTarefasHabitos?.nome ??
@@ -142,17 +135,14 @@ class ListaHabitosTarefasWidgetState extends State<ListaHabitosTarefasWidget> {
               b.tarefasHabitosQtd.firstOrNull?.categoriasTarefasHabitos?.nome ??
               '';
           cmp = aCat.toLowerCase().compareTo(bCat.toLowerCase());
-          break;
         case TarefaHabitoSortField.valor:
           final aVal = a.tarefasHabitosQtd.firstOrNull?.valor ?? 0.0;
           final bVal = b.tarefasHabitosQtd.firstOrNull?.valor ?? 0.0;
           cmp = aVal.compareTo(bVal);
-          break;
         case TarefaHabitoSortField.meta:
           final aMeta = a.tarefasHabitosQtd.firstOrNull?.metaVezes ?? 0;
           final bMeta = b.tarefasHabitosQtd.firstOrNull?.metaVezes ?? 0;
           cmp = aMeta.compareTo(bMeta);
-          break;
         case TarefaHabitoSortField.progresso:
           final aQtd = a.tarefasHabitosQtd.firstOrNull;
           final bQtd = b.tarefasHabitosQtd.firstOrNull;
@@ -163,7 +153,6 @@ class ListaHabitosTarefasWidgetState extends State<ListaHabitosTarefasWidget> {
               ? (bQtd.vezesPraticado / bQtd.metaVezes)
               : 0.0;
           cmp = aProg.compareTo(bProg);
-          break;
         case TarefaHabitoSortField.proximidadeFimCiclo:
           final aQtd = a.tarefasHabitosQtd.firstOrNull;
           final bQtd = b.tarefasHabitosQtd.firstOrNull;
@@ -174,12 +163,10 @@ class ListaHabitosTarefasWidgetState extends State<ListaHabitosTarefasWidget> {
               ? _getCycleRemainingDuration(bQtd)
               : const Duration(days: 999999);
           cmp = aDur.compareTo(bDur);
-          break;
         case TarefaHabitoSortField.duracao:
           final aDur = a.duration ?? 0;
           final bDur = b.duration ?? 0;
           cmp = aDur.compareTo(bDur);
-          break;
       }
       return _sortAscending ? cmp : -cmp;
     });
@@ -191,28 +178,20 @@ class ListaHabitosTarefasWidgetState extends State<ListaHabitosTarefasWidget> {
     switch (_sortField) {
       case TarefaHabitoSortField.nome:
         fieldLabel = 'Nome';
-        break;
       case TarefaHabitoSortField.agendamento:
         fieldLabel = 'Data de Agendamento';
-        break;
       case TarefaHabitoSortField.categoria:
         fieldLabel = 'Categoria';
-        break;
       case TarefaHabitoSortField.valor:
         fieldLabel = 'Valor';
-        break;
       case TarefaHabitoSortField.meta:
         fieldLabel = 'Meta';
-        break;
       case TarefaHabitoSortField.progresso:
         fieldLabel = 'Progresso';
-        break;
       case TarefaHabitoSortField.proximidadeFimCiclo:
         fieldLabel = 'Fim do Ciclo';
-        break;
       case TarefaHabitoSortField.duracao:
         fieldLabel = 'Duração';
-        break;
     }
 
     return Padding(
@@ -312,19 +291,29 @@ class ListaHabitosTarefasWidgetState extends State<ListaHabitosTarefasWidget> {
     try {
       final keySuffix = widget.onlyTipo ?? 'all';
 
-      final savedFieldIndexStrSetting = await (Core.database.select(Core.database.appSettings)
-            ..where((t) => t.key.equals('pref_tarefa_habito_sort_field_index_str_$keySuffix')))
-          .getSingleOrNull();
+      final savedFieldIndexStrSetting =
+          await (Core.database.select(Core.database.appSettings)..where(
+                (t) => t.key.equals(
+                  'pref_tarefa_habito_sort_field_index_str_$keySuffix',
+                ),
+              ))
+              .getSingleOrNull();
       final savedFieldIndexStr = savedFieldIndexStrSetting?.value;
 
-      final savedFieldStrSetting = await (Core.database.select(Core.database.appSettings)
-            ..where((t) => t.key.equals('pref_tarefa_habito_sort_field_$keySuffix')))
-          .getSingleOrNull();
+      final savedFieldStrSetting =
+          await (Core.database.select(Core.database.appSettings)..where(
+                (t) => t.key.equals('pref_tarefa_habito_sort_field_$keySuffix'),
+              ))
+              .getSingleOrNull();
       final savedFieldStr = savedFieldStrSetting?.value;
 
-      final savedAscendingStrSetting = await (Core.database.select(Core.database.appSettings)
-            ..where((t) => t.key.equals('pref_tarefa_habito_sort_ascending_str_$keySuffix')))
-          .getSingleOrNull();
+      final savedAscendingStrSetting =
+          await (Core.database.select(Core.database.appSettings)..where(
+                (t) => t.key.equals(
+                  'pref_tarefa_habito_sort_ascending_str_$keySuffix',
+                ),
+              ))
+              .getSingleOrNull();
       final savedAscendingStr = savedAscendingStrSetting?.value;
 
       debugPrint(
@@ -394,11 +383,21 @@ class ListaHabitosTarefasWidgetState extends State<ListaHabitosTarefasWidget> {
       );
 
       await Core.database.transaction(() async {
-        await Core.database.into(Core.database.appSettings).insert(indexSetting, mode: InsertMode.insertOrReplace);
-        await Core.database.into(Core.database.appSettings).insert(ascSetting, mode: InsertMode.insertOrReplace);
-        await Core.database.into(Core.database.appSettings).insert(legacyIndexSetting, mode: InsertMode.insertOrReplace);
-        await Core.database.into(Core.database.appSettings).insert(legacyFieldSetting, mode: InsertMode.insertOrReplace);
-        await Core.database.into(Core.database.appSettings).insert(legacyAscSetting, mode: InsertMode.insertOrReplace);
+        await Core.database
+            .into(Core.database.appSettings)
+            .insert(indexSetting, mode: InsertMode.insertOrReplace);
+        await Core.database
+            .into(Core.database.appSettings)
+            .insert(ascSetting, mode: InsertMode.insertOrReplace);
+        await Core.database
+            .into(Core.database.appSettings)
+            .insert(legacyIndexSetting, mode: InsertMode.insertOrReplace);
+        await Core.database
+            .into(Core.database.appSettings)
+            .insert(legacyFieldSetting, mode: InsertMode.insertOrReplace);
+        await Core.database
+            .into(Core.database.appSettings)
+            .insert(legacyAscSetting, mode: InsertMode.insertOrReplace);
       });
 
       debugPrint('SORT PERSISTENCE: Preferences saved successfully.');
@@ -466,12 +465,10 @@ class ListaHabitosTarefasWidgetState extends State<ListaHabitosTarefasWidget> {
         final int blocks = beginningNowDiff.inDays ~/ reiniciaEmQtd;
         startPeriod = beginning.add(Duration(days: blocks * reiniciaEmQtd));
         endPeriod = startPeriod.add(Duration(days: reiniciaEmQtd));
-        break;
       case 'semanas':
         final int blocks = beginningNowDiff.inDays ~/ (7 * reiniciaEmQtd);
         startPeriod = beginning.add(Duration(days: blocks * 7 * reiniciaEmQtd));
         endPeriod = startPeriod.add(Duration(days: 7 * reiniciaEmQtd));
-        break;
       case 'meses':
         final int monthDiff =
             (now.year - beginning.year) * 12 + (now.month - beginning.month);
@@ -486,7 +483,6 @@ class ListaHabitosTarefasWidgetState extends State<ListaHabitosTarefasWidget> {
           startPeriod.month + reiniciaEmQtd,
           startPeriod.day,
         );
-        break;
       case 'anos':
         final int yearDiff = now.year - beginning.year;
         final int blocks = yearDiff ~/ reiniciaEmQtd;
@@ -500,12 +496,10 @@ class ListaHabitosTarefasWidgetState extends State<ListaHabitosTarefasWidget> {
           startPeriod.month,
           startPeriod.day,
         );
-        break;
       default:
         final int blocks = beginningNowDiff.inDays ~/ reiniciaEmQtd;
         startPeriod = beginning.add(Duration(days: blocks * reiniciaEmQtd));
         endPeriod = startPeriod.add(Duration(days: reiniciaEmQtd));
-        break;
     }
 
     final int totalMs = endPeriod.difference(startPeriod).inMilliseconds;
@@ -681,8 +675,8 @@ class ListaHabitosTarefasWidgetState extends State<ListaHabitosTarefasWidget> {
 
                                         final Color indicatorBgColor =
                                             item.tipo == 'habito'
-                                            ? habitColor.withOpacity(0.08)
-                                            : taskColor.withOpacity(0.08);
+                                            ? habitColor.withValues(alpha: 0.08)
+                                            : taskColor.withValues(alpha: 0.08);
 
                                         // Para tarefas, não preencher com cor (manter progresso em 0.0)
                                         if (item.tipo == 'habito') {
@@ -760,11 +754,11 @@ class ListaHabitosTarefasWidgetState extends State<ListaHabitosTarefasWidget> {
                                                   BorderRadius.circular(22),
                                               side: BorderSide(
                                                 color: item.tipo == 'habito'
-                                                    ? habitColor.withOpacity(
-                                                        0.4,
+                                                    ? habitColor.withValues(
+                                                        alpha: 0.4,
                                                       )
-                                                    : taskColor.withOpacity(
-                                                        0.4,
+                                                    : taskColor.withValues(
+                                                        alpha: 0.4,
                                                       ),
                                                 width: 1.5,
                                               ),
@@ -844,8 +838,8 @@ class ListaHabitosTarefasWidgetState extends State<ListaHabitosTarefasWidget> {
                                                                                     'habito'
                                                                                 ? habitColor
                                                                                 : taskColor)
-                                                                            .withOpacity(
-                                                                              0.2,
+                                                                            .withValues(
+                                                                              alpha: 0.2,
                                                                             ),
                                                                     borderRadius:
                                                                         BorderRadius.circular(
@@ -914,8 +908,9 @@ class ListaHabitosTarefasWidgetState extends State<ListaHabitosTarefasWidget> {
                                                                   decoration: BoxDecoration(
                                                                     color: categoria
                                                                         .cor
-                                                                        .withOpacity(
-                                                                          0.15,
+                                                                        .withValues(
+                                                                          alpha:
+                                                                              0.15,
                                                                         ),
                                                                     borderRadius:
                                                                         BorderRadius.circular(
@@ -924,11 +919,10 @@ class ListaHabitosTarefasWidgetState extends State<ListaHabitosTarefasWidget> {
                                                                     border: Border.all(
                                                                       color: categoria
                                                                           .cor
-                                                                          .withOpacity(
-                                                                            0.5,
+                                                                          .withValues(
+                                                                            alpha:
+                                                                                0.5,
                                                                           ),
-                                                                      width:
-                                                                          1.0,
                                                                     ),
                                                                   ),
                                                                   child: Text(

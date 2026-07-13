@@ -14,7 +14,7 @@ class TarefaHabitoQtdModel {
   //campo virtual
   num vezesPraticado;
   final DateTime createdAt;
-  
+
   TarefaHabitoQtdModel({
     required this.id,
     required this.metaVezes,
@@ -42,7 +42,8 @@ class TarefaHabitoQtdModel {
       id: id ?? this.id,
       metaVezes: metaVezes ?? this.metaVezes,
       usuario: usuario ?? this.usuario,
-      categoriasTarefasHabitos: categoriasTarefasHabitos ?? this.categoriasTarefasHabitos,
+      categoriasTarefasHabitos:
+          categoriasTarefasHabitos ?? this.categoriasTarefasHabitos,
       valor: valor ?? this.valor,
       reiniciaEmQtd: reiniciaEmQtd ?? this.reiniciaEmQtd,
       reiniciaEmTipo: reiniciaEmTipo ?? this.reiniciaEmTipo,
@@ -67,7 +68,8 @@ class TarefaHabitoQtdModel {
   }
 
   factory TarefaHabitoQtdModel.fromMap(Map<String, dynamic> map) {
-    final int rawMs = (map['dataCriacao'] as int?) ??
+    final int rawMs =
+        (map['dataCriacao'] as int?) ??
         (map['createdAt'] as int?) ??
         DateTime.now().millisecondsSinceEpoch;
     return TarefaHabitoQtdModel(
@@ -89,7 +91,8 @@ class TarefaHabitoQtdModel {
 
   String toJson() => json.encode(toMap());
 
-  factory TarefaHabitoQtdModel.fromJson(String source) => TarefaHabitoQtdModel.fromMap(json.decode(source) as Map<String, dynamic>);
+  factory TarefaHabitoQtdModel.fromJson(String source) =>
+      TarefaHabitoQtdModel.fromMap(json.decode(source) as Map<String, dynamic>);
 
   @override
   String toString() {
@@ -99,29 +102,28 @@ class TarefaHabitoQtdModel {
   @override
   bool operator ==(covariant TarefaHabitoQtdModel other) {
     if (identical(this, other)) return true;
-  
-    return 
-      other.id == id &&
-      other.metaVezes == metaVezes &&
-      other.usuario == usuario &&
-      other.categoriasTarefasHabitos == categoriasTarefasHabitos &&
-      other.valor == valor &&
-      other.reiniciaEmQtd == reiniciaEmQtd &&
-      other.reiniciaEmTipo == reiniciaEmTipo &&
-      other.vezesPraticado == vezesPraticado &&
-      other.createdAt == createdAt;
+
+    return other.id == id &&
+        other.metaVezes == metaVezes &&
+        other.usuario == usuario &&
+        other.categoriasTarefasHabitos == categoriasTarefasHabitos &&
+        other.valor == valor &&
+        other.reiniciaEmQtd == reiniciaEmQtd &&
+        other.reiniciaEmTipo == reiniciaEmTipo &&
+        other.vezesPraticado == vezesPraticado &&
+        other.createdAt == createdAt;
   }
 
   @override
   int get hashCode {
     return id.hashCode ^
-      metaVezes.hashCode ^
-      usuario.hashCode ^
-      categoriasTarefasHabitos.hashCode ^
-      valor.hashCode ^
-      reiniciaEmQtd.hashCode ^
-      reiniciaEmTipo.hashCode ^
-      vezesPraticado.hashCode ^
-      createdAt.hashCode;
+        metaVezes.hashCode ^
+        usuario.hashCode ^
+        categoriasTarefasHabitos.hashCode ^
+        valor.hashCode ^
+        reiniciaEmQtd.hashCode ^
+        reiniciaEmTipo.hashCode ^
+        vezesPraticado.hashCode ^
+        createdAt.hashCode;
   }
 }

@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'dart:convert';
-import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:appwrite/appwrite.dart';
 import 'package:appwrite/enums.dart';
@@ -9,6 +8,7 @@ import 'package:mobx/mobx.dart' as mobx;
 import 'package:ppvdigital/core.dart';
 import 'package:ppvdigital/routes.g.dart';
 import 'package:routefly/routefly.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 enum AuthStatus { uninitialized, authenticated, unauthenticated }
 
@@ -67,7 +67,9 @@ class LoginController {
       final cachedJson = prefs.getString('cached_user_json');
       if (cachedJson != null) {
         try {
-          final user = User.fromMap(json.decode(cachedJson) as Map<String, dynamic>);
+          final user = User.fromMap(
+            json.decode(cachedJson) as Map<String, dynamic>,
+          );
           mobx.runInAction(() {
             _currentUser.value = user;
             _statusStreamController.add(AuthStatus.authenticated);
@@ -149,6 +151,7 @@ class LoginController {
     try {
       await account.deleteSession(sessionId: 'current');
     } catch (_) {}
+    Core.resetAllControllers();
     mobx.runInAction(() {
       _currentUser.value = null;
       _statusStreamController.add(AuthStatus.unauthenticated);

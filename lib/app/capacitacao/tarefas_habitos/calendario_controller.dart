@@ -17,9 +17,8 @@ extension CalendarioTransformMap on Map<String, dynamic> {
       tipo: (this['tipo'] as String?) ?? '',
       agendamento: DateTime.tryParse((this['agendamento'] as String?) ?? ''),
       concluida: (this['concluida'] as bool?) ?? false,
-      tarefasHabitosQtd:
-          (this['tarefasHabitosQtds'] as List<dynamic>?)
-              .toTarefaHabitoQtdModelList(),
+      tarefasHabitosQtd: (this['tarefasHabitosQtds'] as List<dynamic>?)
+          .toTarefaHabitoQtdModelList(),
       duration: this['duration'] is num
           ? (this['duration'] as num).toInt()
           : null,
@@ -42,7 +41,8 @@ extension CalendarioTransformRowList on List<Row> {
         if (rawTarefaMap is String) {
           tarefaId = rawTarefaMap;
         } else if (rawTarefaMap is Map) {
-          tarefaId = (rawTarefaMap[r'$id'] ?? rawTarefaMap['id'] ?? '') as String;
+          tarefaId =
+              (rawTarefaMap[r'$id'] ?? rawTarefaMap['id'] ?? '') as String;
         }
 
         if (tarefaId.isEmpty) {
@@ -51,17 +51,14 @@ extension CalendarioTransformRowList on List<Row> {
 
         final cachedTarefa = Core.tarefasHabitosController.tarefasHabitosList
             .cast<TarefaHabitoModel?>()
-            .firstWhere(
-              (el) => el?.id == tarefaId,
-              orElse: () => null,
-            );
+            .firstWhere((el) => el?.id == tarefaId, orElse: () => null);
 
-        final String? createdAtStr = e1.$createdAt;
-        final DateTime parsedCreatedAt = createdAtStr != null
-            ? (DateTime.tryParse(createdAtStr)?.toLocal() ?? DateTime.now())
-            : DateTime.now();
+        final String createdAtStr = e1.$createdAt;
+        final DateTime parsedCreatedAt =
+            DateTime.tryParse(createdAtStr)?.toLocal() ?? DateTime.now();
 
-        final String userFallback = (e1.data['usuario'] as String?) ??
+        final String userFallback =
+            (e1.data['usuario'] as String?) ??
             Core.loginController.currentUser?.$id ??
             '';
 
@@ -70,9 +67,11 @@ extension CalendarioTransformRowList on List<Row> {
             id: e1.$id,
             usuario: userFallback,
             createdAt: parsedCreatedAt,
-            tarefasEHabitos: cachedTarefa ??
+            tarefasEHabitos:
+                cachedTarefa ??
                 (rawTarefaMap is Map
-                    ? (rawTarefaMap as Map<String, dynamic>).toTarefasHabitosModel()
+                    ? (rawTarefaMap as Map<String, dynamic>)
+                          .toTarefasHabitosModel()
                     : TarefaHabitoModel(
                         id: tarefaId,
                         nome: '',
@@ -85,7 +84,9 @@ extension CalendarioTransformRowList on List<Row> {
           ),
         );
       } catch (e) {
-        log('Error parsing history item in CalendarioTransformRowList ${e1.$id}: $e');
+        log(
+          'Error parsing history item in CalendarioTransformRowList ${e1.$id}: $e',
+        );
       }
     }
 
@@ -144,6 +145,12 @@ class CalendarioController {
         return false;
       }
     }, name: 'loadDocuments');
+  }
+
+  void reset() {
+    mobx.runInAction(() {
+      _historicoList.clear();
+    });
   }
 
   Future<void> updateQtdHabito(String documentId, int newQtd) async {

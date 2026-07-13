@@ -3,12 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:ppvdigital/core.dart';
 
 class CategoriaTransacaoModel {
-  final String id;
-  final String userId;
-  final String name;
-  final String? icone;
-  final Color? cor;
-
   CategoriaTransacaoModel({
     required this.id,
     required this.userId,
@@ -16,6 +10,34 @@ class CategoriaTransacaoModel {
     this.icone,
     this.cor,
   });
+
+  factory CategoriaTransacaoModel.fromMap(Map<String, dynamic> map) {
+    Color? colorParsed;
+    final String? hexStr = map['cor'] as String?;
+    if (hexStr != null && hexStr.trim().isNotEmpty) {
+      try {
+        colorParsed = HexColor.fromHex(hexStr);
+      } catch (_) {}
+    }
+
+    return CategoriaTransacaoModel(
+      id: map[r'$id'] as String? ?? map['id'] as String? ?? '',
+      userId: map['userId'] as String? ?? '',
+      name: map['name'] as String? ?? '',
+      icone: map['icone'] as String?,
+      cor: colorParsed,
+    );
+  }
+
+  factory CategoriaTransacaoModel.fromJson(String source) =>
+      CategoriaTransacaoModel.fromMap(
+        json.decode(source) as Map<String, dynamic>,
+      );
+  final String id;
+  final String userId;
+  final String name;
+  final String? icone;
+  final Color? cor;
 
   CategoriaTransacaoModel copyWith({
     String? id,
@@ -42,30 +64,7 @@ class CategoriaTransacaoModel {
     };
   }
 
-  factory CategoriaTransacaoModel.fromMap(Map<String, dynamic> map) {
-    Color? colorParsed;
-    final String? hexStr = map['cor'] as String?;
-    if (hexStr != null && hexStr.trim().isNotEmpty) {
-      try {
-        colorParsed = HexColor.fromHex(hexStr);
-      } catch (_) {}
-    }
-
-    return CategoriaTransacaoModel(
-      id: map[r'$id'] as String? ?? map['id'] as String? ?? '',
-      userId: map['userId'] as String? ?? '',
-      name: map['name'] as String? ?? '',
-      icone: map['icone'] as String?,
-      cor: colorParsed,
-    );
-  }
-
   String toJson() => json.encode(toMap());
-
-  factory CategoriaTransacaoModel.fromJson(String source) =>
-      CategoriaTransacaoModel.fromMap(
-        json.decode(source) as Map<String, dynamic>,
-      );
 
   @override
   String toString() {

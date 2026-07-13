@@ -1,13 +1,6 @@
 import 'dart:convert';
 
 class TransacaoRecorrenciaModel {
-  final String id;
-  final String tipoRecorrencia;
-  final int? frequencia;
-  final int? totalParcelas;
-  final int? parcelaInicio;
-  final DateTime? fimRecorrencia;
-
   TransacaoRecorrenciaModel({
     required this.id,
     required this.tipoRecorrencia,
@@ -16,6 +9,34 @@ class TransacaoRecorrenciaModel {
     this.parcelaInicio,
     this.fimRecorrencia,
   });
+
+  factory TransacaoRecorrenciaModel.fromMap(Map<String, dynamic> map) {
+    DateTime? parsedFim;
+    final String? fimStr = map['fimRecorrencia'] as String?;
+    if (fimStr != null && fimStr.trim().isNotEmpty) {
+      parsedFim = DateTime.tryParse(fimStr);
+    }
+
+    return TransacaoRecorrenciaModel(
+      id: map[r'$id'] as String? ?? map['id'] as String? ?? '',
+      tipoRecorrencia: map['tipoRecorrencia'] as String? ?? 'mês',
+      frequencia: map['frequencia'] as int?,
+      totalParcelas: map['totalParcelas'] as int?,
+      parcelaInicio: map['parcelaInicio'] as int?,
+      fimRecorrencia: parsedFim,
+    );
+  }
+
+  factory TransacaoRecorrenciaModel.fromJson(String source) =>
+      TransacaoRecorrenciaModel.fromMap(
+        json.decode(source) as Map<String, dynamic>,
+      );
+  final String id;
+  final String tipoRecorrencia;
+  final int? frequencia;
+  final int? totalParcelas;
+  final int? parcelaInicio;
+  final DateTime? fimRecorrencia;
 
   TransacaoRecorrenciaModel copyWith({
     String? id,
@@ -37,6 +58,7 @@ class TransacaoRecorrenciaModel {
 
   Map<String, dynamic> toMap() {
     return <String, dynamic>{
+      'id': id,
       'tipoRecorrencia': tipoRecorrencia,
       'frequencia': frequencia,
       'totalParcelas': totalParcelas,
@@ -45,29 +67,7 @@ class TransacaoRecorrenciaModel {
     };
   }
 
-  factory TransacaoRecorrenciaModel.fromMap(Map<String, dynamic> map) {
-    DateTime? parsedFim;
-    final String? fimStr = map['fimRecorrencia'] as String?;
-    if (fimStr != null && fimStr.trim().isNotEmpty) {
-      parsedFim = DateTime.tryParse(fimStr);
-    }
-
-    return TransacaoRecorrenciaModel(
-      id: map[r'$id'] as String? ?? map['id'] as String? ?? '',
-      tipoRecorrencia: map['tipoRecorrencia'] as String? ?? 'mês',
-      frequencia: map['frequencia'] as int?,
-      totalParcelas: map['totalParcelas'] as int?,
-      parcelaInicio: map['parcelaInicio'] as int?,
-      fimRecorrencia: parsedFim,
-    );
-  }
-
   String toJson() => json.encode(toMap());
-
-  factory TransacaoRecorrenciaModel.fromJson(String source) =>
-      TransacaoRecorrenciaModel.fromMap(
-        json.decode(source) as Map<String, dynamic>,
-      );
 
   @override
   String toString() {

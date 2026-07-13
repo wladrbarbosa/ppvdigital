@@ -1,25 +1,26 @@
 import 'dart:convert';
 import 'dart:developer';
-import 'package:shared_preferences/shared_preferences.dart';
+
+import 'package:appwrite/appwrite.dart';
 import 'package:drift/drift.dart';
+import 'package:ppvdigital/core.dart';
 import 'package:ppvdigital/models/categoria_transacao_model.dart';
 import 'package:ppvdigital/models/conta_model.dart';
 import 'package:ppvdigital/models/contato_model.dart';
-import 'package:ppvdigital/models/transacao_model.dart';
 import 'package:ppvdigital/models/divisao_transacao_model.dart';
 import 'package:ppvdigital/models/local/app_database.dart';
+import 'package:ppvdigital/models/transacao_model.dart';
+import 'package:ppvdigital/models/transacao_recorrencia_model.dart';
 import 'package:ppvdigital/repositories/financas_repository.dart';
-import 'package:ppvdigital/core.dart';
-import 'package:appwrite/appwrite.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class DriftFinancasRepository implements FinancasRepository {
-  final AppDatabase database;
-  final FinancasRepository remoteRepository;
-
   DriftFinancasRepository({
     required this.database,
     required this.remoteRepository,
   });
+  final AppDatabase database;
+  final FinancasRepository remoteRepository;
 
   Contato toContatoRow(ContatoModel model) {
     return Contato(
@@ -453,22 +454,23 @@ class DriftFinancasRepository implements FinancasRepository {
         .select(database.categoriaTransacoes)
         .get();
 
-    final contasMap = {for (var c in localContas) c.remoteId: toContaDomain(c)};
+    final contasMap = {
+      for (final c in localContas) c.remoteId: toContaDomain(c),
+    };
     final contatosMap = {
-      for (var c in localContatos) c.remoteId: toContatoDomain(c),
+      for (final c in localContatos) c.remoteId: toContatoDomain(c),
     };
     final categoriasMap = {
-      for (var c in localCategorias) c.remoteId: toCategoriaDomain(c),
+      for (final c in localCategorias) c.remoteId: toCategoriaDomain(c),
     };
 
     final localQuery = database.select(database.transacaos);
 
     if (targetMonth != null) {
-      final firstDayOfMonth = DateTime(targetMonth.year, targetMonth.month, 1);
+      final firstDayOfMonth = DateTime(targetMonth.year, targetMonth.month);
       final lastDayOfMonth = DateTime(
         targetMonth.year,
         targetMonth.month + 1,
-        1,
       ).subtract(const Duration(milliseconds: 1));
       localQuery.where(
         (t) =>
@@ -510,41 +512,41 @@ class DriftFinancasRepository implements FinancasRepository {
         lightweight: lightweight,
       );
 
-      await database.transaction(() async {
-        final deleteQuery = database.delete(database.transacaos);
-        if (targetMonth != null) {
-          final firstDayOfMonth = DateTime(
-            targetMonth.year,
-            targetMonth.month,
-            1,
-          );
-          final lastDayOfMonth = DateTime(
-            targetMonth.year,
-            targetMonth.month + 1,
-            1,
-          ).subtract(const Duration(milliseconds: 1));
-          deleteQuery.where(
-            (t) =>
-                t.dataCompetencia.isBiggerThanValue(
-                  firstDayOfMonth.subtract(const Duration(seconds: 1)),
-                ) &
-                t.dataCompetencia.isSmallerThanValue(
-                  lastDayOfMonth.add(const Duration(seconds: 1)),
-                ),
-          );
-        } else if (beforeDate != null) {
-          deleteQuery.where(
-            (t) => t.dataCompetencia.isSmallerThanValue(beforeDate),
-          );
-        }
-        await deleteQuery.go();
+      if (!lightweight) {
+        await database.transaction(() async {
+          final deleteQuery = database.delete(database.transacaos);
+          if (targetMonth != null) {
+            final firstDayOfMonth = DateTime(
+              targetMonth.year,
+              targetMonth.month,
+            );
+            final lastDayOfMonth = DateTime(
+              targetMonth.year,
+              targetMonth.month + 1,
+            ).subtract(const Duration(milliseconds: 1));
+            deleteQuery.where(
+              (t) =>
+                  t.dataCompetencia.isBiggerThanValue(
+                    firstDayOfMonth.subtract(const Duration(seconds: 1)),
+                  ) &
+                  t.dataCompetencia.isSmallerThanValue(
+                    lastDayOfMonth.add(const Duration(seconds: 1)),
+                  ),
+            );
+          } else if (beforeDate != null) {
+            deleteQuery.where(
+              (t) => t.dataCompetencia.isSmallerThanValue(beforeDate),
+            );
+          }
+          await deleteQuery.go();
 
-        for (final item in remote) {
-          await database
-              .into(database.transacaos)
-              .insert(toTransacaoCompanion(item));
-        }
-      });
+          for (final item in remote) {
+            await database
+                .into(database.transacaos)
+                .insert(toTransacaoCompanion(item));
+          }
+        });
+      }
 
       return remote;
     } catch (e) {
@@ -579,13 +581,13 @@ class DriftFinancasRepository implements FinancasRepository {
           .get();
 
       final contasMap = {
-        for (var c in localContas) c.remoteId: toContaDomain(c),
+        for (final c in localContas) c.remoteId: toContaDomain(c),
       };
       final contatosMap = {
-        for (var c in localContatos) c.remoteId: toContatoDomain(c),
+        for (final c in localContatos) c.remoteId: toContatoDomain(c),
       };
       final categoriasMap = {
-        for (var c in localCategorias) c.remoteId: toCategoriaDomain(c),
+        for (final c in localCategorias) c.remoteId: toCategoriaDomain(c),
       };
 
       final allTrans = await database.select(database.transacaos).get();
@@ -829,26 +831,21 @@ class DriftFinancasRepository implements FinancasRepository {
           .get();
 
       final contasMap = {
-        for (var c in localContas) c.remoteId: toContaDomain(c),
+        for (final c in localContas) c.remoteId: toContaDomain(c),
       };
       final contatosMap = {
-        for (var c in localContatos) c.remoteId: toContatoDomain(c),
+        for (final c in localContatos) c.remoteId: toContatoDomain(c),
       };
       final categoriasMap = {
-        for (var c in localCategorias) c.remoteId: toCategoriaDomain(c),
+        for (final c in localCategorias) c.remoteId: toCategoriaDomain(c),
       };
 
       Iterable<Transacao> filtered = localTrans;
       if (targetMonth != null) {
-        final firstDayOfMonth = DateTime(
-          targetMonth.year,
-          targetMonth.month,
-          1,
-        );
+        final firstDayOfMonth = DateTime(targetMonth.year, targetMonth.month);
         final lastDayOfMonth = DateTime(
           targetMonth.year,
           targetMonth.month + 1,
-          1,
         ).subtract(const Duration(milliseconds: 1));
 
         filtered = localTrans.where(
@@ -976,10 +973,10 @@ class DriftFinancasRepository implements FinancasRepository {
                   mode: InsertMode.insertOrReplace,
                 );
           } else if (action == 'update' && data != null) {
-            final model = _parseTransacaoModelFromData(rowId, data);
+            final companion = _mapDataToTransacaoCompanion(data);
             final updateQuery = database.update(database.transacaos)
               ..where((t) => t.remoteId.equals(rowId));
-            await updateQuery.write(toTransacaoCompanion(model));
+            await updateQuery.write(companion);
           }
         } else if (tableId == Core.tableDivisaoTransacoes) {
           if (action == 'create' && data != null) {
@@ -1024,6 +1021,54 @@ class DriftFinancasRepository implements FinancasRepository {
     });
   }
 
+  TransacaosCompanion _mapDataToTransacaoCompanion(Map<String, dynamic> data) {
+    return TransacaosCompanion(
+      descricao: data.containsKey('descricao')
+          ? Value(data['descricao'] as String)
+          : const Value.absent(),
+      valor: data.containsKey('valor')
+          ? Value((data['valor'] as num).toDouble())
+          : const Value.absent(),
+      tipo: data.containsKey('tipo')
+          ? Value(data['tipo'] as String)
+          : const Value.absent(),
+      dataCompetencia: data.containsKey('dataCompetencia')
+          ? Value(TransacaoModel.parseDateCompetencia(data['dataCompetencia'] as String))
+          : const Value.absent(),
+      consolidada: data.containsKey('consolidada')
+          ? Value(data['consolidada'] as bool)
+          : const Value.absent(),
+      contaId: data.containsKey('conta')
+          ? Value(data['conta'] as String?)
+          : const Value.absent(),
+      contaDestinoId: data.containsKey('contaDestino')
+          ? Value(data['contaDestino'] as String?)
+          : const Value.absent(),
+      categoriaId: data.containsKey('categoria')
+          ? Value(data['categoria'] as String?)
+          : const Value.absent(),
+      devedorContatoId: data.containsKey('devedorContato')
+          ? Value(data['devedorContato'] as String?)
+          : const Value.absent(),
+      credorContatoId: data.containsKey('credorContato')
+          ? Value(data['credorContato'] as String?)
+          : const Value.absent(),
+      recorrencia: data.containsKey('recorrencia')
+          ? (data['recorrencia'] is Map
+              ? Value(TransacaoRecorrenciaModel.fromMap(
+                  Map<String, dynamic>.from(data['recorrencia'] as Map),
+                ))
+              : (data['recorrencia'] is String && (data['recorrencia'] as String).isNotEmpty
+                  ? Value(TransacaoRecorrenciaModel(
+                      id: data['recorrencia'] as String,
+                      tipoRecorrencia: 'mês',
+                      frequencia: 1,
+                    ))
+                  : const Value(null)))
+          : const Value.absent(),
+    );
+  }
+
   TransacaoModel _parseTransacaoModelFromData(
     String id,
     Map<String, dynamic> data,
@@ -1040,7 +1085,7 @@ class DriftFinancasRepository implements FinancasRepository {
       valor: (data['valor'] as num?)?.toDouble() ?? 0.0,
       tipo: data['tipo'] as String? ?? 'despesa',
       dataCompetencia: data['dataCompetencia'] != null
-          ? DateTime.parse(data['dataCompetencia'] as String)
+          ? TransacaoModel.parseDateCompetencia(data['dataCompetencia'] as String)
           : DateTime.now(),
       consolidada: data['consolidada'] as bool? ?? false,
       conta: contaId != null

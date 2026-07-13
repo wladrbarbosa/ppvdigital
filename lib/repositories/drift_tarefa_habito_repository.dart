@@ -1,24 +1,24 @@
 import 'dart:convert';
 import 'dart:developer';
 import 'dart:ui' show Color;
-import 'package:shared_preferences/shared_preferences.dart';
-import 'package:drift/drift.dart';
-import 'package:ppvdigital/models/local/app_database.dart';
-import 'package:ppvdigital/models/historico_item_model.dart';
-import 'package:ppvdigital/models/tarefas_habitos_model.dart';
+
 import 'package:appwrite/appwrite.dart';
+import 'package:drift/drift.dart';
 import 'package:ppvdigital/models/categorias_tarefas_habitos_model.dart';
+import 'package:ppvdigital/models/historico_item_model.dart';
+import 'package:ppvdigital/models/local/app_database.dart';
+import 'package:ppvdigital/models/tarefas_habitos_model.dart';
 import 'package:ppvdigital/models/tarefas_habitos_qtd_model.dart';
 import 'package:ppvdigital/repositories/tarefa_habito_repository.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class DriftTarefaHabitoRepository implements TarefaHabitoRepository {
-  final AppDatabase database;
-  final TarefaHabitoRepository remoteRepository;
-
   DriftTarefaHabitoRepository({
     required this.database,
     required this.remoteRepository,
   });
+  final AppDatabase database;
+  final TarefaHabitoRepository remoteRepository;
 
   TarefaHabitosCompanion toCompanion(TarefaHabitoModel model) {
     return TarefaHabitosCompanion.insert(
@@ -221,7 +221,7 @@ class DriftTarefaHabitoRepository implements TarefaHabitoRepository {
     final localRows = await localQuery.get();
 
     final localHabits = await database.select(database.tarefaHabitos).get();
-    final habitsMap = {for (var h in localHabits) h.remoteId: toDomain(h)};
+    final habitsMap = {for (final h in localHabits) h.remoteId: toDomain(h)};
 
     final localList = localRows
         .map((r) => toHistoricoDomain(r, habitsMap))
@@ -262,7 +262,8 @@ class DriftTarefaHabitoRepository implements TarefaHabitoRepository {
 
       final List<HistoricoItemModel> updatedRemoteList = [];
       for (final item in remoteList) {
-        final correctHabit = habitsMap[item.tarefasEHabitos.id] ?? item.tarefasEHabitos;
+        final correctHabit =
+            habitsMap[item.tarefasEHabitos.id] ?? item.tarefasEHabitos;
         updatedRemoteList.add(item.copyWith(tarefasEHabitos: correctHabit));
       }
 

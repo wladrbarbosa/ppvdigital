@@ -39,11 +39,7 @@ Route routeBuilder(BuildContext context, RouteSettings settings) {
 }
 
 class CriarEditarContatoPage extends StatefulWidget {
-  const CriarEditarContatoPage({
-    super.key,
-    this.editingItem,
-    this.lastRoute,
-  });
+  const CriarEditarContatoPage({super.key, this.editingItem, this.lastRoute});
 
   final ContatoModel? editingItem;
   final String? lastRoute;
@@ -89,9 +85,15 @@ class _CriarEditarContatoPageState extends State<CriarEditarContatoPage> {
     });
 
     final String nome = _nomeController.text.trim();
-    final String? telefone = _telefoneController.text.trim().isEmpty ? null : _telefoneController.text.trim();
-    final String? email = _emailController.text.trim().isEmpty ? null : _emailController.text.trim();
-    final String? userId = _userIdController.text.trim().isEmpty ? null : _userIdController.text.trim();
+    final String? telefone = _telefoneController.text.trim().isEmpty
+        ? null
+        : _telefoneController.text.trim();
+    final String? email = _emailController.text.trim().isEmpty
+        ? null
+        : _emailController.text.trim();
+    final String? userId = _userIdController.text.trim().isEmpty
+        ? null
+        : _userIdController.text.trim();
 
     final bool success;
     if (widget.editingItem != null) {
@@ -125,9 +127,9 @@ class _CriarEditarContatoPageState extends State<CriarEditarContatoPage> {
         Navigator.of(context).pop();
       }
     } else if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Erro ao salvar contato.')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Erro ao salvar contato.')));
     }
   }
 
@@ -156,7 +158,9 @@ class _CriarEditarContatoPageState extends State<CriarEditarContatoPage> {
       _isLoading = true;
     });
 
-    final bool success = await Core.financasController.deleteContato(widget.editingItem!.id);
+    final bool success = await Core.financasController.deleteContato(
+      widget.editingItem!.id,
+    );
 
     setState(() {
       _isLoading = false;
@@ -172,9 +176,9 @@ class _CriarEditarContatoPageState extends State<CriarEditarContatoPage> {
         Navigator.of(context).pop();
       }
     } else if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Erro ao excluir contato.')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Erro ao excluir contato.')));
     }
   }
 
@@ -192,8 +196,13 @@ class _CriarEditarContatoPageState extends State<CriarEditarContatoPage> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  widget.editingItem == null ? 'Novo Contato' : 'Editar Contato',
-                  style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                  widget.editingItem == null
+                      ? 'Novo Contato'
+                      : 'Editar Contato',
+                  style: const TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
                 IconButton(
                   icon: const Icon(Icons.close),

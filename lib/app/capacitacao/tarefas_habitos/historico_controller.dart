@@ -53,10 +53,9 @@ extension HistoricoTransformDocumentList on List<Row> {
             .cast<TarefaHabitoModel?>()
             .firstWhere((el) => el?.id == tarefaId, orElse: () => null);
 
-        final String? createdAtStr = e1.$createdAt;
-        final DateTime parsedCreatedAt = createdAtStr != null
-            ? (DateTime.tryParse(createdAtStr)?.toLocal() ?? DateTime.now())
-            : DateTime.now();
+        final String createdAtStr = e1.$createdAt;
+        final DateTime parsedCreatedAt =
+            DateTime.tryParse(createdAtStr)?.toLocal() ?? DateTime.now();
 
         final String userFallback =
             (e1.data['usuario'] as String?) ??
@@ -133,6 +132,12 @@ class HistoricoController {
         return false;
       }
     }, name: 'loadDocuments');
+  }
+
+  void reset() {
+    mobx.runInAction(() {
+      _historicoList.clear();
+    });
   }
 
   Future<void> updateQtdHabito(String documentId, int newQtd) async {
