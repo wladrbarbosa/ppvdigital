@@ -126,7 +126,7 @@ class FinancasController {
     final transacoesStream = repository.watchTransacoes(
       usuarioId: user,
       contaIds: [],
-      targetMonth: targetMonth,
+      targetMonth: null,
     );
     try {
       final firstData = await transacoesStream.first;
