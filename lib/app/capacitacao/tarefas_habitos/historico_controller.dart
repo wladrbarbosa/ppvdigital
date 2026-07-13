@@ -12,11 +12,11 @@ extension HistoricoTransformMap on Map<String, dynamic> {
   TarefaHabitoModel toTarefasHabitosModel() {
     return TarefaHabitoModel(
       id: (this[r'$id'] ?? this['id'] ?? '') as String,
-      nome: this['nome'] as String,
-      usuario: this['usuario'] as String,
-      tipo: this['tipo'] as String,
+      nome: (this['nome'] as String?) ?? '',
+      usuario: (this['usuario'] as String?) ?? '',
+      tipo: (this['tipo'] as String?) ?? '',
       agendamento: DateTime.tryParse((this['agendamento'] as String?) ?? ''),
-      concluida: this['concluida'] as bool,
+      concluida: (this['concluida'] as bool?) ?? false,
       tarefasHabitosQtd: (this['tarefasHabitosQtds'] as List<dynamic>?)
           .toTarefaHabitoQtdModelList(),
       duration: this['duration'] is num
@@ -33,12 +33,18 @@ extension HistoricoTransformDocumentList on List<Row> {
     for (final e1 in this) {
       try {
         final rawTarefaMap = e1.data['tarefasEHabitos'];
-        if (rawTarefaMap == null || rawTarefaMap is! Map) {
+        if (rawTarefaMap == null) {
           continue;
         }
 
-        final String tarefaId =
-            (rawTarefaMap[r'$id'] ?? rawTarefaMap['id'] ?? '') as String;
+        String tarefaId = '';
+        if (rawTarefaMap is String) {
+          tarefaId = rawTarefaMap;
+        } else if (rawTarefaMap is Map) {
+          tarefaId =
+              (rawTarefaMap[r'$id'] ?? rawTarefaMap['id'] ?? '') as String;
+        }
+
         if (tarefaId.isEmpty) {
           continue;
         }
@@ -47,19 +53,35 @@ extension HistoricoTransformDocumentList on List<Row> {
             .cast<TarefaHabitoModel?>()
             .firstWhere((el) => el?.id == tarefaId, orElse: () => null);
 
-        final String? createdAtStr = e1.data[r'$createdAt'] as String?;
+        final String? createdAtStr = e1.$createdAt;
         final DateTime parsedCreatedAt = createdAtStr != null
             ? (DateTime.tryParse(createdAtStr)?.toLocal() ?? DateTime.now())
             : DateTime.now();
 
+        final String userFallback =
+            (e1.data['usuario'] as String?) ??
+            Core.loginController.currentUser?.$id ??
+            '';
+
         temp.add(
           HistoricoItemModel(
             id: e1.$id,
-            usuario: (e1.data['usuario'] as String?) ?? '',
+            usuario: userFallback,
             createdAt: parsedCreatedAt,
             tarefasEHabitos:
                 cachedTarefa ??
-                (rawTarefaMap as Map<String, dynamic>).toTarefasHabitosModel(),
+                (rawTarefaMap is Map
+                    ? (rawTarefaMap as Map<String, dynamic>)
+                          .toTarefasHabitosModel()
+                    : TarefaHabitoModel(
+                        id: tarefaId,
+                        nome: '',
+                        tipo: 'habito',
+                        usuario: userFallback,
+                        concluida: false,
+                        agendamento: null,
+                        tarefasHabitosQtd: [],
+                      )),
           ),
         );
       } catch (e) {
@@ -99,30 +121,13 @@ class HistoricoController {
           await Core.tarefasHabitosController.loadDocuments();
         }
 
-        final TablesDB tablesDB = TablesDB(databases.client);
-        final RowList historicoDocs = await tablesDB.listRows(
-          databaseId: Core.databaseId,
-          tableId: Core.tableHistoricoTarefasHabitos,
-          queries: [
-            Query.equal('usuario', [
-              Core.loginController.currentUser?.$id ?? '',
-            ]),
-            Query.select([
-              '*',
-              'tarefasEHabitos.*',
-              'tarefasEHabitos.tarefasHabitosQtds.*',
-              'tarefasEHabitos.tarefasHabitosQtds.categoriasTarefasHabitos.*',
-            ]),
-            Query.limit(5000),
-          ],
-        );
+        final String userId = Core.loginController.currentUser?.$id ?? '';
+        final List<HistoricoItemModel> items = await Core.tarefaHabitoRepository
+            .getHistorico(usuarioId: userId);
 
         _historicoList.clear();
-        _historicoList.addAll(historicoDocs.rows.toHistoricoModelList());
+        _historicoList.addAll(items);
         return true;
-      } on AppwriteException catch (e) {
-        log(e.toString());
-        return false;
       } on Exception catch (e) {
         log(e.toString());
         return false;
@@ -131,51 +136,24 @@ class HistoricoController {
   }
 
   Future<void> updateQtdHabito(String documentId, int newQtd) async {
-    log('Começo');
-    try {
-      mobx.runInAction(() {
-        final List<HistoricoItemModel> temp = List<HistoricoItemModel>.from(
-          _historicoList.toList(),
-        );
-        final HistoricoItemModel found = temp.singleWhere(
-          (el) => el.id == documentId,
-        );
-        _historicoList.setAll(0, temp);
-        final TablesDB tablesDB = TablesDB(databases.client);
-        tablesDB.createRow(
-          databaseId: Core.databaseId,
-          tableId: Core.tableHistoricoTarefasHabitos,
-          rowId: ID.unique(),
-          data: {
-            'tarefasEHabitos': found.id,
-            'usuario': Core.loginController.currentUser?.$id ?? '',
-          },
-        );
-      }, name: 'addQtdHabito');
-    } on AppwriteException catch (e) {
-      log(e.toString());
-    }
+    log('updateQtdHabito called, not implemented or used');
   }
 
   Future<bool> deleteHistoricoItem(String documentId) async {
     try {
-      final TablesDB tablesDB = TablesDB(databases.client);
-      await tablesDB.deleteRow(
-        databaseId: Core.databaseId,
-        tableId: Core.tableHistoricoTarefasHabitos,
-        rowId: documentId,
+      final success = await Core.tarefaHabitoRepository.deleteHistoricoItem(
+        id: documentId,
       );
 
-      mobx.runInAction(() {
-        _historicoList.removeWhere((el) => el.id == documentId);
-      });
+      if (success) {
+        mobx.runInAction(() {
+          _historicoList.removeWhere((el) => el.id == documentId);
+        });
 
-      // Reload main tasks/habits count dynamically
-      await Core.tarefasHabitosController.loadDocuments();
-      return true;
-    } on AppwriteException catch (e) {
-      log(e.toString());
-      return false;
+        // Reload main tasks/habits count dynamically
+        await Core.tarefasHabitosController.loadDocuments();
+      }
+      return success;
     } catch (e) {
       log(e.toString());
       return false;

@@ -1,4 +1,6 @@
 import 'dart:async';
+import 'dart:convert';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:appwrite/appwrite.dart';
 import 'package:appwrite/enums.dart';
@@ -53,16 +55,29 @@ class LoginController {
   }
 
   Future<void> loadUser() async {
+    final prefs = await SharedPreferences.getInstance();
     try {
       final user = await account.get();
+      await prefs.setString('cached_user_json', json.encode(user.toMap()));
       mobx.runInAction(() {
-        _statusStreamController.add(AuthStatus.authenticated);
         _currentUser.value = user;
+        _statusStreamController.add(AuthStatus.authenticated);
       });
     } catch (e) {
+      final cachedJson = prefs.getString('cached_user_json');
+      if (cachedJson != null) {
+        try {
+          final user = User.fromMap(json.decode(cachedJson) as Map<String, dynamic>);
+          mobx.runInAction(() {
+            _currentUser.value = user;
+            _statusStreamController.add(AuthStatus.authenticated);
+          });
+          return;
+        } catch (_) {}
+      }
       mobx.runInAction(() {
-        _statusStreamController.add(AuthStatus.unauthenticated);
         _currentUser.value = null;
+        _statusStreamController.add(AuthStatus.unauthenticated);
       });
     }
   }
@@ -87,6 +102,8 @@ class LoginController {
         password: password,
       );
       final user = await account.get();
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('cached_user_json', json.encode(user.toMap()));
       mobx.runInAction(() {
         _currentUser.value = user;
         _statusStreamController.add(AuthStatus.authenticated);
@@ -117,6 +134,8 @@ class LoginController {
       provider: provider,
     );
     final user = await account.get();
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('cached_user_json', json.encode(user.toMap()));
     mobx.runInAction(() {
       _currentUser.value = user;
       _statusStreamController.add(AuthStatus.authenticated);
@@ -125,6 +144,8 @@ class LoginController {
   }
 
   Future<void> signOut() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove('cached_user_json');
     try {
       await account.deleteSession(sessionId: 'current');
     } catch (_) {}

@@ -10,13 +10,12 @@ import 'package:ppvdigital/models/conta_model.dart';
 import 'package:ppvdigital/models/contato_model.dart';
 import 'package:ppvdigital/models/divisao_transacao_model.dart';
 import 'package:ppvdigital/models/transacao_model.dart';
+import 'package:ppvdigital/repositories/financas_repository.dart';
 
 class FinancasController {
-  FinancasController() {
-    init();
-  }
+  final FinancasRepository repository;
 
-  late final Databases databases;
+  FinancasController(this.repository);
 
   DateTime _lastSelectedMonth = DateTime.now();
   DateTime get lastSelectedMonth => _lastSelectedMonth;
@@ -44,9 +43,10 @@ class FinancasController {
   static Future<void>? financasFuture;
   static DateTime? defaultDataCompetencia;
 
-  void init() {
-    databases = Databases(Core.client);
-  }
+  StreamSubscription? _contatosSub;
+  StreamSubscription? _contasSub;
+  StreamSubscription? _categoriasSub;
+  StreamSubscription? _transacoesSub;
 
   Future<bool> loadDocuments({DateTime? selectedMonth}) async {
     final DateTime targetMonth = selectedMonth ?? _lastSelectedMonth;
@@ -58,379 +58,12 @@ class FinancasController {
           await Core.loginController.loadUser();
         }
         final String user = Core.loginController.currentUser?.$id ?? '';
-        final TablesDB tablesDB = TablesDB(databases.client);
 
-        // 0. Load Core.tableContatos
-        final contatosDocs = await tablesDB.listRows(
-          databaseId: Core.databaseId,
-          tableId: Core.tableContatos,
-          queries: [
-            Query.equal('ownerId', [user]),
-            Query.limit(5000),
-          ],
-        );
-        _contatosList.clear();
-        _contatosList.addAll(
-          contatosDocs.rows.map((d) => ContatoModel.fromMap(d.data)),
-        );
+        // 1. Subscribe to Drift streams reactively
+        await _subscribeToStreams(user, targetMonth);
 
-        // Auto-create a contact for the current user if they don't have one
-        final bool hasUserContato = _contatosList.any((c) => c.userId == user);
-        if (!hasUserContato && user.isNotEmpty) {
-          final String currentUserName = Core.loginController.currentUser?.name ?? 'Eu';
-          final String currentUserEmail = Core.loginController.currentUser?.email ?? '';
-          try {
-            final Row newContactRow = await tablesDB.createRow(
-              databaseId: Core.databaseId,
-              tableId: Core.tableContatos,
-              rowId: ID.unique(),
-              data: {
-                'ownerId': user,
-                'nome': currentUserName.isNotEmpty ? '$currentUserName (Eu)' : 'Eu',
-                'email': currentUserEmail.isNotEmpty ? currentUserEmail : null,
-                'userId': user,
-              },
-            );
-            final map = Map<String, dynamic>.from(newContactRow.data);
-            map['\$id'] = newContactRow.$id;
-            _contatosList.add(ContatoModel.fromMap(map));
-          } catch (e) {
-            log('Error auto-creating user contact: $e');
-          }
-        }
-
-        final List<String> userContatoIds = _contatosList
-            .map((c) => c.id)
-            .toList();
-
-        // 1. Load accounts
-        final accountsDocs = await tablesDB.listRows(
-          databaseId: Core.databaseId,
-          tableId: Core.tableContas, // contas
-          queries: [
-            Query.equal('userId', [user]),
-            Query.limit(5000),
-          ],
-        );
-        _contasList.clear();
-        _contasList.addAll(
-          accountsDocs.rows.map((d) => ContaModel.fromMap(d.data)),
-        );
-
-        // 2. Load categories
-        final catDocs = await tablesDB.listRows(
-          databaseId: Core.databaseId,
-          tableId: Core.tableCategoriasTransacoes,
-          queries: [
-            Query.equal('userId', [user]),
-            Query.limit(5000),
-          ],
-        );
-        _categoriasList.clear();
-        _categoriasList.addAll(
-          catDocs.rows.map((d) => CategoriaTransacaoModel.fromMap(d.data)),
-        );
-
-        // 3. Load transactions (for targetMonth)
-        final List<String> contaIds = contasList.map((c) => c.id).toList();
-        final List<TransacaoModel> loadedTrans = [];
-        final List<TransacaoModel> loadedPastTrans = [];
-
-        final firstDayOfMonth = DateTime(
-          targetMonth.year,
-          targetMonth.month,
-          1,
-        );
-        final lastDayOfMonth = DateTime(
-          targetMonth.year,
-          targetMonth.month + 1,
-          1,
-        ).subtract(const Duration(milliseconds: 1));
-
-        if (contaIds.isNotEmpty) {
-          // Query transactions where conta is one of the user's accounts inside selected month
-          for (int k = 0; k < contaIds.length; k += 100) {
-            final chunkContaIds = contaIds.sublist(
-              k,
-              k + 100 > contaIds.length ? contaIds.length : k + 100,
-            );
-            final transDocs1 = await tablesDB.listRows(
-              databaseId: Core.databaseId,
-              tableId: Core.tableTransacoes, // transacoes
-              queries: [
-                Query.equal('conta', chunkContaIds),
-                Query.greaterThanEqual(
-                  'dataCompetencia',
-                  firstDayOfMonth.toIso8601String(),
-                ),
-                Query.lessThanEqual(
-                  'dataCompetencia',
-                  lastDayOfMonth.toIso8601String(),
-                ),
-                Query.select([
-                  '*',
-                  'conta.*',
-                  'contaDestino.*',
-                  'categoria.*',
-                  'recorrencia.*',
-                  'devedorContato.*',
-                  'credorContato.*',
-                ]),
-                Query.limit(5000),
-              ],
-            );
-            for (final doc in transDocs1.rows) {
-              final map = Map<String, dynamic>.from(doc.data);
-              map['\$id'] = doc.$id;
-              loadedTrans.add(TransacaoModel.fromMap(map));
-            }
-          }
-
-          // Query transactions where contaDestino is one of the user's accounts inside selected month
-          for (int k = 0; k < contaIds.length; k += 100) {
-            final chunkContaIds = contaIds.sublist(
-              k,
-              k + 100 > contaIds.length ? contaIds.length : k + 100,
-            );
-            final transDocs2 = await tablesDB.listRows(
-              databaseId: Core.databaseId,
-              tableId: Core.tableTransacoes,
-              queries: [
-                Query.equal('contaDestino', chunkContaIds),
-                Query.greaterThanEqual(
-                  'dataCompetencia',
-                  firstDayOfMonth.toIso8601String(),
-                ),
-                Query.lessThanEqual(
-                  'dataCompetencia',
-                  lastDayOfMonth.toIso8601String(),
-                ),
-                Query.select([
-                  '*',
-                  'conta.*',
-                  'contaDestino.*',
-                  'categoria.*',
-                  'recorrencia.*',
-                  'devedorContato.*',
-                  'credorContato.*',
-                ]),
-                Query.limit(5000),
-              ],
-            );
-            for (final doc in transDocs2.rows) {
-              if (!loadedTrans.any((t) => t.id == doc.$id)) {
-                final map = Map<String, dynamic>.from(doc.data);
-                map['\$id'] = doc.$id;
-                loadedTrans.add(TransacaoModel.fromMap(map));
-              }
-            }
-          }
-
-          // Query past transactions (before selected month) with lightweight select
-          for (int k = 0; k < contaIds.length; k += 100) {
-            final chunkContaIds = contaIds.sublist(
-              k,
-              k + 100 > contaIds.length ? contaIds.length : k + 100,
-            );
-            final transDocs1 = await tablesDB.listRows(
-              databaseId: Core.databaseId,
-              tableId: Core.tableTransacoes,
-              queries: [
-                Query.equal('conta', chunkContaIds),
-                Query.lessThan(
-                  'dataCompetencia',
-                  firstDayOfMonth.toIso8601String(),
-                ),
-                Query.select([
-                  'valor',
-                  'tipo',
-                  'conta.*',
-                  'contaDestino.*',
-                  'consolidada',
-                  'dataCompetencia',
-                  'categoria.*',
-                  'devedorContato.*',
-                  'credorContato.*',
-                ]),
-                Query.limit(5000),
-              ],
-            );
-            for (final doc in transDocs1.rows) {
-              final map = Map<String, dynamic>.from(doc.data);
-              map['\$id'] = doc.$id;
-              if (map['conta'] is String) {
-                final String cId = map['conta'] as String;
-                final contaMatch = contasList.firstWhere(
-                  (c) => c.id == cId,
-                  orElse: () =>
-                      ContaModel(id: cId, name: '', userId: '', saldoAtual: 0),
-                );
-                map['conta'] = contaMatch.toMap();
-              }
-              if (map['contaDestino'] is String) {
-                final String cId = map['contaDestino'] as String;
-                final contaMatch = contasList.firstWhere(
-                  (c) => c.id == cId,
-                  orElse: () =>
-                      ContaModel(id: cId, name: '', userId: '', saldoAtual: 0),
-                );
-                map['contaDestino'] = contaMatch.toMap();
-              }
-              loadedPastTrans.add(TransacaoModel.fromMap(map));
-            }
-          }
-
-          for (int k = 0; k < contaIds.length; k += 100) {
-            final chunkContaIds = contaIds.sublist(
-              k,
-              k + 100 > contaIds.length ? contaIds.length : k + 100,
-            );
-            final transDocs2 = await tablesDB.listRows(
-              databaseId: Core.databaseId,
-              tableId: Core.tableTransacoes,
-              queries: [
-                Query.equal('contaDestino', chunkContaIds),
-                Query.lessThan(
-                  'dataCompetencia',
-                  firstDayOfMonth.toIso8601String(),
-                ),
-                Query.select([
-                  'valor',
-                  'tipo',
-                  'conta.*',
-                  'contaDestino.*',
-                  'consolidada',
-                  'dataCompetencia',
-                  'categoria.*',
-                  'devedorContato.*',
-                  'credorContato.*',
-                ]),
-                Query.limit(5000),
-              ],
-            );
-            for (final doc in transDocs2.rows) {
-              if (!loadedPastTrans.any((t) => t.id == doc.$id)) {
-                final map = Map<String, dynamic>.from(doc.data);
-                map['\$id'] = doc.$id;
-                if (map['conta'] is String) {
-                  final String cId = map['conta'] as String;
-                  final contaMatch = contasList.firstWhere(
-                    (c) => c.id == cId,
-                    orElse: () => ContaModel(
-                      id: cId,
-                      name: '',
-                      userId: '',
-                      saldoAtual: 0,
-                    ),
-                  );
-                  map['conta'] = contaMatch.toMap();
-                }
-                if (map['contaDestino'] is String) {
-                  final String cId = map['contaDestino'] as String;
-                  final contaMatch = contasList.firstWhere(
-                    (c) => c.id == cId,
-                    orElse: () => ContaModel(
-                      id: cId,
-                      name: '',
-                      userId: '',
-                      saldoAtual: 0,
-                    ),
-                  );
-                  map['contaDestino'] = contaMatch.toMap();
-                }
-                loadedPastTrans.add(TransacaoModel.fromMap(map));
-              }
-            }
-          }
-        }
-
-        _divisoesList.clear();
-        if (userContatoIds.isNotEmpty) {
-          for (int k = 0; k < userContatoIds.length; k += 100) {
-            final chunkIds = userContatoIds.sublist(
-              k,
-              k + 100 > userContatoIds.length ? userContatoIds.length : k + 100,
-            );
-
-            int offset = 0;
-            const int pageSize = 500;
-            while (true) {
-              final divDocs = await tablesDB.listRows(
-                databaseId: Core.databaseId,
-                tableId: Core.tableDivisaoTransacoes,
-                queries: [
-                  Query.equal('contatoResponsavel', chunkIds),
-                  Query.select([
-                    '*',
-                    'transacao.*',
-                    'transacao.conta.*',
-                    'transacao.contaDestino.*',
-                    'transacao.categoria.*',
-                    'transacao.recorrencia.*',
-                    'transacao.devedorContato.*',
-                    'transacao.credorContato.*',
-                  ]),
-                  Query.limit(pageSize),
-                  Query.offset(offset),
-                ],
-              );
-
-              _divisoesList.addAll(
-                divDocs.rows.map((d) => DivisaoTransacaoModel.fromMap(d.data)),
-              );
-
-              if (divDocs.rows.length < pageSize) {
-                break;
-              }
-              offset += pageSize;
-            }
-          }
-        }
-
-        // Fetch divisions for loaded current month transactions
-        if (loadedTrans.isNotEmpty) {
-          final List<String> loadedTransIds = loadedTrans
-              .map((t) => t.id)
-              .toList();
-          final List<DivisaoTransacaoModel> allDivs = [];
-          for (int k = 0; k < loadedTransIds.length; k += 100) {
-            final chunkIds = loadedTransIds.sublist(
-              k,
-              k + 100 > loadedTransIds.length ? loadedTransIds.length : k + 100,
-            );
-            final allDivsDocs = await tablesDB.listRows(
-              databaseId: Core.databaseId,
-              tableId: Core.tableDivisaoTransacoes,
-              queries: [Query.equal('transacao', chunkIds), Query.limit(5000)],
-            );
-            allDivs.addAll(
-              allDivsDocs.rows.map(
-                (d) => DivisaoTransacaoModel.fromMap(d.data),
-              ),
-            );
-          }
-
-          for (int i = 0; i < loadedTrans.length; i++) {
-            final t = loadedTrans[i];
-            final divsForT = allDivs
-                .where((d) => d.transacaoId == t.id)
-                .toList();
-            loadedTrans[i] = t.copyWith(divisoes: divsForT);
-          }
-        }
-
-        // Bind in-memory divisions to past transactions
-        for (int i = 0; i < loadedPastTrans.length; i++) {
-          final t = loadedPastTrans[i];
-          final divsForT = _divisoesList
-              .where((d) => d.transacaoId == t.id)
-              .toList();
-          loadedPastTrans[i] = t.copyWith(divisoes: divsForT);
-        }
-
-        _transacoesList.clear();
-        _transacoesList.addAll(loadedTrans);
-        _transacoesList.addAll(loadedPastTrans);
+        // 2. Start remote sync in background (non-blocking)
+        _syncRemoteDataInBackground(user, targetMonth);
 
         return true;
       } catch (e) {
@@ -440,8 +73,191 @@ class FinancasController {
     }, name: 'loadDocuments');
   }
 
+  Future<void> _subscribeToStreams(String user, DateTime targetMonth) async {
+    _contatosSub?.cancel();
+    final contatosStream = repository.watchContatos(usuarioId: user);
+    try {
+      final firstData = await contatosStream.first;
+      mobx.runInAction(() {
+        _contatosList.clear();
+        _contatosList.addAll(firstData);
+      });
+    } catch (_) {}
+    _contatosSub = contatosStream.listen((data) {
+      mobx.runInAction(() {
+        _contatosList.clear();
+        _contatosList.addAll(data);
+      });
+    });
+
+    _contasSub?.cancel();
+    final contasStream = repository.watchContas(usuarioId: user);
+    try {
+      final firstData = await contasStream.first;
+      mobx.runInAction(() {
+        _contasList.clear();
+        _contasList.addAll(firstData);
+      });
+    } catch (_) {}
+    _contasSub = contasStream.listen((data) {
+      mobx.runInAction(() {
+        _contasList.clear();
+        _contasList.addAll(data);
+      });
+    });
+
+    _categoriasSub?.cancel();
+    final categoriasStream = repository.watchCategorias(usuarioId: user);
+    try {
+      final firstData = await categoriasStream.first;
+      mobx.runInAction(() {
+        _categoriasList.clear();
+        _categoriasList.addAll(firstData);
+      });
+    } catch (_) {}
+    _categoriasSub = categoriasStream.listen((data) {
+      mobx.runInAction(() {
+        _categoriasList.clear();
+        _categoriasList.addAll(data);
+      });
+    });
+
+    _transacoesSub?.cancel();
+    final transacoesStream = repository.watchTransacoes(
+      usuarioId: user,
+      contaIds: [],
+      targetMonth: targetMonth,
+    );
+    try {
+      final firstData = await transacoesStream.first;
+      mobx.runInAction(() {
+        final firstDayOfMonth = DateTime(
+          targetMonth.year,
+          targetMonth.month,
+          1,
+        );
+        final loadedTrans = firstData
+            .where(
+              (t) => t.dataCompetencia.isAfter(
+                firstDayOfMonth.subtract(const Duration(seconds: 1)),
+              ),
+            )
+            .toList();
+        final loadedPastTrans = firstData
+            .where((t) => t.dataCompetencia.isBefore(firstDayOfMonth))
+            .toList();
+
+        _transacoesList.clear();
+        _transacoesList.addAll(loadedTrans);
+        _transacoesList.addAll(loadedPastTrans);
+      });
+    } catch (_) {}
+    _transacoesSub = transacoesStream.listen((data) {
+      mobx.runInAction(() {
+        final firstDayOfMonth = DateTime(
+          targetMonth.year,
+          targetMonth.month,
+          1,
+        );
+        final loadedTrans = data
+            .where(
+              (t) => t.dataCompetencia.isAfter(
+                firstDayOfMonth.subtract(const Duration(seconds: 1)),
+              ),
+            )
+            .toList();
+        final loadedPastTrans = data
+            .where((t) => t.dataCompetencia.isBefore(firstDayOfMonth))
+            .toList();
+
+        _transacoesList.clear();
+        _transacoesList.addAll(loadedTrans);
+        _transacoesList.addAll(loadedPastTrans);
+      });
+    });
+  }
+
+  final mobx.Observable<bool> _isSyncing = mobx.Observable<bool>(
+    false,
+    name: 'isSyncing',
+  );
+  bool get isSyncing => _isSyncing.value;
+
+  Future<void> _syncRemoteDataInBackground(
+    String user,
+    DateTime targetMonth,
+  ) async {
+    mobx.runInAction(() {
+      _isSyncing.value = true;
+    });
+    try {
+      // 0. Fetch and cache contatos
+      final contatos = await repository.getContatos(
+        usuarioId: user,
+        forceLocal: false,
+      );
+
+      // Auto-create a contact for the current user if they don't have one
+      final bool hasUserContato = contatos.any((c) => c.userId == user);
+      if (!hasUserContato && user.isNotEmpty) {
+        final String currentUserName =
+            Core.loginController.currentUser?.name ?? 'Eu';
+        final String currentUserEmail =
+            Core.loginController.currentUser?.email ?? '';
+        try {
+          await repository.createContato(
+            ownerId: user,
+            nome: currentUserName.isNotEmpty ? '$currentUserName (Eu)' : 'Eu',
+            email: currentUserEmail.isNotEmpty ? currentUserEmail : null,
+            userId: user,
+          );
+        } catch (e) {
+          log('Error auto-creating user contact: $e');
+        }
+      }
+
+      // 1. Fetch and cache contas
+      final contas = await repository.getContas(
+        usuarioId: user,
+        forceLocal: false,
+      );
+      final List<String> contaIds = contas.map((c) => c.id).toList();
+
+      // 2. Fetch and cache categorias
+      await repository.getCategorias(usuarioId: user, forceLocal: false);
+
+      if (contaIds.isNotEmpty) {
+        // 3. Fetch and cache transactions (for targetMonth)
+        await repository.getTransacoes(
+          usuarioId: user,
+          contaIds: contaIds,
+          targetMonth: targetMonth,
+          forceLocal: false,
+        );
+
+        final firstDayOfMonth = DateTime(
+          targetMonth.year,
+          targetMonth.month,
+          1,
+        );
+        await repository.getTransacoes(
+          usuarioId: user,
+          contaIds: contaIds,
+          beforeDate: firstDayOfMonth,
+          lightweight: false,
+          forceLocal: false,
+        );
+      }
+    } catch (e) {
+      log('Background sync failed: $e');
+    } finally {
+      mobx.runInAction(() {
+        _isSyncing.value = false;
+      });
+    }
+  }
+
   Future<void> updateAccountBalance(String contaId, double amountDiff) async {
-    final TablesDB tablesDB = TablesDB(databases.client);
     final int idx = _contasList.indexWhere((c) => c.id == contaId);
     if (idx != -1) {
       final account = _contasList[idx];
@@ -449,11 +265,9 @@ class FinancasController {
       mobx.runInAction(() {
         _contasList[idx] = account.copyWith(saldoAtual: newSaldo);
       });
-      await tablesDB.updateRow(
-        databaseId: Core.databaseId,
-        tableId: Core.tableContas, // contas
-        rowId: contaId,
-        data: {'saldoAtual': newSaldo},
+      await repository.updateAccountBalance(
+        contaId: contaId,
+        newSaldo: newSaldo,
       );
     }
   }
@@ -464,13 +278,11 @@ class FinancasController {
         await Core.loginController.loadUser();
       }
       final String user = Core.loginController.currentUser?.$id ?? '';
-      final TablesDB tablesDB = TablesDB(databases.client);
 
-      await tablesDB.createRow(
-        databaseId: Core.databaseId,
-        tableId: Core.tableContas, // contas
-        rowId: ID.unique(),
-        data: {'name': name, 'userId': user, 'saldoAtual': saldoInicial},
+      await repository.createConta(
+        name: name,
+        saldoInicial: saldoInicial,
+        usuarioId: user,
       );
       await loadDocuments();
       return true;
@@ -482,13 +294,7 @@ class FinancasController {
 
   Future<bool> updateConta(String id, String name, double saldoAtual) async {
     try {
-      final TablesDB tablesDB = TablesDB(databases.client);
-      await tablesDB.updateRow(
-        databaseId: Core.databaseId,
-        tableId: Core.tableContas, // contas
-        rowId: id,
-        data: {'name': name, 'saldoAtual': saldoAtual},
-      );
+      await repository.updateConta(id: id, name: name, saldoAtual: saldoAtual);
       await loadDocuments();
       return true;
     } catch (e) {
@@ -499,12 +305,7 @@ class FinancasController {
 
   Future<bool> deleteConta(String id) async {
     try {
-      final TablesDB tablesDB = TablesDB(databases.client);
-      await tablesDB.deleteRow(
-        databaseId: Core.databaseId,
-        tableId: Core.tableContas, // contas
-        rowId: id,
-      );
+      await repository.deleteConta(id: id);
       await loadDocuments();
       return true;
     } catch (e) {
@@ -523,13 +324,12 @@ class FinancasController {
         await Core.loginController.loadUser();
       }
       final String user = Core.loginController.currentUser?.$id ?? '';
-      final TablesDB tablesDB = TablesDB(databases.client);
 
-      await tablesDB.createRow(
-        databaseId: Core.databaseId,
-        tableId: Core.tableCategoriasTransacoes,
-        rowId: ID.unique(),
-        data: {'userId': user, 'name': name, 'icone': icone, 'cor': hexColor},
+      await repository.createCategoria(
+        name: name,
+        icone: icone,
+        hexColor: hexColor,
+        usuarioId: user,
       );
       await loadDocuments();
       return true;
@@ -546,12 +346,11 @@ class FinancasController {
     String hexColor,
   ) async {
     try {
-      final TablesDB tablesDB = TablesDB(databases.client);
-      await tablesDB.updateRow(
-        databaseId: Core.databaseId,
-        tableId: Core.tableCategoriasTransacoes,
-        rowId: id,
-        data: {'name': name, 'icone': icone, 'cor': hexColor},
+      await repository.updateCategoria(
+        id: id,
+        name: name,
+        icone: icone,
+        hexColor: hexColor,
       );
       await loadDocuments();
       return true;
@@ -563,12 +362,7 @@ class FinancasController {
 
   Future<bool> deleteCategoria(String id) async {
     try {
-      final TablesDB tablesDB = TablesDB(databases.client);
-      await tablesDB.deleteRow(
-        databaseId: Core.databaseId,
-        tableId: Core.tableCategoriasTransacoes,
-        rowId: id,
-      );
+      await repository.deleteCategoria(id: id);
       await loadDocuments();
       return true;
     } catch (e) {
@@ -587,8 +381,8 @@ class FinancasController {
     required bool consolidada,
     required String? categoriaId,
     required bool recorrente,
-    bool recorrenciaIndeterminada = false,
-    String tipoRecorrencia = 'mês',
+    required bool recorrenciaIndeterminada,
+    required String tipoRecorrencia,
     int frequencia = 1,
     int totalParcelas = 1,
     int parcelaInicio = 1,
@@ -610,23 +404,16 @@ class FinancasController {
       );
       final String userContatoId = userContato.id;
 
-      final TablesDB tablesDB = TablesDB(databases.client);
       String? recId;
 
       if (recorrente) {
-        final Row recRow = await tablesDB.createRow(
-          databaseId: Core.databaseId,
-          tableId: Core.tableTransacaoRecorrencias,
-          rowId: ID.unique(),
-          data: {
-            'tipoRecorrencia': tipoRecorrencia,
-            'frequencia': frequencia,
-            'totalParcelas': recorrenciaIndeterminada ? null : totalParcelas,
-            'parcelaInicio': recorrenciaIndeterminada ? null : parcelaInicio,
-            'fimRecorrencia': fimRecorrencia?.toIso8601String(),
-          },
+        recId = await repository.createRecorrenciaRow(
+          tipoRecorrencia: tipoRecorrencia,
+          frequencia: frequencia,
+          totalParcelas: recorrenciaIndeterminada ? null : totalParcelas,
+          parcelaInicio: recorrenciaIndeterminada ? null : parcelaInicio,
+          fimRecorrencia: fimRecorrencia,
         );
-        recId = recRow.$id;
       }
 
       final int remainingParcels = totalParcelas - parcelaInicio + 1;
@@ -634,9 +421,9 @@ class FinancasController {
           ? (recorrenciaIndeterminada ? 24 : remainingParcels)
           : 1;
 
-      if (recorrente) {
-        final List<Map<String, dynamic>> ops = [];
+      final List<Map<String, dynamic>> ops = [];
 
+      if (recorrente) {
         for (int i = 1; i <= loopLimit; i++) {
           DateTime date = dataCompetencia;
           if (tipoRecorrencia == 'dia') {
@@ -721,23 +508,10 @@ class FinancasController {
             });
           }
         }
-
-        // Send operations in blocks of 100, each inside its own transaction
-        for (int j = 0; j < ops.length; j += 100) {
-          final chunk = ops.sublist(
-            j,
-            j + 100 > ops.length ? ops.length : j + 100,
-          );
-          final String txId = (await tablesDB.createTransaction()).$id;
-          await tablesDB.createOperations(
-            transactionId: txId,
-            operations: chunk,
-          );
-          await tablesDB.updateTransaction(transactionId: txId, commit: true);
-        }
       } else {
         // Single non-recurrent transaction (normal flow)
-        final bool isDivision = divisao.length > 1 &&
+        final bool isDivision =
+            divisao.length > 1 &&
             pagadorRecebedorId != null &&
             (tipo == 'despesa' || tipo == 'receita');
 
@@ -751,11 +525,12 @@ class FinancasController {
             // Case A: User paid/received.
             // 1. Create main transaction for user (total amount)
             final String tRowId = ID.unique();
-            await tablesDB.createRow(
-              databaseId: Core.databaseId,
-              tableId: Core.tableTransacoes,
-              rowId: tRowId,
-              data: {
+            ops.add({
+              'action': 'create',
+              'databaseId': Core.databaseId,
+              'tableId': Core.tableTransacoes,
+              'rowId': tRowId,
+              'data': {
                 'descricao': descricao,
                 'valor': valor,
                 'tipo': tipo,
@@ -767,7 +542,7 @@ class FinancasController {
                 'devedorContato': devedorContatoId,
                 'credorContato': credorContatoId,
               },
-            );
+            });
 
             // Adjust balance for main transaction
             if (consolidada) {
@@ -782,16 +557,17 @@ class FinancasController {
             for (final divItem in divisao) {
               final String rContato = divItem['contatoResponsavel'] as String;
               final double rPeso = (divItem['peso'] as num).toDouble();
-              await tablesDB.createRow(
-                databaseId: Core.databaseId,
-                tableId: Core.tableDivisaoTransacoes,
-                rowId: ID.unique(),
-                data: {
+              ops.add({
+                'action': 'create',
+                'databaseId': Core.databaseId,
+                'tableId': Core.tableDivisaoTransacoes,
+                'rowId': ID.unique(),
+                'data': {
                   'transacao': tRowId,
                   'contatoResponsavel': rContato,
                   'peso': rPeso,
                 },
-              );
+              });
             }
 
             // 2. Create refund transactions from other contacts
@@ -801,15 +577,22 @@ class FinancasController {
               final double rPeso = (divItem['peso'] as num).toDouble();
               final double shareValue = valor * (rPeso / totalWeights);
 
-              final String refundType = tipo == 'despesa' ? 'receita' : 'despesa';
-              final String? refDevedor = refundType == 'receita' ? rContato : null;
-              final String? refCredor = refundType == 'despesa' ? rContato : null;
+              final String refundType = tipo == 'despesa'
+                  ? 'receita'
+                  : 'despesa';
+              final String? refDevedor = refundType == 'receita'
+                  ? rContato
+                  : null;
+              final String? refCredor = refundType == 'despesa'
+                  ? rContato
+                  : null;
 
-              await tablesDB.createRow(
-                databaseId: Core.databaseId,
-                tableId: Core.tableTransacoes,
-                rowId: ID.unique(),
-                data: {
+              ops.add({
+                'action': 'create',
+                'databaseId': Core.databaseId,
+                'tableId': Core.tableTransacoes,
+                'rowId': ID.unique(),
+                'data': {
                   'descricao': 'Reembolso: $descricao',
                   'valor': shareValue,
                   'tipo': refundType,
@@ -820,7 +603,7 @@ class FinancasController {
                   'devedorContato': refDevedor,
                   'credorContato': refCredor,
                 },
-              );
+              });
 
               // Adjust balance for refund transaction
               if (consolidada && contaId != null) {
@@ -842,14 +625,19 @@ class FinancasController {
                 : 0.0;
             final double userShareValue = valor * (userWeight / totalWeights);
 
-            final String? refDevedor = tipo == 'receita' ? pagadorRecebedorId : null;
-            final String? refCredor = tipo == 'despesa' ? pagadorRecebedorId : null;
+            final String? refDevedor = tipo == 'receita'
+                ? pagadorRecebedorId
+                : null;
+            final String? refCredor = tipo == 'despesa'
+                ? pagadorRecebedorId
+                : null;
 
-            await tablesDB.createRow(
-              databaseId: Core.databaseId,
-              tableId: Core.tableTransacoes,
-              rowId: ID.unique(),
-              data: {
+            ops.add({
+              'action': 'create',
+              'databaseId': Core.databaseId,
+              'tableId': Core.tableTransacoes,
+              'rowId': ID.unique(),
+              'data': {
                 'descricao': 'Partilha: $descricao',
                 'valor': userShareValue,
                 'tipo': tipo,
@@ -860,7 +648,7 @@ class FinancasController {
                 'devedorContato': refDevedor,
                 'credorContato': refCredor,
               },
-            );
+            });
 
             // Adjust balance for user's share transaction
             if (consolidada && contaId != null) {
@@ -874,11 +662,12 @@ class FinancasController {
         } else {
           // Normal single transaction (no division or single division)
           final String tRowId = ID.unique();
-          await tablesDB.createRow(
-            databaseId: Core.databaseId,
-            tableId: Core.tableTransacoes,
-            rowId: tRowId,
-            data: {
+          ops.add({
+            'action': 'create',
+            'databaseId': Core.databaseId,
+            'tableId': Core.tableTransacoes,
+            'rowId': tRowId,
+            'data': {
               'descricao': descricao,
               'valor': valor,
               'tipo': tipo,
@@ -890,7 +679,7 @@ class FinancasController {
               'devedorContato': devedorContatoId,
               'credorContato': credorContatoId,
             },
-          );
+          });
 
           if (consolidada) {
             if (tipo == 'despesa' && contaId != null) {
@@ -908,18 +697,23 @@ class FinancasController {
           for (final divItem in divisao) {
             final String rContato = divItem['contatoResponsavel'] as String;
             final double rPeso = (divItem['peso'] as num).toDouble();
-            await tablesDB.createRow(
-              databaseId: Core.databaseId,
-              tableId: Core.tableDivisaoTransacoes,
-              rowId: ID.unique(),
-              data: {
+            ops.add({
+              'action': 'create',
+              'databaseId': Core.databaseId,
+              'tableId': Core.tableDivisaoTransacoes,
+              'rowId': ID.unique(),
+              'data': {
                 'transacao': tRowId,
                 'contatoResponsavel': rContato,
                 'peso': rPeso,
               },
-            );
+            });
           }
         }
+      }
+
+      if (ops.isNotEmpty) {
+        await repository.executeBatchOperations(ops);
       }
 
       FinancasController.defaultDataCompetencia = dataCompetencia;
@@ -952,7 +746,6 @@ class FinancasController {
     int? totalParcelas,
   }) async {
     try {
-      final TablesDB tablesDB = TablesDB(databases.client);
       final List<Map<String, dynamic>> ops = [];
 
       // Find original transaction to check if consolidated state or amount changed
@@ -979,7 +772,12 @@ class FinancasController {
       String? updatedRecId = original.recorrencia?.id;
 
       // Local helper function to calculate recurrent dates
-      DateTime calculateRecurrentDate(DateTime baseDate, String period, int freq, int offset) {
+      DateTime calculateRecurrentDate(
+        DateTime baseDate,
+        String period,
+        int freq,
+        int offset,
+      ) {
         if (period == 'dia') {
           return baseDate.add(Duration(days: offset * freq));
         } else if (period == 'semana') {
@@ -1010,32 +808,28 @@ class FinancasController {
         if (optionRecorrencia == 'only_current') {
           updatedRecId = null;
           // Strip any suffix for single edited transaction split off from recurrence
-          final match = RegExp(r'^(.*)\s\(Parcela\s\d+/\d+\)$').firstMatch(descricao);
+          final match = RegExp(
+            r'^(.*)\s\(Parcela\s\d+/\d+\)$',
+          ).firstMatch(descricao);
           if (match != null) {
             newMainDesc = match.group(1)!;
           }
         } else {
-          final allRecTrans = await _fetchRecurrenceSeries(
-            tablesDB,
-            original.recorrencia!.id,
+          final allRecTrans = await repository.getRecurrenceSeries(
+            recurrenceId: original.recorrencia!.id,
           );
 
           if (optionRecorrencia == 'current_and_future') {
             // create new recurrence row
             final originalRec = original.recorrencia!;
-            final Row newRecRow = await tablesDB.createRow(
-              databaseId: Core.databaseId,
-              tableId: Core.tableTransacaoRecorrencias,
-              rowId: ID.unique(),
-              data: {
-                'tipoRecorrencia': tipoRecorrencia ?? originalRec.tipoRecorrencia,
-                'frequencia': frequencia ?? originalRec.frequencia,
-                'totalParcelas': totalParcelas,
-                'parcelaInicio': parcelaInicio ?? originalRec.parcelaInicio,
-                'fimRecorrencia': originalRec.fimRecorrencia?.toIso8601String(),
-              },
+            final newRecId = await repository.createRecorrenciaRow(
+              tipoRecorrencia: tipoRecorrencia ?? originalRec.tipoRecorrencia,
+              frequencia: frequencia ?? originalRec.frequencia ?? 0,
+              totalParcelas: totalParcelas,
+              parcelaInicio: parcelaInicio ?? originalRec.parcelaInicio,
+              fimRecorrencia: originalRec.fimRecorrencia,
             );
-            updatedRecId = newRecRow.$id;
+            updatedRecId = newRecId;
 
             // Sort future transactions chronologically
             final futureTrans = allRecTrans
@@ -1045,18 +839,24 @@ class FinancasController {
                       t.dataCompetencia.isAfter(original.dataCompetencia),
                 )
                 .toList();
-            futureTrans.sort((a, b) => a.dataCompetencia.compareTo(b.dataCompetencia));
+            futureTrans.sort(
+              (a, b) => a.dataCompetencia.compareTo(b.dataCompetencia),
+            );
 
-            final String finalPeriod = tipoRecorrencia ?? originalRec.tipoRecorrencia;
+            final String finalPeriod =
+                tipoRecorrencia ?? originalRec.tipoRecorrencia;
             final int finalFreq = frequencia ?? originalRec.frequencia ?? 1;
 
             // Rebuild description for the current edited transaction
             String baseDesc = descricao;
-            final match = RegExp(r'^(.*)\s\(Parcela\s\d+/\d+\)$').firstMatch(descricao);
+            final match = RegExp(
+              r'^(.*)\s\(Parcela\s\d+/\d+\)$',
+            ).firstMatch(descricao);
             if (match != null) {
               baseDesc = match.group(1)!;
             }
-            final int currentParcel = parcelaInicio ?? originalRec.parcelaInicio ?? 1;
+            final int currentParcel =
+                parcelaInicio ?? originalRec.parcelaInicio ?? 1;
             newMainDesc = totalParcelas == null
                 ? baseDesc
                 : '$baseDesc (Parcela $currentParcel/$totalParcelas)';
@@ -1078,7 +878,12 @@ class FinancasController {
               }
 
               // Calculate new date based on offset (j + 1)
-              final newDate = calculateRecurrentDate(dataCompetencia, finalPeriod, finalFreq, j + 1);
+              final newDate = calculateRecurrentDate(
+                dataCompetencia,
+                finalPeriod,
+                finalFreq,
+                j + 1,
+              );
 
               final int nextParcel = currentParcel + j + 1;
               final String newDesc = totalParcelas == null
@@ -1147,8 +952,7 @@ class FinancasController {
             }
           } else if (optionRecorrencia == 'all') {
             // Update the recurrence row itself
-            await tablesDB.updateRow(
-              databaseId: Core.databaseId,
+            await repository.updateRow(
               tableId: Core.tableTransacaoRecorrencias,
               rowId: original.recorrencia!.id,
               data: {
@@ -1161,16 +965,24 @@ class FinancasController {
 
             // Sort all transactions chronologically
             final allSeriesTrans = List<TransacaoModel>.from(allRecTrans);
-            allSeriesTrans.sort((a, b) => a.dataCompetencia.compareTo(b.dataCompetencia));
+            allSeriesTrans.sort(
+              (a, b) => a.dataCompetencia.compareTo(b.dataCompetencia),
+            );
 
-            final int idxEdit = allSeriesTrans.indexWhere((t) => t.id == original.id);
+            final int idxEdit = allSeriesTrans.indexWhere(
+              (t) => t.id == original.id,
+            );
 
-            final String finalPeriod = tipoRecorrencia ?? original.recorrencia!.tipoRecorrencia;
-            final int finalFreq = frequencia ?? original.recorrencia!.frequencia ?? 1;
+            final String finalPeriod =
+                tipoRecorrencia ?? original.recorrencia!.tipoRecorrencia;
+            final int finalFreq =
+                frequencia ?? original.recorrencia!.frequencia ?? 1;
 
             // Rebuild base description
             String baseDesc = descricao;
-            final match = RegExp(r'^(.*)\s\(Parcela\s\d+/\d+\)$').firstMatch(descricao);
+            final match = RegExp(
+              r'^(.*)\s\(Parcela\s\d+/\d+\)$',
+            ).firstMatch(descricao);
             if (match != null) {
               baseDesc = match.group(1)!;
             }
@@ -1198,7 +1010,12 @@ class FinancasController {
 
               // Calculate new date based on offset from edited transaction
               final int offset = j - idxEdit;
-              final newDate = calculateRecurrentDate(dataCompetencia, finalPeriod, finalFreq, offset);
+              final newDate = calculateRecurrentDate(
+                dataCompetencia,
+                finalPeriod,
+                finalFreq,
+                offset,
+              );
 
               final int nextParcel = j + 1;
               final String newDesc = totalParcelas == null
@@ -1329,15 +1146,8 @@ class FinancasController {
         });
       }
 
-      // Execute all operations in batches of 100, each inside its own transaction
-      for (int j = 0; j < ops.length; j += 100) {
-        final chunk = ops.sublist(
-          j,
-          j + 100 > ops.length ? ops.length : j + 100,
-        );
-        final String txId = (await tablesDB.createTransaction()).$id;
-        await tablesDB.createOperations(transactionId: txId, operations: chunk);
-        await tablesDB.updateTransaction(transactionId: txId, commit: true);
+      if (ops.isNotEmpty) {
+        await repository.executeBatchOperations(ops);
       }
 
       await loadDocuments();
@@ -1356,7 +1166,6 @@ class FinancasController {
     recurrenceOption, // 'only_current' | 'current_and_future' | 'all'
   }) async {
     try {
-      final TablesDB tablesDB = TablesDB(databases.client);
       final List<Map<String, dynamic>> ops = [];
       final List<TransacaoModel> targetTransactions = [];
 
@@ -1368,9 +1177,8 @@ class FinancasController {
         List<TransacaoModel> seriesToUpdate = [];
         if (original.recorrencia != null &&
             recurrenceOption != 'only_current') {
-          final allRecTrans = await _fetchRecurrenceSeries(
-            tablesDB,
-            original.recorrencia!.id,
+          final allRecTrans = await repository.getRecurrenceSeries(
+            recurrenceId: original.recorrencia!.id,
           );
 
           if (recurrenceOption == 'all') {
@@ -1478,14 +1286,8 @@ class FinancasController {
         }
       }
 
-      for (int j = 0; j < ops.length; j += 100) {
-        final chunk = ops.sublist(
-          j,
-          j + 100 > ops.length ? ops.length : j + 100,
-        );
-        final String txId = (await tablesDB.createTransaction()).$id;
-        await tablesDB.createOperations(transactionId: txId, operations: chunk);
-        await tablesDB.updateTransaction(transactionId: txId, commit: true);
+      if (ops.isNotEmpty) {
+        await repository.executeBatchOperations(ops);
       }
 
       await loadDocuments();
@@ -1501,14 +1303,15 @@ class FinancasController {
     required String deleteOption, // 'only_current', 'all', 'current_and_future'
   }) async {
     try {
-      final TablesDB tablesDB = TablesDB(databases.client);
       List<TransacaoModel> toDelete = [];
 
       if (deleteOption == 'only_current' || transacao.recorrencia == null) {
         toDelete = [transacao];
       } else {
         final recId = transacao.recorrencia!.id;
-        final allRecTrans = await _fetchRecurrenceSeries(tablesDB, recId);
+        final allRecTrans = await repository.getRecurrenceSeries(
+          recurrenceId: recId,
+        );
 
         if (deleteOption == 'all') {
           toDelete = allRecTrans;
@@ -1528,7 +1331,7 @@ class FinancasController {
       final List<Map<String, dynamic>> ops = [];
 
       for (final t in toDelete) {
-        // Delete all division records
+        // Stage delete all division records
         for (final div in t.divisoes) {
           ops.add({
             'action': 'delete',
@@ -1570,15 +1373,8 @@ class FinancasController {
         });
       }
 
-      // Execute all operations in batches of 100, each inside its own transaction
-      for (int j = 0; j < ops.length; j += 100) {
-        final chunk = ops.sublist(
-          j,
-          j + 100 > ops.length ? ops.length : j + 100,
-        );
-        final String txId = (await tablesDB.createTransaction()).$id;
-        await tablesDB.createOperations(transactionId: txId, operations: chunk);
-        await tablesDB.updateTransaction(transactionId: txId, commit: true);
+      if (ops.isNotEmpty) {
+        await repository.executeBatchOperations(ops);
       }
 
       await loadDocuments();
@@ -1600,19 +1396,12 @@ class FinancasController {
         await Core.loginController.loadUser();
       }
       final String user = Core.loginController.currentUser?.$id ?? '';
-      final TablesDB tablesDB = TablesDB(databases.client);
 
-      await tablesDB.createRow(
-        databaseId: Core.databaseId,
-        tableId: Core.tableContatos,
-        rowId: ID.unique(),
-        data: {
-          'ownerId': user,
-          'nome': nome,
-          'telefone': telefone,
-          'email': email,
-          'userId': userId,
-        },
+      await repository.createContato(
+        ownerId: user,
+        nome: nome,
+        email: email,
+        userId: userId,
       );
       await loadDocuments();
       return true;
@@ -1630,9 +1419,7 @@ class FinancasController {
     String? userId,
   }) async {
     try {
-      final TablesDB tablesDB = TablesDB(databases.client);
-      await tablesDB.updateRow(
-        databaseId: Core.databaseId,
+      await repository.updateRow(
         tableId: Core.tableContatos,
         rowId: id,
         data: {
@@ -1650,74 +1437,9 @@ class FinancasController {
     }
   }
 
-  Future<List<TransacaoModel>> _fetchRecurrenceSeries(
-    TablesDB tablesDB,
-    String recurrenceId,
-  ) async {
-    final recTransDocs = await tablesDB.listRows(
-      databaseId: Core.databaseId,
-      tableId: Core.tableTransacoes,
-      queries: [
-        Query.equal('recorrencia', [recurrenceId]),
-        Query.select([
-          '*',
-          'conta.*',
-          'contaDestino.*',
-          'categoria.*',
-          'recorrencia.*',
-          'devedorContato.*',
-          'credorContato.*',
-        ]),
-        Query.limit(5000),
-      ],
-    );
-
-    final List<TransacaoModel> allRecTrans = [];
-    for (final doc in recTransDocs.rows) {
-      final map = Map<String, dynamic>.from(doc.data);
-      map['\$id'] = doc.$id;
-      allRecTrans.add(TransacaoModel.fromMap(map));
-    }
-
-    final List<String> recTransIds = allRecTrans.map((t) => t.id).toList();
-    if (recTransIds.isNotEmpty) {
-      final List<DivisaoTransacaoModel> allRecDivs = [];
-      for (int k = 0; k < recTransIds.length; k += 100) {
-        final chunkIds = recTransIds.sublist(
-          k,
-          k + 100 > recTransIds.length ? recTransIds.length : k + 100,
-        );
-        final divsDocs = await tablesDB.listRows(
-          databaseId: Core.databaseId,
-          tableId: Core.tableDivisaoTransacoes,
-          queries: [
-            Query.equal('transacao', chunkIds),
-            Query.limit(5000),
-          ],
-        );
-        allRecDivs.addAll(
-          divsDocs.rows.map((d) => DivisaoTransacaoModel.fromMap(d.data)),
-        );
-      }
-
-      for (int i = 0; i < allRecTrans.length; i++) {
-        final t = allRecTrans[i];
-        final divsForT = allRecDivs.where((d) => d.transacaoId == t.id).toList();
-        allRecTrans[i] = t.copyWith(divisoes: divsForT);
-      }
-    }
-
-    return allRecTrans;
-  }
-
   Future<bool> deleteContato(String id) async {
     try {
-      final TablesDB tablesDB = TablesDB(databases.client);
-      await tablesDB.deleteRow(
-        databaseId: Core.databaseId,
-        tableId: Core.tableContatos,
-        rowId: id,
-      );
+      await repository.deleteRow(tableId: Core.tableContatos, rowId: id);
       await loadDocuments();
       return true;
     } catch (e) {

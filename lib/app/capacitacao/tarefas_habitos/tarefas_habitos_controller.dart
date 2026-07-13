@@ -10,24 +10,31 @@ import 'package:ppvdigital/models/categorias_tarefas_habitos_model.dart';
 import 'package:ppvdigital/models/historico_item_model.dart';
 import 'package:ppvdigital/models/tarefas_habitos_model.dart';
 import 'package:ppvdigital/models/tarefas_habitos_qtd_model.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:drift/drift.dart' hide Column, Query;
+import 'package:ppvdigital/models/local/app_database.dart';
+import 'package:ppvdigital/repositories/tarefa_habito_repository.dart';
 
 extension TarefasHabitosTransformList on List<dynamic>? {
   List<TarefaHabitoQtdModel> toTarefaHabitoQtdModelList([
     List<HistoricoItemModel>? tarefaHabitoHistoricoList,
   ]) {
     return this?.map<TarefaHabitoQtdModel>((e2) {
+          final Map<String, dynamic> e2Map = e2 is Map ? Map<String, dynamic>.from(e2) : <String, dynamic>{};
           List<HistoricoItemModel> withPeriodFilter = [];
-          DateTime parsedBeginning = DateTime.parse(
-            ((e2 as Map<String, dynamic>)[r'$createdAt'] as String?) ?? '',
-          ).toLocal();
+          final rawCreatedAt = (e2Map[r'$createdAt'] ?? e2Map['createdAt'] ?? e2Map['dataCriacao']);
+          DateTime parsedBeginning = DateTime.now();
+          if (rawCreatedAt is String) {
+            parsedBeginning = DateTime.tryParse(rawCreatedAt)?.toLocal() ?? DateTime.now();
+          } else if (rawCreatedAt is int) {
+            parsedBeginning = DateTime.fromMillisecondsSinceEpoch(rawCreatedAt).toLocal();
+          }
           DateTime beginning = DateTime(
             parsedBeginning.year,
             parsedBeginning.month,
             parsedBeginning.day,
           );
-          final String reiniciaEmTipo = e2['reiniciaEmTipo'] as String;
-          final int reiniciaEmQtd = e2['reiniciaEmQtd'] as int;
+          final String reiniciaEmTipo = (e2Map['reiniciaEmTipo'] as String?) ?? 'dias';
+          final int reiniciaEmQtd = (e2Map['reiniciaEmQtd'] as int?) ?? 1;
           final DateTime nowToday = DateTime.now();
           final DateTime now = DateTime(
             nowToday.year,
@@ -107,24 +114,28 @@ extension TarefasHabitosTransformList on List<dynamic>? {
             }).toList();
           }
 
-          final String? collectionId = e2[r'$collectionId'] as String?;
+          final String? collectionId = e2Map[r'$collectionId'] as String?;
           if (collectionId != null) {
             TarefasHabitosController.tarefasHabitosQtdCollectionId =
                 collectionId;
           }
 
+          final Map<String, dynamic>? rawCategoryMap = e2Map['categoriasTarefasHabitos'] is Map
+              ? Map<String, dynamic>.from(e2Map['categoriasTarefasHabitos'] as Map)
+              : null;
+
           return TarefaHabitoQtdModel(
-            id: e2[r'$id'] as String,
-            usuario: e2['usuario'] as String,
-            metaVezes: e2['metaVezes'] as int,
+            id: (e2Map[r'$id'] ?? e2Map['id'] ?? '') as String,
+            usuario: (e2Map['usuario'] as String?) ?? '',
+            metaVezes: (e2Map['metaVezes'] as int?) ?? 1,
             categoriasTarefasHabitos:
                 TarefasHabitosTransformDocumentList.toCategoriasTarefasHabitosModelList(
-                  e2['categoriasTarefasHabitos'] as Map<String, dynamic>?,
+                  rawCategoryMap,
                 ),
-            valor: e2['valor'] as num,
+            valor: (e2Map['valor'] as num?) ?? 1.0,
             reiniciaEmQtd: reiniciaEmQtd,
             reiniciaEmTipo: reiniciaEmTipo,
-            vezesPraticado: withPeriodFilter.length * (e2['valor'] as num),
+            vezesPraticado: withPeriodFilter.length * ((e2Map['valor'] as num?) ?? 1.0),
             createdAt: beginning,
           );
         }).toList() ??
@@ -135,6 +146,7 @@ extension TarefasHabitosTransformList on List<dynamic>? {
 extension TarefasHabitosTransformDocumentList on List<Row> {
   Future<List<TarefaHabitoModel>> toTarefaHabitoModelList(
     Databases databases,
+    String usuarioId,
   ) async {
     final List<TarefaHabitoModel> temp = [];
     final TablesDB tablesDB = TablesDB(databases.client);
@@ -143,13 +155,7 @@ extension TarefasHabitosTransformDocumentList on List<Row> {
       databaseId: Core.databaseId,
       tableId: Core.tableHistoricoTarefasHabitos,
       queries: [
-        Query.equal('usuario', Core.loginController.currentUser?.$id ?? ''),
-        Query.select([
-          '*',
-          'tarefasEHabitos.*',
-          'tarefasEHabitos.tarefasHabitosQtds.*',
-          'tarefasEHabitos.tarefasHabitosQtds.categoriasTarefasHabitos.*',
-        ]),
+        Query.equal('usuario', usuarioId),
         Query.orderDesc(r'$createdAt'),
         Query.limit(5000),
       ],
@@ -166,13 +172,13 @@ extension TarefasHabitosTransformDocumentList on List<Row> {
       temp.add(
         TarefaHabitoModel(
           id: e1.$id,
-          nome: e1.data['nome'] as String,
-          usuario: e1.data['usuario'] as String,
-          tipo: e1.data['tipo'] as String,
+          nome: (e1.data['nome'] as String?) ?? '',
+          usuario: (e1.data['usuario'] as String?) ?? '',
+          tipo: (e1.data['tipo'] as String?) ?? '',
           agendamento: DateTime.tryParse(
             (e1.data['agendamento'] as String?) ?? '',
           ),
-          concluida: e1.data['concluida'] as bool,
+          concluida: (e1.data['concluida'] as bool?) ?? false,
           tarefasHabitosQtd: (e1.data['tarefasHabitosQtds'] as List<dynamic>?)
               .toTarefaHabitoQtdModelList(tarefaHabitoQtdList),
           duration: e1.data['duration'] is num
@@ -190,10 +196,10 @@ extension TarefasHabitosTransformDocumentList on List<Row> {
   ) {
     return map != null
         ? CategoriasTarefasHabitosModel(
-            id: map['\$id'] as String,
-            usuario: map['usuario'] as String,
-            nome: map['nome'] as String,
-            cor: HexColor.fromHex(map['cor'] as String),
+            id: (map[r'$id'] ?? map['id'] ?? '') as String,
+            usuario: (map['usuario'] as String?) ?? '',
+            nome: (map['nome'] as String?) ?? '',
+            cor: HexColor.fromHex((map['cor'] as String?) ?? '#000000'),
             pai: map['pai'] as String?,
           )
         : null;
@@ -201,20 +207,20 @@ extension TarefasHabitosTransformDocumentList on List<Row> {
 }
 
 class TarefasHabitosController {
+  final TarefaHabitoRepository repository;
+
   // Constructor
-  TarefasHabitosController() {
-    init();
+  TarefasHabitosController(this.repository) {
     loadConfiguredColors();
   }
 
   static String? tarefasHabitosQtdCollectionId;
+  static Future<void>? tarefasHabitosFuture;
 
-  late final Databases databases;
   final mobx.ObservableList<TarefaHabitoModel> _tarefasHabitosList =
       mobx.ObservableList<TarefaHabitoModel>(name: 'tarefasHabitosList');
   List<TarefaHabitoModel> get tarefasHabitosList =>
       _tarefasHabitosList.toList();
-  static Future<void>? tarefasHabitosFuture;
 
   final mobx.Observable<Color> habitColor = mobx.Observable<Color>(
     Colors.tealAccent,
@@ -226,16 +232,19 @@ class TarefasHabitosController {
   );
 
   Future<void> loadConfiguredColors() async {
-    final prefs = await SharedPreferences.getInstance();
-    final habitColorHex = prefs.getString('pref_habit_color');
-    final taskColorHex = prefs.getString('pref_task_color');
+    final habitSetting = await (Core.database.select(
+      Core.database.appSettings,
+    )..where((t) => t.key.equals('pref_habit_color'))).getSingleOrNull();
+    final taskSetting = await (Core.database.select(
+      Core.database.appSettings,
+    )..where((t) => t.key.equals('pref_task_color'))).getSingleOrNull();
 
     mobx.runInAction(() {
-      if (habitColorHex != null) {
-        habitColor.value = Color(int.parse(habitColorHex, radix: 16));
+      if (habitSetting != null) {
+        habitColor.value = Color(int.parse(habitSetting.value, radix: 16));
       }
-      if (taskColorHex != null) {
-        taskColor.value = Color(int.parse(taskColorHex, radix: 16));
+      if (taskSetting != null) {
+        taskColor.value = Color(int.parse(taskSetting.value, radix: 16));
       }
     });
   }
@@ -245,8 +254,13 @@ class TarefasHabitosController {
       habitColor.value = color;
     });
     try {
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setString('pref_habit_color', color.value.toRadixString(16));
+      final value = color.value.toRadixString(16);
+      await Core.database
+          .into(Core.database.appSettings)
+          .insert(
+            AppSettingsCompanion.insert(key: 'pref_habit_color', value: value),
+            mode: InsertMode.insertOrReplace,
+          );
     } catch (e) {
       log('Error saving habit color: $e');
     }
@@ -257,17 +271,19 @@ class TarefasHabitosController {
       taskColor.value = color;
     });
     try {
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setString('pref_task_color', color.value.toRadixString(16));
+      final value = color.value.toRadixString(16);
+      await Core.database
+          .into(Core.database.appSettings)
+          .insert(
+            AppSettingsCompanion.insert(key: 'pref_task_color', value: value),
+            mode: InsertMode.insertOrReplace,
+          );
     } catch (e) {
       log('Error saving task color: $e');
     }
   }
 
-  // Initialize the Appwrite client
-  void init() {
-    databases = Databases(Core.client);
-  }
+  StreamSubscription? _tarefasHabitosSub;
 
   Future<bool> loadDocuments() async {
     return await mobx.runInAction(() async {
@@ -275,36 +291,45 @@ class TarefasHabitosController {
         if (Core.loginController.currentUser == null) {
           await Core.loginController.loadUser();
         }
-        final TablesDB tablesDB = TablesDB(databases.client);
-        final RowList tarefasHabitosDocs = await tablesDB.listRows(
-          databaseId: Core.databaseId,
-          tableId: Core.tableTarefasEHabitos,
-          queries: [
-            Query.select([
-              '*',
-              'tarefasHabitosQtds.*',
-              'tarefasHabitosQtds.categoriasTarefasHabitos.*',
-            ]),
-            Query.equal('usuario', [
-              Core.loginController.currentUser?.$id ?? '',
-            ]),
-            Query.limit(5000),
-          ],
-        );
+        final String userId = Core.loginController.currentUser?.$id ?? '';
 
-        _tarefasHabitosList.clear();
-        _tarefasHabitosList.addAll(
-          await tarefasHabitosDocs.rows.toTarefaHabitoModelList(databases),
-        );
+        // 1. Subscribe to Drift streams reactively
+        _tarefasHabitosSub?.cancel();
+        final stream = repository.watchTarefasEHabitos(usuarioId: userId);
+        try {
+          final firstData = await stream.first;
+          mobx.runInAction(() {
+            _tarefasHabitosList.clear();
+            _tarefasHabitosList.addAll(firstData);
+          });
+        } catch (_) {}
+        _tarefasHabitosSub = stream.listen((data) {
+          mobx.runInAction(() {
+            _tarefasHabitosList.clear();
+            _tarefasHabitosList.addAll(data);
+          });
+        });
+
+        // 2. Start remote sync in background (non-blocking)
+        _syncRemoteDataInBackground(userId);
+
         return true;
-      } on AppwriteException catch (e) {
-        log(e.toString());
-        return false;
       } on Exception catch (e) {
         log(e.toString());
         return false;
       }
     }, name: 'loadDocuments');
+  }
+
+  Future<void> _syncRemoteDataInBackground(String userId) async {
+    try {
+      await repository.getTarefasEHabitos(
+        usuarioId: userId,
+        forceLocal: false,
+      );
+    } catch (e) {
+      log('Background sync of habits failed: $e');
+    }
   }
 
   Future<void> incrementQtdHabito(String documentId) async {
@@ -321,18 +346,13 @@ class TarefasHabitosController {
           element.vezesPraticado += element.valor;
         }
         _tarefasHabitosList.setAll(0, temp);
-        final TablesDB tablesDB = TablesDB(databases.client);
-        tablesDB.createRow(
-          databaseId: Core.databaseId,
-          tableId: Core.tableHistoricoTarefasHabitos,
-          rowId: ID.unique(),
-          data: {
-            'tarefasEHabitos': found.id,
-            'usuario': Core.loginController.currentUser?.$id ?? '',
-          },
+
+        repository.recordHistorico(
+          foundId: found.id,
+          usuarioId: Core.loginController.currentUser?.$id ?? '',
         );
       }, name: 'addQtdHabito');
-    } on AppwriteException catch (e) {
+    } on Exception catch (e) {
       log(e.toString());
     }
   }
@@ -354,25 +374,11 @@ class TarefasHabitosController {
           _tarefasHabitosList.addAll(temp);
         }
 
-        final TablesDB tablesDB = TablesDB(databases.client);
-        tablesDB.createRow(
-          databaseId: Core.databaseId,
-          tableId: Core.tableHistoricoTarefasHabitos,
-          rowId: ID.unique(),
-          data: {
-            'tarefasEHabitos': documentId,
-            'usuario': Core.loginController.currentUser?.$id ?? '',
-          },
-        );
-
-        tablesDB.updateRow(
-          databaseId: Core.databaseId,
-          tableId: Core.tableTarefasEHabitos,
-          rowId: documentId,
-          data: {'concluida': true},
-        );
+        final String userId = Core.loginController.currentUser?.$id ?? '';
+        repository.recordHistorico(foundId: documentId, usuarioId: userId);
+        repository.updateConcluida(documentId: documentId, concluida: true);
       }, name: 'completeTarefa');
-    } on AppwriteException catch (e) {
+    } on Exception catch (e) {
       log(e.toString());
     }
   }
@@ -389,43 +395,26 @@ class TarefasHabitosController {
         await Core.loginController.loadUser();
       }
       final String user = Core.loginController.currentUser?.$id ?? '';
-      final TablesDB tablesDB = TablesDB(databases.client);
 
-      final String qtdCollectionId =
-          tarefasHabitosQtdCollectionId ?? Core.tableTarefasHabitosQtds;
+      final List<Map<String, dynamic>> metaDataList = metas
+          .map(
+            (meta) => {
+              'metaVezes': meta['metaVezes'] as int,
+              'categoriaId': meta['categoriaId'] as String?,
+              'valor': meta['valor'] as num,
+              'reiniciaEmQtd': meta['reiniciaEmQtd'] as int,
+              'reiniciaEmTipo': meta['reiniciaEmTipo'] as String,
+            },
+          )
+          .toList();
 
-      final List<String> qtdRowIds = [];
-
-      for (final meta in metas) {
-        final Row qtdRow = await tablesDB.createRow(
-          databaseId: Core.databaseId,
-          tableId: qtdCollectionId,
-          rowId: ID.unique(),
-          data: {
-            'metaVezes': meta['metaVezes'] as int,
-            'usuario': user,
-            'categoriasTarefasHabitos': meta['categoriaId'] as String?,
-            'valor': meta['valor'] as num,
-            'reiniciaEmQtd': meta['reiniciaEmQtd'] as int,
-            'reiniciaEmTipo': meta['reiniciaEmTipo'] as String,
-          },
-        );
-        qtdRowIds.add(qtdRow.$id);
-      }
-
-      await tablesDB.createRow(
-        databaseId: Core.databaseId,
-        tableId: Core.tableTarefasEHabitos,
-        rowId: ID.unique(),
-        data: {
-          'nome': nome,
-          'tipo': tipo,
-          'usuario': user,
-          'concluida': false,
-          'agendamento': agendamento?.toIso8601String(),
-          'tarefasHabitosQtds': qtdRowIds,
-          'duration': duration,
-        },
+      await repository.createTarefaHabito(
+        nome: nome,
+        tipo: tipo,
+        metas: metaDataList,
+        agendamento: agendamento,
+        duration: duration,
+        usuarioId: user,
       );
 
       await loadDocuments();
@@ -450,80 +439,30 @@ class TarefasHabitosController {
         await Core.loginController.loadUser();
       }
       final String user = Core.loginController.currentUser?.$id ?? '';
-      final TablesDB tablesDB = TablesDB(databases.client);
 
-      final String qtdCollectionId =
-          tarefasHabitosQtdCollectionId ?? Core.tableTarefasHabitosQtds;
-
-      final List<String> finalQtdRowIds = [];
-      final List<String> savedQtdRowIds = [];
-
-      for (final meta in metas) {
-        final String? metaId = meta['id'] as String?;
-        if (metaId != null && metaId.isNotEmpty) {
-          // Update existing meta
-          await tablesDB.updateRow(
-            databaseId: Core.databaseId,
-            tableId: qtdCollectionId,
-            rowId: metaId,
-            data: {
+      final List<Map<String, dynamic>> metaDataList = metas
+          .map(
+            (meta) => {
+              'id': meta['id'] as String?,
               'metaVezes': meta['metaVezes'] as int,
-              'usuario': user,
-              'categoriasTarefasHabitos': meta['categoriaId'] as String?,
+              'categoriaId': meta['categoriaId'] as String?,
               'valor': meta['valor'] as num,
               'reiniciaEmQtd': meta['reiniciaEmQtd'] as int,
               'reiniciaEmTipo': meta['reiniciaEmTipo'] as String,
             },
-          );
-          finalQtdRowIds.add(metaId);
-          savedQtdRowIds.add(metaId);
-        } else {
-          // Create new meta
-          final Row qtdRow = await tablesDB.createRow(
-            databaseId: Core.databaseId,
-            tableId: qtdCollectionId,
-            rowId: ID.unique(),
-            data: {
-              'metaVezes': meta['metaVezes'] as int,
-              'usuario': user,
-              'categoriasTarefasHabitos': meta['categoriaId'] as String?,
-              'valor': meta['valor'] as num,
-              'reiniciaEmQtd': meta['reiniciaEmQtd'] as int,
-              'reiniciaEmTipo': meta['reiniciaEmTipo'] as String,
-            },
-          );
-          finalQtdRowIds.add(qtdRow.$id);
-        }
-      }
+          )
+          .toList();
 
-      await tablesDB.updateRow(
-        databaseId: Core.databaseId,
-        tableId: Core.tableTarefasEHabitos,
-        rowId: id,
-        data: {
-          'nome': nome,
-          'tipo': tipo,
-          'usuario': user,
-          'agendamento': agendamento?.toIso8601String(),
-          'tarefasHabitosQtds': finalQtdRowIds,
-          'duration': duration,
-        },
+      await repository.updateTarefaHabito(
+        id: id,
+        nome: nome,
+        tipo: tipo,
+        metas: metaDataList,
+        allExistingQtdRowIds: allExistingQtdRowIds,
+        agendamento: agendamento,
+        duration: duration,
+        usuarioId: user,
       );
-
-      // Delete any existing metas that were removed in the UI
-      for (final existingId in allExistingQtdRowIds) {
-        if (!savedQtdRowIds.contains(existingId)) {
-          try {
-            await tablesDB.deleteRow(
-              databaseId: Core.databaseId,
-              tableId: qtdCollectionId,
-              rowId: existingId,
-            );
-          } catch (e) {
-            log('Error deleting obsolete meta row $existingId: $e');
-          }
-        }
-      }
 
       await loadDocuments();
       return true;
@@ -535,28 +474,7 @@ class TarefasHabitosController {
 
   Future<bool> deleteTarefaHabito(String id, List<String> qtdRowIds) async {
     try {
-      final TablesDB tablesDB = TablesDB(databases.client);
-
-      final String qtdCollectionId =
-          tarefasHabitosQtdCollectionId ?? Core.tableTarefasHabitosQtds;
-
-      for (final qtdRowId in qtdRowIds) {
-        try {
-          await tablesDB.deleteRow(
-            databaseId: Core.databaseId,
-            tableId: qtdCollectionId,
-            rowId: qtdRowId,
-          );
-        } catch (e) {
-          log('Error deleting meta row $qtdRowId: $e');
-        }
-      }
-
-      await tablesDB.deleteRow(
-        databaseId: Core.databaseId,
-        tableId: Core.tableTarefasEHabitos,
-        rowId: id,
-      );
+      await repository.deleteTarefaHabito(id: id, qtdRowIds: qtdRowIds);
 
       await loadDocuments();
       return true;

@@ -3,7 +3,8 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:drift/drift.dart' hide Column;
+import 'package:ppvdigital/models/local/app_database.dart';
 import 'package:liquid_progress_indicator_v2/liquid_progress_indicator.dart';
 import 'package:ppvdigital/app/capacitacao/tarefas_habitos/tarefas_habitos_controller.dart';
 import 'package:ppvdigital/core.dart';
@@ -309,21 +310,22 @@ class ListaHabitosTarefasWidgetState extends State<ListaHabitosTarefasWidget> {
 
   Future<void> _loadPreferences() async {
     try {
-      final prefs = await SharedPreferences.getInstance();
       final keySuffix = widget.onlyTipo ?? 'all';
-      debugPrint(
-        'SORT PERSISTENCE: Loading preferences. Available keys in SharedPreferences: ${prefs.getKeys()}',
-      );
 
-      final savedFieldIndexStr = prefs.getString(
-        'pref_tarefa_habito_sort_field_index_str_$keySuffix',
-      );
-      final savedFieldStr = prefs.getString(
-        'pref_tarefa_habito_sort_field_$keySuffix',
-      );
-      final savedAscendingStr = prefs.getString(
-        'pref_tarefa_habito_sort_ascending_str_$keySuffix',
-      );
+      final savedFieldIndexStrSetting = await (Core.database.select(Core.database.appSettings)
+            ..where((t) => t.key.equals('pref_tarefa_habito_sort_field_index_str_$keySuffix')))
+          .getSingleOrNull();
+      final savedFieldIndexStr = savedFieldIndexStrSetting?.value;
+
+      final savedFieldStrSetting = await (Core.database.select(Core.database.appSettings)
+            ..where((t) => t.key.equals('pref_tarefa_habito_sort_field_$keySuffix')))
+          .getSingleOrNull();
+      final savedFieldStr = savedFieldStrSetting?.value;
+
+      final savedAscendingStrSetting = await (Core.database.select(Core.database.appSettings)
+            ..where((t) => t.key.equals('pref_tarefa_habito_sort_ascending_str_$keySuffix')))
+          .getSingleOrNull();
+      final savedAscendingStr = savedAscendingStrSetting?.value;
 
       debugPrint(
         'SORT PERSISTENCE: Loaded raw values - savedFieldIndexStr: $savedFieldIndexStr, savedFieldStr: $savedFieldStr, savedAscendingStr: $savedAscendingStr',
@@ -340,7 +342,6 @@ class ListaHabitosTarefasWidgetState extends State<ListaHabitosTarefasWidget> {
             _sortField = TarefaHabitoSortField.values[index];
           }
         } else if (savedFieldStr != null) {
-          // Fallback to legacy string representation
           _sortField = TarefaHabitoSortField.values.firstWhere(
             (e) => e.toString() == savedFieldStr,
             orElse: () => TarefaHabitoSortField.nome,
@@ -349,14 +350,6 @@ class ListaHabitosTarefasWidgetState extends State<ListaHabitosTarefasWidget> {
 
         if (savedAscendingStr != null) {
           _sortAscending = savedAscendingStr == 'true';
-        } else {
-          // Fallback to legacy boolean key
-          final savedAscending = prefs.getBool(
-            'pref_tarefa_habito_sort_ascending_$keySuffix',
-          );
-          if (savedAscending != null) {
-            _sortAscending = savedAscending;
-          }
         }
       });
       debugPrint(
@@ -369,35 +362,45 @@ class ListaHabitosTarefasWidgetState extends State<ListaHabitosTarefasWidget> {
 
   Future<void> _savePreferences() async {
     try {
-      final prefs = await SharedPreferences.getInstance();
       final keySuffix = widget.onlyTipo ?? 'all';
 
       debugPrint(
         'SORT PERSISTENCE: Saving preferences. Current values - field: $_sortField (index: ${_sortField.index}), ascending: $_sortAscending',
       );
 
-      await prefs.setString(
-        'pref_tarefa_habito_sort_field_index_str_$keySuffix',
-        _sortField.index.toString(),
-      );
-      await prefs.setString(
-        'pref_tarefa_habito_sort_ascending_str_$keySuffix',
-        _sortAscending.toString(),
+      final indexSetting = AppSettingsCompanion.insert(
+        key: 'pref_tarefa_habito_sort_field_index_str_$keySuffix',
+        value: _sortField.index.toString(),
       );
 
-      // Keep legacy keys for backward compatibility
-      await prefs.setInt(
-        'pref_tarefa_habito_sort_field_index_$keySuffix',
-        _sortField.index,
+      final ascSetting = AppSettingsCompanion.insert(
+        key: 'pref_tarefa_habito_sort_ascending_str_$keySuffix',
+        value: _sortAscending.toString(),
       );
-      await prefs.setString(
-        'pref_tarefa_habito_sort_field_$keySuffix',
-        _sortField.toString(),
+
+      final legacyIndexSetting = AppSettingsCompanion.insert(
+        key: 'pref_tarefa_habito_sort_field_index_$keySuffix',
+        value: _sortField.index.toString(),
       );
-      await prefs.setBool(
-        'pref_tarefa_habito_sort_ascending_$keySuffix',
-        _sortAscending,
+
+      final legacyFieldSetting = AppSettingsCompanion.insert(
+        key: 'pref_tarefa_habito_sort_field_$keySuffix',
+        value: _sortField.toString(),
       );
+
+      final legacyAscSetting = AppSettingsCompanion.insert(
+        key: 'pref_tarefa_habito_sort_ascending_$keySuffix',
+        value: _sortAscending.toString(),
+      );
+
+      await Core.database.transaction(() async {
+        await Core.database.into(Core.database.appSettings).insert(indexSetting, mode: InsertMode.insertOrReplace);
+        await Core.database.into(Core.database.appSettings).insert(ascSetting, mode: InsertMode.insertOrReplace);
+        await Core.database.into(Core.database.appSettings).insert(legacyIndexSetting, mode: InsertMode.insertOrReplace);
+        await Core.database.into(Core.database.appSettings).insert(legacyFieldSetting, mode: InsertMode.insertOrReplace);
+        await Core.database.into(Core.database.appSettings).insert(legacyAscSetting, mode: InsertMode.insertOrReplace);
+      });
+
       debugPrint('SORT PERSISTENCE: Preferences saved successfully.');
     } catch (e) {
       debugPrint('SORT PERSISTENCE: Error saving preferences: $e');
@@ -649,7 +652,10 @@ class ListaHabitosTarefasWidgetState extends State<ListaHabitosTarefasWidget> {
                                           .tarefasHabitosController
                                           .taskColor
                                           .value;
-                                      final categoria = item.tarefasHabitosQtd.firstOrNull?.categoriasTarefasHabitos;
+                                      final categoria = item
+                                          .tarefasHabitosQtd
+                                          .firstOrNull
+                                          ?.categoriasTarefasHabitos;
 
                                       for (
                                         int i = 0;
@@ -888,31 +894,54 @@ class ListaHabitosTarefasWidgetState extends State<ListaHabitosTarefasWidget> {
                                                               ],
                                                             ],
                                                           ),
-                                                          if (item.tipo == 'tarefa' && categoria != null) ...[
+                                                          if (item.tipo ==
+                                                                  'tarefa' &&
+                                                              categoria !=
+                                                                  null) ...[
                                                             const SizedBox(
                                                               height: 4.0,
                                                             ),
                                                             Row(
                                                               children: [
                                                                 Container(
-                                                                  padding: const EdgeInsets.symmetric(
-                                                                    horizontal: 6.0,
-                                                                    vertical: 2.0,
-                                                                  ),
+                                                                  padding:
+                                                                      const EdgeInsets.symmetric(
+                                                                        horizontal:
+                                                                            6.0,
+                                                                        vertical:
+                                                                            2.0,
+                                                                      ),
                                                                   decoration: BoxDecoration(
-                                                                    color: categoria.cor.withOpacity(0.15),
-                                                                    borderRadius: BorderRadius.circular(6.0),
+                                                                    color: categoria
+                                                                        .cor
+                                                                        .withOpacity(
+                                                                          0.15,
+                                                                        ),
+                                                                    borderRadius:
+                                                                        BorderRadius.circular(
+                                                                          6.0,
+                                                                        ),
                                                                     border: Border.all(
-                                                                      color: categoria.cor.withOpacity(0.5),
-                                                                      width: 1.0,
+                                                                      color: categoria
+                                                                          .cor
+                                                                          .withOpacity(
+                                                                            0.5,
+                                                                          ),
+                                                                      width:
+                                                                          1.0,
                                                                     ),
                                                                   ),
                                                                   child: Text(
-                                                                    categoria.nome,
+                                                                    categoria
+                                                                        .nome,
                                                                     style: TextStyle(
-                                                                      fontSize: 10.0,
-                                                                      fontWeight: FontWeight.bold,
-                                                                      color: categoria.cor,
+                                                                      fontSize:
+                                                                          10.0,
+                                                                      fontWeight:
+                                                                          FontWeight
+                                                                              .bold,
+                                                                      color: categoria
+                                                                          .cor,
                                                                     ),
                                                                   ),
                                                                 ),

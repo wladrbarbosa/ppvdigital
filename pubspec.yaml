@@ -46,13 +46,20 @@ dependencies:
       ref: '2f19820cb9494d5d399dd76ff53454b981618305'
   shared_preferences: ^2.5.5
   shimmer: 3.0.0
-  syncfusion_flutter_calendar: 33.2.15
-  syncfusion_localizations: 33.2.15
+  syncfusion_flutter_calendar: 34.1.30
+  syncfusion_localizations: 34.1.30
   timeline_tile: 2.0.0
+  drift: ^2.34.1
+  drift_flutter: ^0.3.0
+  path_provider: ^2.1.2
+  get_it: 9.2.1
+  timezone: ^0.11.1
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
+  build_runner: ^2.4.8
+  drift_dev: ^2.34.0
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
@@ -67,6 +74,7 @@ flutter:
   generate: true
   assets:
     - assets/images/
+    - packages/timezone/data/latest_all.tzf
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/assets-and-images/#resolution-aware.

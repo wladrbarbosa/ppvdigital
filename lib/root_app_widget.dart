@@ -21,11 +21,14 @@ class RootAppWidget extends StatelessWidget {
       if (!TarefasPageState.fromTabClick) {
         final targetIndex = switch (routeInformation.uri.path) {
           final String url
-              when url == routePaths.capacitacao.tarefasHabitos.habitos => 1,
+              when url == routePaths.capacitacao.tarefasHabitos.habitos =>
+            1,
           final String url
-              when url == routePaths.capacitacao.tarefasHabitos.calendario => 2,
+              when url == routePaths.capacitacao.tarefasHabitos.calendario =>
+            2,
           final String url
-              when url == routePaths.capacitacao.tarefasHabitos.categorias => 3,
+              when url == routePaths.capacitacao.tarefasHabitos.categorias =>
+            3,
           _ => 0,
         };
 

@@ -62,20 +62,28 @@ class TarefaHabitoQtdModel {
       'reiniciaEmTipo': reiniciaEmTipo,
       'vezesPraticado': vezesPraticado,
       'createdAt': createdAt.millisecondsSinceEpoch,
+      'dataCriacao': createdAt.millisecondsSinceEpoch,
     };
   }
 
   factory TarefaHabitoQtdModel.fromMap(Map<String, dynamic> map) {
+    final int rawMs = (map['dataCriacao'] as int?) ??
+        (map['createdAt'] as int?) ??
+        DateTime.now().millisecondsSinceEpoch;
     return TarefaHabitoQtdModel(
-      id: map['id'] as String,
-      metaVezes: map['metaVezes'] as int,
-      usuario: map['usuario'] as String,
-      categoriasTarefasHabitos: map['categoriasTarefasHabitos'] != null ? CategoriasTarefasHabitosModel.fromMap(map['categoriasTarefasHabitos'] as Map<String,dynamic>) : null,
-      valor: map['valor'] as num,
-      reiniciaEmQtd: map['reiniciaEmQtd'] as int,
-      reiniciaEmTipo: map['reiniciaEmTipo'] as String,
-      vezesPraticado: map['vezesPraticado'] as num,
-      createdAt: DateTime.fromMillisecondsSinceEpoch(map['dataCriacao'] as int),
+      id: (map['id'] ?? map[r'$id'] ?? '') as String,
+      metaVezes: (map['metaVezes'] as int?) ?? 1,
+      usuario: (map['usuario'] as String?) ?? '',
+      categoriasTarefasHabitos: map['categoriasTarefasHabitos'] != null
+          ? CategoriasTarefasHabitosModel.fromMap(
+              Map<String, dynamic>.from(map['categoriasTarefasHabitos'] as Map),
+            )
+          : null,
+      valor: (map['valor'] as num?) ?? 1.0,
+      reiniciaEmQtd: (map['reiniciaEmQtd'] as int?) ?? 1,
+      reiniciaEmTipo: (map['reiniciaEmTipo'] as String?) ?? 'dias',
+      vezesPraticado: (map['vezesPraticado'] as num?) ?? 0,
+      createdAt: DateTime.fromMillisecondsSinceEpoch(rawMs),
     );
   }
 

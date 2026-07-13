@@ -10,7 +10,7 @@ class CategoriasTarefasHabitosModel {
   final String? pai;
   final Color cor;
   final String usuario;
-  
+
   CategoriasTarefasHabitosModel({
     required this.id,
     required this.nome,
@@ -18,7 +18,6 @@ class CategoriasTarefasHabitosModel {
     required this.cor,
     required this.usuario,
   });
-
 
   CategoriasTarefasHabitosModel copyWith({
     String? id,
@@ -48,17 +47,20 @@ class CategoriasTarefasHabitosModel {
 
   factory CategoriasTarefasHabitosModel.fromMap(Map<String, dynamic> map) {
     return CategoriasTarefasHabitosModel(
-      id: map['id'] as String,
-      nome: map['nome'] as String,
-      pai: map['pai'] != null ? map['pai'] as String : null,
-      cor: HexColor.fromHex(map['cor'] as String),
-      usuario: map['usuario'] as String,
+      id: (map['id'] ?? map[r'$id'] ?? '') as String,
+      nome: (map['nome'] as String?) ?? '',
+      pai: map['pai'] as String?,
+      cor: HexColor.fromHex((map['cor'] as String?) ?? '#000000'),
+      usuario: (map['usuario'] as String?) ?? '',
     );
   }
 
   String toJson() => json.encode(toMap());
 
-  factory CategoriasTarefasHabitosModel.fromJson(String source) => CategoriasTarefasHabitosModel.fromMap(json.decode(source) as Map<String, dynamic>);
+  factory CategoriasTarefasHabitosModel.fromJson(String source) =>
+      CategoriasTarefasHabitosModel.fromMap(
+        json.decode(source) as Map<String, dynamic>,
+      );
 
   @override
   String toString() {
@@ -68,21 +70,20 @@ class CategoriasTarefasHabitosModel {
   @override
   bool operator ==(covariant CategoriasTarefasHabitosModel other) {
     if (identical(this, other)) return true;
-  
-    return 
-      other.id == id &&
-      other.nome == nome &&
-      other.pai == pai &&
-      other.cor == cor &&
-      other.usuario == usuario;
+
+    return other.id == id &&
+        other.nome == nome &&
+        other.pai == pai &&
+        other.cor == cor &&
+        other.usuario == usuario;
   }
 
   @override
   int get hashCode {
     return id.hashCode ^
-      nome.hashCode ^
-      pai.hashCode ^
-      cor.hashCode ^
-      usuario.hashCode;
+        nome.hashCode ^
+        pai.hashCode ^
+        cor.hashCode ^
+        usuario.hashCode;
   }
 }

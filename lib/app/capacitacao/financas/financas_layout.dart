@@ -26,7 +26,8 @@ class _FinancasLayoutState extends State<FinancasLayout>
   bool _isMonthChanging = false;
   Timer? _monthChangeTimer;
   String _descricaoQuery = '';
-  final TextEditingController _descricaoFilterController = TextEditingController();
+  final TextEditingController _descricaoFilterController =
+      TextEditingController();
   bool _somarAcumulado = false;
   final Set<String> _selectedContas = {};
   final Set<String> _selectedTransIds = {};
@@ -401,10 +402,6 @@ class _FinancasLayoutState extends State<FinancasLayout>
       body: FutureBuilder(
         future: FinancasController.financasFuture,
         builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
-          }
-
           return TabBarView(
             controller: _tabController,
             children: [
@@ -413,6 +410,7 @@ class _FinancasLayoutState extends State<FinancasLayout>
                 builder: (context) {
                   final allTrans = Core.financasController.transacoesList;
                   final splitTrans = Core.financasController.divisoesList;
+                  final isSyncing = Core.financasController.isSyncing;
 
                   // Filter list based on toggle
                   List<TransacaoModel> displayTransList = [];
@@ -490,7 +488,8 @@ class _FinancasLayoutState extends State<FinancasLayout>
                         (t) =>
                             t.dataCompetencia.year == _appliedMonth.year &&
                             t.dataCompetencia.month == _appliedMonth.month &&
-                            (query.isEmpty || t.descricao.toLowerCase().contains(query)),
+                            (query.isEmpty ||
+                                t.descricao.toLowerCase().contains(query)),
                       )
                       .toList();
 
@@ -507,6 +506,10 @@ class _FinancasLayoutState extends State<FinancasLayout>
                   mainContent = Column(
                     children: [
                       _buildMonthSelector(),
+                      if (isSyncing)
+                        const LinearProgressIndicator(
+                          minHeight: 2,
+                        ),
                       Padding(
                         padding: const EdgeInsets.symmetric(
                           horizontal: 16.0,
@@ -543,16 +546,23 @@ class _FinancasLayoutState extends State<FinancasLayout>
                             ),
                             Expanded(
                               child: Padding(
-                                padding: const EdgeInsets.symmetric(horizontal: 12.0),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 12.0,
+                                ),
                                 child: TextField(
                                   controller: _descricaoFilterController,
                                   decoration: const InputDecoration(
                                     hintText: 'Filtrar por descrição...',
                                     prefixIcon: Icon(Icons.search, size: 18),
                                     isDense: true,
-                                    contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                                    contentPadding: EdgeInsets.symmetric(
+                                      horizontal: 8,
+                                      vertical: 8,
+                                    ),
                                     border: OutlineInputBorder(
-                                      borderRadius: BorderRadius.all(Radius.circular(8)),
+                                      borderRadius: BorderRadius.all(
+                                        Radius.circular(8),
+                                      ),
                                     ),
                                   ),
                                   onChanged: (val) {
@@ -578,18 +588,27 @@ class _FinancasLayoutState extends State<FinancasLayout>
                         child: Stack(
                           children: [
                             filteredTransList.isEmpty
-                                ? const Center(
-                                    child: Text(
-                                      'Nenhuma transação encontrada.',
-                                    ),
-                                  )
+                                ? (snapshot.connectionState ==
+                                              ConnectionState.waiting ||
+                                          _isMonthChanging ||
+                                          isSyncing
+                                      ? const Center(
+                                          child: CircularProgressIndicator(),
+                                        )
+                                      : const Center(
+                                          child: Text(
+                                            'Nenhuma transação encontrada.',
+                                          ),
+                                        ))
                                 : Scrollbar(
                                     controller: _transacoesScrollController,
                                     thumbVisibility: true,
                                     interactive: true,
                                     child: SingleChildScrollView(
                                       controller: _transacoesScrollController,
-                                      padding: const EdgeInsets.only(bottom: 80.0),
+                                      padding: const EdgeInsets.only(
+                                        bottom: 80.0,
+                                      ),
                                       child: Column(
                                         children: [
                                           for (final dateKey in grouped.keys)
@@ -656,6 +675,9 @@ class _FinancasLayoutState extends State<FinancasLayout>
                 builder: (context) {
                   final accounts = Core.financasController.contasList;
                   if (accounts.isEmpty) {
+                    if (snapshot.connectionState == ConnectionState.waiting) {
+                      return const Center(child: CircularProgressIndicator());
+                    }
                     return const Center(
                       child: Text('Nenhuma conta cadastrada.'),
                     );
@@ -742,6 +764,9 @@ class _FinancasLayoutState extends State<FinancasLayout>
                 builder: (context) {
                   final categories = Core.financasController.categoriasList;
                   if (categories.isEmpty) {
+                    if (snapshot.connectionState == ConnectionState.waiting) {
+                      return const Center(child: CircularProgressIndicator());
+                    }
                     return const Center(
                       child: Text('Nenhuma categoria cadastrada.'),
                     );
@@ -827,6 +852,9 @@ class _FinancasLayoutState extends State<FinancasLayout>
                 builder: (context) {
                   final contatos = Core.financasController.contatosList;
                   if (contatos.isEmpty) {
+                    if (snapshot.connectionState == ConnectionState.waiting) {
+                      return const Center(child: CircularProgressIndicator());
+                    }
                     return const Center(
                       child: Text('Nenhum contato cadastrado.'),
                     );
@@ -1025,11 +1053,13 @@ class _FinancasLayoutState extends State<FinancasLayout>
                   tooltip: 'Mês anterior',
                   icon: const Icon(Icons.chevron_left),
                   onPressed: () {
-                    _onMonthChanged(DateTime(
-                      _selectedMonth.year,
-                      _selectedMonth.month - 1,
-                      1,
-                    ));
+                    _onMonthChanged(
+                      DateTime(
+                        _selectedMonth.year,
+                        _selectedMonth.month - 1,
+                        1,
+                      ),
+                    );
                   },
                 ),
                 IconButton(
@@ -1068,11 +1098,9 @@ class _FinancasLayoutState extends State<FinancasLayout>
               tooltip: 'Próximo mês',
               icon: const Icon(Icons.chevron_right),
               onPressed: () {
-                _onMonthChanged(DateTime(
-                  _selectedMonth.year,
-                  _selectedMonth.month + 1,
-                  1,
-                ));
+                _onMonthChanged(
+                  DateTime(_selectedMonth.year, _selectedMonth.month + 1, 1),
+                );
               },
             ),
           ],

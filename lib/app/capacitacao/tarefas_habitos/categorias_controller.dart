@@ -11,9 +11,9 @@ extension CategoriasTransformRowList on List<Row> {
     return map(
       (e) => CategoriasTarefasHabitosModel(
         id: e.$id,
-        usuario: e.data['usuario'] as String,
-        nome: e.data['nome'] as String,
-        cor: HexColor.fromHex(e.data['cor'] as String),
+        usuario: (e.data['usuario'] as String?) ?? '',
+        nome: (e.data['nome'] as String?) ?? '',
+        cor: HexColor.fromHex((e.data['cor'] as String?) ?? '#000000'),
         pai: e.data['pai'] as String?,
       ),
     ).toList();
