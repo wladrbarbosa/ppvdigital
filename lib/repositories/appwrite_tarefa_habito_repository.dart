@@ -24,7 +24,12 @@ class AppwriteTarefaHabitoRepository implements TarefaHabitoRepository {
       tableId: Core.tableTarefasEHabitos,
       queries: [
         Query.select([
-          '*',
+          'nome',
+          'tipo',
+          'usuario',
+          'concluida',
+          'agendamento',
+          'duration',
           'tarefasHabitosQtds.*',
           'tarefasHabitosQtds.categoriasTarefasHabitos.*',
         ]),
@@ -110,7 +115,6 @@ class AppwriteTarefaHabitoRepository implements TarefaHabitoRepository {
           'valor': meta['valor'],
           'reiniciaEmQtd': meta['reiniciaEmQtd'],
           'reiniciaEmTipo': meta['reiniciaEmTipo'],
-          'vezesPraticado': 0,
         },
       );
       qtdRowIds.add(qtdRow.$id);
@@ -165,7 +169,6 @@ class AppwriteTarefaHabitoRepository implements TarefaHabitoRepository {
             'valor': meta['valor'],
             'reiniciaEmQtd': meta['reiniciaEmQtd'],
             'reiniciaEmTipo': meta['reiniciaEmTipo'],
-            'vezesPraticado': 0,
           },
         );
         savedQtdRowIds.add(qtdRow.$id);
