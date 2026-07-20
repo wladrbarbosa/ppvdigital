@@ -17,6 +17,15 @@ class TarefasPage extends StatefulWidget {
 
 class TarefasPageState extends State<TarefasPage>
     with SingleTickerProviderStateMixin {
+  final _key = GlobalKey<ExpandableFabState>();
+
+  void _closeFab() {
+    final state = _key.currentState;
+    if (state != null && state.isOpen) {
+      state.toggle();
+    }
+  }
+
   static TabController? tabController;
   static bool fromTabClick = false;
 
@@ -250,12 +259,14 @@ class TarefasPageState extends State<TarefasPage>
         body: const RouterOutlet(defaultWidget: TarefasListPage()),
         floatingActionButtonLocation: ExpandableFab.location,
         floatingActionButton: ExpandableFab(
+          key: _key,
           children: [
             FloatingActionButton.extended(
               tooltip: 'Tarefa/Hábito',
               label: const Text('Tarefa/Hábito'),
               icon: const Icon(Icons.task),
               onPressed: () {
+                _closeFab();
                 Routefly.pushNavigate(
                   routePaths.capacitacao.criarEditarHabitoTarefa,
                   arguments: Routefly.currentUri.path,
@@ -267,6 +278,7 @@ class TarefasPageState extends State<TarefasPage>
               label: const Text('Categoria'),
               icon: const Icon(Icons.category_outlined),
               onPressed: () {
+                _closeFab();
                 Routefly.pushNavigate(
                   routePaths.capacitacao.criarEditarCategoria,
                   arguments: Routefly.currentUri.path,

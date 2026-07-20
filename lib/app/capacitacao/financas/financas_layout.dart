@@ -21,6 +21,15 @@ class FinancasLayout extends StatefulWidget {
 
 class _FinancasLayoutState extends State<FinancasLayout>
     with SingleTickerProviderStateMixin {
+  final _key = GlobalKey<ExpandableFabState>();
+
+  void _closeFab() {
+    final state = _key.currentState;
+    if (state != null && state.isOpen) {
+      state.toggle();
+    }
+  }
+
   bool _mostrarDivisoes = false;
   DateTime _selectedMonth = DateTime.now();
   DateTime _appliedMonth = DateTime.now();
@@ -918,6 +927,7 @@ class _FinancasLayoutState extends State<FinancasLayout>
       ),
       floatingActionButtonLocation: ExpandableFab.location,
       floatingActionButton: ExpandableFab(
+        key: _key,
         distance: 240,
         children: [
           FloatingActionButton.extended(
@@ -926,6 +936,7 @@ class _FinancasLayoutState extends State<FinancasLayout>
             label: const Text('Transação'),
             icon: const Icon(Icons.swap_horiz),
             onPressed: () {
+              _closeFab();
               Routefly.pushNavigate(
                 routePaths.capacitacao.criarEditarTransacao,
                 arguments: Routefly.currentUri.path,
@@ -938,6 +949,7 @@ class _FinancasLayoutState extends State<FinancasLayout>
             label: const Text('Conta'),
             icon: const Icon(Icons.account_balance_wallet),
             onPressed: () {
+              _closeFab();
               Routefly.pushNavigate(
                 routePaths.capacitacao.criarEditarConta,
                 arguments: Routefly.currentUri.path,
@@ -950,6 +962,7 @@ class _FinancasLayoutState extends State<FinancasLayout>
             label: const Text('Categoria'),
             icon: const Icon(Icons.category),
             onPressed: () {
+              _closeFab();
               Routefly.pushNavigate(
                 routePaths.capacitacao.criarEditarCategoriaTransacao,
                 arguments: Routefly.currentUri.path,
@@ -962,6 +975,7 @@ class _FinancasLayoutState extends State<FinancasLayout>
             label: const Text('Contato'),
             icon: const Icon(Icons.person_add),
             onPressed: () {
+              _closeFab();
               Routefly.pushNavigate(
                 routePaths.capacitacao.criarEditarContato,
                 arguments: Routefly.currentUri.path,

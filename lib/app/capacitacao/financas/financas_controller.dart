@@ -45,9 +45,15 @@ class FinancasController {
   StreamSubscription? _contasSub;
   StreamSubscription? _categoriasSub;
   StreamSubscription? _transacoesSub;
+  DateTime? _subscribedMonth;
 
   Future<bool> loadDocuments({DateTime? selectedMonth}) async {
     final DateTime targetMonth = selectedMonth ?? _lastSelectedMonth;
+    final bool isAlreadySubscribed = _contatosSub != null &&
+        _subscribedMonth != null &&
+        _subscribedMonth!.year == targetMonth.year &&
+        _subscribedMonth!.month == targetMonth.month;
+
     _lastSelectedMonth = targetMonth;
 
     return await mobx.runInAction(() async {
@@ -57,10 +63,13 @@ class FinancasController {
         }
         final String user = Core.loginController.currentUser?.$id ?? '';
 
-        // 1. Subscribe to Drift streams reactively
-        await _subscribeToStreams(user, targetMonth);
+        // Only resubscribe to streams if month changed or streams aren't active yet
+        if (!isAlreadySubscribed) {
+          _subscribedMonth = targetMonth;
+          await _subscribeToStreams(user, targetMonth);
+        }
 
-        // 2. Start remote sync in background (non-blocking)
+        // Start remote sync in background (non-blocking)
         _syncRemoteDataInBackground(user, targetMonth);
 
         return true;

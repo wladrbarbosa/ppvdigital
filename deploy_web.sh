@@ -37,9 +37,9 @@ echo -e "\033[0;36mEmpacotando build/web em $ARCHIVE_NAME...\033[0m"
 # Remove pacote antigo se existir
 rm -f "$BUILD_DIR/$ARCHIVE_NAME"
 
-# Compacta usando tar
 cd "$BUILD_DIR"
-tar --exclude "$ARCHIVE_NAME" -czf "$ARCHIVE_NAME" .
+tar -czf "../$ARCHIVE_NAME" .
+mv "../$ARCHIVE_NAME" "$ARCHIVE_NAME"
 cd - > /dev/null
 
 echo -e "\033[0;32mCompilação e empacotamento concluídos com sucesso!\033[0m"

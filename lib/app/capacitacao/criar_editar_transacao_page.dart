@@ -99,8 +99,6 @@ class _CriarEditarTransacaoPageState extends State<CriarEditarTransacaoPage> {
   @override
   void initState() {
     super.initState();
-    // Load accounts and categories just to make sure they are loaded
-    Core.financasController.loadDocuments();
 
     if (widget.editingItem == null &&
         FinancasController.defaultDataCompetencia != null) {
