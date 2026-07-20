@@ -25,6 +25,7 @@ Route routeBuilder(BuildContext context, RouteSettings settings) {
         }
       },
       child: Dialog(
+        insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         child: Container(
           constraints: const BoxConstraints(maxWidth: 450),
@@ -185,7 +186,7 @@ class _CriarEditarContatoPageState extends State<CriarEditarContatoPage> {
   @override
   Widget build(BuildContext context) {
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(24.0),
+      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 20.0),
       child: Form(
         key: _formKey,
         child: Column(
@@ -195,13 +196,16 @@ class _CriarEditarContatoPageState extends State<CriarEditarContatoPage> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(
-                  widget.editingItem == null
-                      ? 'Novo Contato'
-                      : 'Editar Contato',
-                  style: const TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
+                Expanded(
+                  child: Text(
+                    widget.editingItem == null
+                        ? 'Novo Contato'
+                        : 'Editar Contato',
+                    style: const TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                    ),
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ),
                 IconButton(

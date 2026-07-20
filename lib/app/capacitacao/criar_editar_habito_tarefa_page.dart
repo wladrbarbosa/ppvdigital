@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:ppvdigital/core.dart';
 import 'package:ppvdigital/models/tarefas_habitos_model.dart';
+import 'package:ppvdigital/util.dart';
 import 'package:routefly/routefly.dart';
 
 class MetaItem {
@@ -51,6 +52,7 @@ Route routeBuilder(BuildContext context, RouteSettings settings) {
         }
       },
       child: Dialog(
+        insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         child: Container(
           constraints: const BoxConstraints(maxWidth: 500),
@@ -167,10 +169,12 @@ class _CriarHabitoTarefaPageState extends State<CriarHabitoTarefaPage> {
     final String nome = _nomeController.text.trim();
     final int? duration = int.tryParse(_durationController.text.trim());
     final List<Map<String, dynamic>> metasData = _metas.map((meta) {
+      final double? evalVal =
+          evaluateMathExpression(meta.valorController.text);
       return {
         'id': meta.id,
         'metaVezes': int.parse(meta.metaVezesController.text),
-        'valor': num.parse(meta.valorController.text),
+        'valor': evalVal ?? num.parse(meta.valorController.text),
         'reiniciaEmQtd': int.parse(meta.reiniciaEmQtdController.text),
         'reiniciaEmTipo': meta.reiniciaEmTipo,
         'categoriaId': meta.selectedCategoryId,
@@ -270,7 +274,7 @@ class _CriarHabitoTarefaPageState extends State<CriarHabitoTarefaPage> {
   @override
   Widget build(BuildContext context) {
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(24.0),
+      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 20.0),
       child: Form(
         key: _formKey,
         child: Column(
@@ -280,13 +284,16 @@ class _CriarHabitoTarefaPageState extends State<CriarHabitoTarefaPage> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(
-                  widget.editingItem == null
-                      ? 'Nova Tarefa/Hábito'
-                      : 'Editar Tarefa/Hábito',
-                  style: const TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
+                Expanded(
+                  child: Text(
+                    widget.editingItem == null
+                        ? 'Nova Tarefa/Hábito'
+                        : 'Editar Tarefa/Hábito',
+                    style: const TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                    ),
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ),
                 IconButton(
@@ -428,7 +435,12 @@ class _CriarHabitoTarefaPageState extends State<CriarHabitoTarefaPage> {
                                       radius: 8,
                                     ),
                                     const SizedBox(width: 8),
-                                    Text(cat.nome),
+                                    Expanded(
+                                      child: Text(
+                                        cat.nome,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ),
                                   ],
                                 ),
                               );
@@ -445,6 +457,7 @@ class _CriarHabitoTarefaPageState extends State<CriarHabitoTarefaPage> {
                           }
 
                           return DropdownButtonFormField<String>(
+                            isExpanded: true,
                             initialValue: meta.selectedCategoryId,
                             decoration: const InputDecoration(
                               labelText: 'Categoria (Opcional)',
@@ -529,6 +542,7 @@ class _CriarHabitoTarefaPageState extends State<CriarHabitoTarefaPage> {
                             const SizedBox(width: 12),
                             Expanded(
                               child: DropdownButtonFormField<String>(
+                                isExpanded: true,
                                 initialValue: meta.reiniciaEmTipo,
                                 decoration: const InputDecoration(
                                   labelText: 'Tipo Período',

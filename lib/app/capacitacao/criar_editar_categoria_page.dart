@@ -182,6 +182,7 @@ class _CriarEditarCategoriaPageState extends State<CriarEditarCategoriaPage> {
                 ),
                 const SizedBox(height: 24),
                 DropdownButtonFormField<String>(
+                  isExpanded: true,
                   initialValue: _parentCategoryId,
                   decoration: const InputDecoration(
                     labelText: 'Categoria Pai (Opcional)',
@@ -189,12 +190,15 @@ class _CriarEditarCategoriaPageState extends State<CriarEditarCategoriaPage> {
                   ),
                   items: [
                     const DropdownMenuItem<String>(
-                      child: Text('Nenhuma (Categoria Principal)'),
+                      child: Text(
+                        'Nenhuma (Categoria Principal)',
+                        overflow: TextOverflow.ellipsis,
+                      ),
                     ),
                     ...otherCategories.map((cat) {
                       return DropdownMenuItem<String>(
                         value: cat.nome, // Storing name or ID
-                        child: Text(cat.nome),
+                        child: Text(cat.nome, overflow: TextOverflow.ellipsis),
                       );
                     }),
                   ],
