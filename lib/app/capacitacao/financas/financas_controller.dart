@@ -1309,19 +1309,7 @@ class FinancasController {
 
       // Prepare updates
       for (final t in targetTransactions) {
-        final Map<String, dynamic> updateData = {
-          'descricao': t.descricao,
-          'valor': t.valor,
-          'tipo': t.tipo,
-          'dataCompetencia': t.dataCompetencia.toIso8601String(),
-          'consolidada': t.consolidada,
-          'conta': t.conta?.id,
-          'contaDestino': t.contaDestino?.id,
-          'categoria': t.categoria?.id,
-          'recorrencia': t.recorrencia?.id,
-          'devedorContato': t.devedorContato?.id,
-          'credorContato': t.credorContato?.id,
-        };
+        final Map<String, dynamic> updateData = {};
 
         if (action == 'consolidar') {
           updateData['consolidada'] = newValue as bool;

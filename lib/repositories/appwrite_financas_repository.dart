@@ -482,19 +482,38 @@ class AppwriteFinancasRepository implements FinancasRepository {
     List<Map<String, dynamic>> operations,
   ) async {
     final TablesDB tablesDB = TablesDB(databases.client);
+    final List<Map<String, dynamic>> cleanedOperations = operations.map((op) {
+      final cleanedOp = Map<String, dynamic>.from(op);
+      if (cleanedOp['data'] is Map<String, dynamic>) {
+        final dataMap = Map<String, dynamic>.from(
+          cleanedOp['data'] as Map<String, dynamic>,
+        );
+        dataMap.removeWhere((key, value) => value == null);
+        cleanedOp['data'] = dataMap;
+      }
+      return cleanedOp;
+    }).toList();
+
     try {
-      for (int j = 0; j < operations.length; j += 100) {
-        final chunk = operations.sublist(
+      for (int j = 0; j < cleanedOperations.length; j += 100) {
+        final chunk = cleanedOperations.sublist(
           j,
-          j + 100 > operations.length ? operations.length : j + 100,
+          j + 100 > cleanedOperations.length
+              ? cleanedOperations.length
+              : j + 100,
         );
         final String txId = (await tablesDB.createTransaction()).$id;
-        await tablesDB.createOperations(transactionId: txId, operations: chunk);
+        await tablesDB.createOperations(
+          transactionId: txId,
+          operations: chunk,
+        );
         await tablesDB.updateTransaction(transactionId: txId, commit: true);
       }
     } catch (e) {
-      log('Appwrite transaction failed: $e. Falling back to individual operations...');
-      for (final op in operations) {
+      log(
+        'Appwrite transaction failed: $e. Falling back to individual operations...',
+      );
+      for (final op in cleanedOperations) {
         final action = op['action'] as String;
         final tableId = op['tableId'] as String;
         final rowId = op['rowId'] as String;
