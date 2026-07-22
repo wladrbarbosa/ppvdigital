@@ -49,7 +49,8 @@ class FinancasController {
 
   Future<bool> loadDocuments({DateTime? selectedMonth}) async {
     final DateTime targetMonth = selectedMonth ?? _lastSelectedMonth;
-    final bool isAlreadySubscribed = _contatosSub != null &&
+    final bool isAlreadySubscribed =
+        _contatosSub != null &&
         _subscribedMonth != null &&
         _subscribedMonth!.year == targetMonth.year &&
         _subscribedMonth!.month == targetMonth.month;
@@ -191,7 +192,8 @@ class FinancasController {
   ) async {
     final now = DateTime.now();
     final String monthKey = '${targetMonth.year}_${targetMonth.month}';
-    final bool monthChanged = _lastSyncMonth == null ||
+    final bool monthChanged =
+        _lastSyncMonth == null ||
         _lastSyncMonth!.year != targetMonth.year ||
         _lastSyncMonth!.month != targetMonth.month;
 
@@ -211,10 +213,12 @@ class FinancasController {
       _isSyncing.value = true;
     });
     try {
-      final String? lastSyncStr =
-          await Core.database.getSetting('last_financas_sync_time');
-      final DateTime? lastSyncedAt =
-          lastSyncStr != null ? DateTime.tryParse(lastSyncStr) : null;
+      final String? lastSyncStr = await Core.database.getSetting(
+        'last_financas_sync_time',
+      );
+      final DateTime? lastSyncedAt = lastSyncStr != null
+          ? DateTime.tryParse(lastSyncStr)
+          : null;
 
       // 0. Fetch and cache contatos incrementally
       final contatos = await repository.getContatos(
@@ -255,8 +259,9 @@ class FinancasController {
       );
 
       if (contaIds.isNotEmpty) {
-        final String? monthSyncedSetting =
-            await Core.database.getSetting('synced_month_$monthKey');
+        final String? monthSyncedSetting = await Core.database.getSetting(
+          'synced_month_$monthKey',
+        );
         final bool isMonthAlreadySynced =
             monthSyncedSetting != null || _syncedMonths.contains(monthKey);
 
@@ -277,8 +282,9 @@ class FinancasController {
 
         // 4. Fetch and cache past transactions (before targetMonth) for accumulated balance:
         final firstDayOfMonth = DateTime(targetMonth.year, targetMonth.month);
-        final String? pastSyncedSetting =
-            await Core.database.getSetting('synced_past_financas');
+        final String? pastSyncedSetting = await Core.database.getSetting(
+          'synced_past_financas',
+        );
         final bool isPastAlreadySynced = pastSyncedSetting != null;
 
         await repository.getTransacoes(
@@ -324,6 +330,7 @@ class FinancasController {
   }
 
   Future<void> updateAccountBalance(String contaId, double amountDiff) async {
+    if (contaId.isEmpty) return;
     final int idx = _contasList.indexWhere((c) => c.id == contaId);
     if (idx != -1) {
       final account = _contasList[idx];
@@ -1262,6 +1269,7 @@ class FinancasController {
 
         List<TransacaoModel> seriesToUpdate = [];
         if (original.recorrencia != null &&
+            original.recorrencia!.id.isNotEmpty &&
             recurrenceOption != 'only_current') {
           final allRecTrans = await repository.getRecurrenceSeries(
             recurrenceId: original.recorrencia!.id,
@@ -1324,11 +1332,15 @@ class FinancasController {
               if (matchesOrig.isEmpty) continue;
               final orig = matchesOrig.first;
               if (t.recorrencia != null &&
+                  t.recorrencia!.id.isNotEmpty &&
                   orig.recorrencia != null &&
+                  orig.recorrencia!.id.isNotEmpty &&
                   t.recorrencia!.id == orig.recorrencia!.id) {
                 if (orig.dataCompetencia.isBefore(t.dataCompetencia)) {
                   if (originalForT == null ||
-                      orig.dataCompetencia.isAfter(originalForT.dataCompetencia)) {
+                      orig.dataCompetencia.isAfter(
+                        originalForT.dataCompetencia,
+                      )) {
                     originalForT = orig;
                   }
                 }
@@ -1383,8 +1395,8 @@ class FinancasController {
 
       await loadDocuments();
       return true;
-    } catch (e) {
-      log('Error during batch update: $e');
+    } catch (e, stackTrace) {
+      log('Error during batch update: $e', error: e, stackTrace: stackTrace);
       return false;
     }
   }
@@ -1396,7 +1408,9 @@ class FinancasController {
     try {
       List<TransacaoModel> toDelete = [];
 
-      if (deleteOption == 'only_current' || transacao.recorrencia == null) {
+      if (deleteOption == 'only_current' ||
+          transacao.recorrencia == null ||
+          transacao.recorrencia!.id.isEmpty) {
         toDelete = [transacao];
       } else {
         final recId = transacao.recorrencia!.id;

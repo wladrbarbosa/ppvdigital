@@ -416,4 +416,13 @@ void main() {
     expect(localTrans.firstWhere((t) => t.remoteId == 't2').recorrencia?.id, equals('new_rec_id'));
     expect(localTrans.firstWhere((t) => t.remoteId == 't3').recorrencia?.id, equals('new_rec_id'));
   });
+
+  test('setSetting overwrites existing keys without throwing UNIQUE constraint errors', () async {
+    await database.setSetting('pending_financas_syncs', 'initial_value');
+    await database.setSetting('pending_financas_syncs', 'updated_value_1');
+    await database.setSetting('pending_financas_syncs', 'updated_value_2');
+
+    final value = await database.getSetting('pending_financas_syncs');
+    expect(value, equals('updated_value_2'));
+  });
 }

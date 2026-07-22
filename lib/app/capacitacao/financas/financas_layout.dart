@@ -1191,7 +1191,7 @@ class _FinancasLayoutState extends State<FinancasLayout>
                   ),
                   const SizedBox(width: 8),
                   _buildBatchActionButton(
-                    tooltip: 'Tornar Prevista',
+                    tooltip: 'Desconsolidar (Tornar Prevista)',
                     icon: Icons.pending_actions,
                     color: Colors.amberAccent,
                     onPressed: () => _executeBatchUpdate('consolidar', false),

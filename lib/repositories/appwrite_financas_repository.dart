@@ -514,31 +514,35 @@ class AppwriteFinancasRepository implements FinancasRepository {
         'Appwrite transaction failed: $e. Falling back to individual operations...',
       );
       for (final op in cleanedOperations) {
-        final action = op['action'] as String;
-        final tableId = op['tableId'] as String;
-        final rowId = op['rowId'] as String;
-        final data = op['data'] as Map<String, dynamic>?;
+        try {
+          final action = op['action'] as String;
+          final tableId = op['tableId'] as String;
+          final rowId = op['rowId'] as String;
+          final data = op['data'] as Map<String, dynamic>?;
 
-        if (action == 'update' && data != null) {
-          await tablesDB.updateRow(
-            databaseId: Core.databaseId,
-            tableId: tableId,
-            rowId: rowId,
-            data: data,
-          );
-        } else if (action == 'create' && data != null) {
-          await tablesDB.createRow(
-            databaseId: Core.databaseId,
-            tableId: tableId,
-            rowId: rowId,
-            data: data,
-          );
-        } else if (action == 'delete') {
-          await tablesDB.deleteRow(
-            databaseId: Core.databaseId,
-            tableId: tableId,
-            rowId: rowId,
-          );
+          if (action == 'update' && data != null) {
+            await tablesDB.updateRow(
+              databaseId: Core.databaseId,
+              tableId: tableId,
+              rowId: rowId,
+              data: data,
+            );
+          } else if (action == 'create' && data != null) {
+            await tablesDB.createRow(
+              databaseId: Core.databaseId,
+              tableId: tableId,
+              rowId: rowId,
+              data: data,
+            );
+          } else if (action == 'delete') {
+            await tablesDB.deleteRow(
+              databaseId: Core.databaseId,
+              tableId: tableId,
+              rowId: rowId,
+            );
+          }
+        } catch (opError) {
+          log('Fallback operation failed for row ${op['rowId']}: $opError');
         }
       }
     }

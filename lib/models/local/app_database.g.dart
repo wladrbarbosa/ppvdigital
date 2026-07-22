@@ -2007,6 +2007,15 @@ class $CategoriaTransacoesTable extends CategoriaTransacoes
     type: DriftSqlType.string,
     requiredDuringInsert: true,
   );
+  static const VerificationMeta _iconeMeta = const VerificationMeta('icone');
+  @override
+  late final GeneratedColumn<String> icone = GeneratedColumn<String>(
+    'icone',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _corHexMeta = const VerificationMeta('corHex');
   @override
   late final GeneratedColumn<String> corHex = GeneratedColumn<String>(
@@ -2026,7 +2035,14 @@ class $CategoriaTransacoesTable extends CategoriaTransacoes
     requiredDuringInsert: true,
   );
   @override
-  List<GeneratedColumn> get $columns => [id, remoteId, nome, corHex, userId];
+  List<GeneratedColumn> get $columns => [
+    id,
+    remoteId,
+    nome,
+    icone,
+    corHex,
+    userId,
+  ];
   @override
   String get aliasedName => _alias ?? actualTableName;
   @override
@@ -2057,6 +2073,12 @@ class $CategoriaTransacoesTable extends CategoriaTransacoes
       );
     } else if (isInserting) {
       context.missing(_nomeMeta);
+    }
+    if (data.containsKey('icone')) {
+      context.handle(
+        _iconeMeta,
+        icone.isAcceptableOrUnknown(data['icone']!, _iconeMeta),
+      );
     }
     if (data.containsKey('cor_hex')) {
       context.handle(
@@ -2095,6 +2117,10 @@ class $CategoriaTransacoesTable extends CategoriaTransacoes
         DriftSqlType.string,
         data['${effectivePrefix}nome'],
       )!,
+      icone: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}icone'],
+      ),
       corHex: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}cor_hex'],
@@ -2117,12 +2143,14 @@ class CategoriaTransacoe extends DataClass
   final int id;
   final String remoteId;
   final String nome;
+  final String? icone;
   final String corHex;
   final String userId;
   const CategoriaTransacoe({
     required this.id,
     required this.remoteId,
     required this.nome,
+    this.icone,
     required this.corHex,
     required this.userId,
   });
@@ -2132,6 +2160,9 @@ class CategoriaTransacoe extends DataClass
     map['id'] = Variable<int>(id);
     map['remote_id'] = Variable<String>(remoteId);
     map['nome'] = Variable<String>(nome);
+    if (!nullToAbsent || icone != null) {
+      map['icone'] = Variable<String>(icone);
+    }
     map['cor_hex'] = Variable<String>(corHex);
     map['user_id'] = Variable<String>(userId);
     return map;
@@ -2142,6 +2173,9 @@ class CategoriaTransacoe extends DataClass
       id: Value(id),
       remoteId: Value(remoteId),
       nome: Value(nome),
+      icone: icone == null && nullToAbsent
+          ? const Value.absent()
+          : Value(icone),
       corHex: Value(corHex),
       userId: Value(userId),
     );
@@ -2156,6 +2190,7 @@ class CategoriaTransacoe extends DataClass
       id: serializer.fromJson<int>(json['id']),
       remoteId: serializer.fromJson<String>(json['remoteId']),
       nome: serializer.fromJson<String>(json['nome']),
+      icone: serializer.fromJson<String?>(json['icone']),
       corHex: serializer.fromJson<String>(json['corHex']),
       userId: serializer.fromJson<String>(json['userId']),
     );
@@ -2167,6 +2202,7 @@ class CategoriaTransacoe extends DataClass
       'id': serializer.toJson<int>(id),
       'remoteId': serializer.toJson<String>(remoteId),
       'nome': serializer.toJson<String>(nome),
+      'icone': serializer.toJson<String?>(icone),
       'corHex': serializer.toJson<String>(corHex),
       'userId': serializer.toJson<String>(userId),
     };
@@ -2176,12 +2212,14 @@ class CategoriaTransacoe extends DataClass
     int? id,
     String? remoteId,
     String? nome,
+    Value<String?> icone = const Value.absent(),
     String? corHex,
     String? userId,
   }) => CategoriaTransacoe(
     id: id ?? this.id,
     remoteId: remoteId ?? this.remoteId,
     nome: nome ?? this.nome,
+    icone: icone.present ? icone.value : this.icone,
     corHex: corHex ?? this.corHex,
     userId: userId ?? this.userId,
   );
@@ -2190,6 +2228,7 @@ class CategoriaTransacoe extends DataClass
       id: data.id.present ? data.id.value : this.id,
       remoteId: data.remoteId.present ? data.remoteId.value : this.remoteId,
       nome: data.nome.present ? data.nome.value : this.nome,
+      icone: data.icone.present ? data.icone.value : this.icone,
       corHex: data.corHex.present ? data.corHex.value : this.corHex,
       userId: data.userId.present ? data.userId.value : this.userId,
     );
@@ -2201,6 +2240,7 @@ class CategoriaTransacoe extends DataClass
           ..write('id: $id, ')
           ..write('remoteId: $remoteId, ')
           ..write('nome: $nome, ')
+          ..write('icone: $icone, ')
           ..write('corHex: $corHex, ')
           ..write('userId: $userId')
           ..write(')'))
@@ -2208,7 +2248,7 @@ class CategoriaTransacoe extends DataClass
   }
 
   @override
-  int get hashCode => Object.hash(id, remoteId, nome, corHex, userId);
+  int get hashCode => Object.hash(id, remoteId, nome, icone, corHex, userId);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -2216,6 +2256,7 @@ class CategoriaTransacoe extends DataClass
           other.id == this.id &&
           other.remoteId == this.remoteId &&
           other.nome == this.nome &&
+          other.icone == this.icone &&
           other.corHex == this.corHex &&
           other.userId == this.userId);
 }
@@ -2224,12 +2265,14 @@ class CategoriaTransacoesCompanion extends UpdateCompanion<CategoriaTransacoe> {
   final Value<int> id;
   final Value<String> remoteId;
   final Value<String> nome;
+  final Value<String?> icone;
   final Value<String> corHex;
   final Value<String> userId;
   const CategoriaTransacoesCompanion({
     this.id = const Value.absent(),
     this.remoteId = const Value.absent(),
     this.nome = const Value.absent(),
+    this.icone = const Value.absent(),
     this.corHex = const Value.absent(),
     this.userId = const Value.absent(),
   });
@@ -2237,6 +2280,7 @@ class CategoriaTransacoesCompanion extends UpdateCompanion<CategoriaTransacoe> {
     this.id = const Value.absent(),
     required String remoteId,
     required String nome,
+    this.icone = const Value.absent(),
     required String corHex,
     required String userId,
   }) : remoteId = Value(remoteId),
@@ -2247,6 +2291,7 @@ class CategoriaTransacoesCompanion extends UpdateCompanion<CategoriaTransacoe> {
     Expression<int>? id,
     Expression<String>? remoteId,
     Expression<String>? nome,
+    Expression<String>? icone,
     Expression<String>? corHex,
     Expression<String>? userId,
   }) {
@@ -2254,6 +2299,7 @@ class CategoriaTransacoesCompanion extends UpdateCompanion<CategoriaTransacoe> {
       if (id != null) 'id': id,
       if (remoteId != null) 'remote_id': remoteId,
       if (nome != null) 'nome': nome,
+      if (icone != null) 'icone': icone,
       if (corHex != null) 'cor_hex': corHex,
       if (userId != null) 'user_id': userId,
     });
@@ -2263,6 +2309,7 @@ class CategoriaTransacoesCompanion extends UpdateCompanion<CategoriaTransacoe> {
     Value<int>? id,
     Value<String>? remoteId,
     Value<String>? nome,
+    Value<String?>? icone,
     Value<String>? corHex,
     Value<String>? userId,
   }) {
@@ -2270,6 +2317,7 @@ class CategoriaTransacoesCompanion extends UpdateCompanion<CategoriaTransacoe> {
       id: id ?? this.id,
       remoteId: remoteId ?? this.remoteId,
       nome: nome ?? this.nome,
+      icone: icone ?? this.icone,
       corHex: corHex ?? this.corHex,
       userId: userId ?? this.userId,
     );
@@ -2287,6 +2335,9 @@ class CategoriaTransacoesCompanion extends UpdateCompanion<CategoriaTransacoe> {
     if (nome.present) {
       map['nome'] = Variable<String>(nome.value);
     }
+    if (icone.present) {
+      map['icone'] = Variable<String>(icone.value);
+    }
     if (corHex.present) {
       map['cor_hex'] = Variable<String>(corHex.value);
     }
@@ -2302,6 +2353,7 @@ class CategoriaTransacoesCompanion extends UpdateCompanion<CategoriaTransacoe> {
           ..write('id: $id, ')
           ..write('remoteId: $remoteId, ')
           ..write('nome: $nome, ')
+          ..write('icone: $icone, ')
           ..write('corHex: $corHex, ')
           ..write('userId: $userId')
           ..write(')'))
@@ -2390,10 +2442,11 @@ class $TransacaosTable extends Transacaos
     aliasedName,
     false,
     type: DriftSqlType.bool,
-    requiredDuringInsert: true,
+    requiredDuringInsert: false,
     defaultConstraints: GeneratedColumn.constraintIsAlways(
       'CHECK ("consolidada" IN (0, 1))',
     ),
+    defaultValue: const Constant(false),
   );
   static const VerificationMeta _contaIdMeta = const VerificationMeta(
     'contaId',
@@ -2563,8 +2616,6 @@ class $TransacaosTable extends Transacaos
           _consolidadaMeta,
         ),
       );
-    } else if (isInserting) {
-      context.missing(_consolidadaMeta);
     }
     if (data.containsKey('conta_id')) {
       context.handle(
@@ -3006,7 +3057,7 @@ class TransacaosCompanion extends UpdateCompanion<Transacao> {
     required double valor,
     required String tipo,
     required DateTime dataCompetencia,
-    required bool consolidada,
+    this.consolidada = const Value.absent(),
     this.contaId = const Value.absent(),
     this.contaDestinoId = const Value.absent(),
     this.categoriaId = const Value.absent(),
@@ -3019,7 +3070,6 @@ class TransacaosCompanion extends UpdateCompanion<Transacao> {
        valor = Value(valor),
        tipo = Value(tipo),
        dataCompetencia = Value(dataCompetencia),
-       consolidada = Value(consolidada),
        divisoes = Value(divisoes);
   static Insertable<Transacao> custom({
     Expression<int>? id,
@@ -4252,6 +4302,7 @@ typedef $$CategoriaTransacoesTableCreateCompanionBuilder =
       Value<int> id,
       required String remoteId,
       required String nome,
+      Value<String?> icone,
       required String corHex,
       required String userId,
     });
@@ -4260,6 +4311,7 @@ typedef $$CategoriaTransacoesTableUpdateCompanionBuilder =
       Value<int> id,
       Value<String> remoteId,
       Value<String> nome,
+      Value<String?> icone,
       Value<String> corHex,
       Value<String> userId,
     });
@@ -4285,6 +4337,11 @@ class $$CategoriaTransacoesTableFilterComposer
 
   ColumnFilters<String> get nome => $composableBuilder(
     column: $table.nome,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get icone => $composableBuilder(
+    column: $table.icone,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -4323,6 +4380,11 @@ class $$CategoriaTransacoesTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get icone => $composableBuilder(
+    column: $table.icone,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<String> get corHex => $composableBuilder(
     column: $table.corHex,
     builder: (column) => ColumnOrderings(column),
@@ -4351,6 +4413,9 @@ class $$CategoriaTransacoesTableAnnotationComposer
 
   GeneratedColumn<String> get nome =>
       $composableBuilder(column: $table.nome, builder: (column) => column);
+
+  GeneratedColumn<String> get icone =>
+      $composableBuilder(column: $table.icone, builder: (column) => column);
 
   GeneratedColumn<String> get corHex =>
       $composableBuilder(column: $table.corHex, builder: (column) => column);
@@ -4405,12 +4470,14 @@ class $$CategoriaTransacoesTableTableManager
                 Value<int> id = const Value.absent(),
                 Value<String> remoteId = const Value.absent(),
                 Value<String> nome = const Value.absent(),
+                Value<String?> icone = const Value.absent(),
                 Value<String> corHex = const Value.absent(),
                 Value<String> userId = const Value.absent(),
               }) => CategoriaTransacoesCompanion(
                 id: id,
                 remoteId: remoteId,
                 nome: nome,
+                icone: icone,
                 corHex: corHex,
                 userId: userId,
               ),
@@ -4419,12 +4486,14 @@ class $$CategoriaTransacoesTableTableManager
                 Value<int> id = const Value.absent(),
                 required String remoteId,
                 required String nome,
+                Value<String?> icone = const Value.absent(),
                 required String corHex,
                 required String userId,
               }) => CategoriaTransacoesCompanion.insert(
                 id: id,
                 remoteId: remoteId,
                 nome: nome,
+                icone: icone,
                 corHex: corHex,
                 userId: userId,
               ),
@@ -4465,7 +4534,7 @@ typedef $$TransacaosTableCreateCompanionBuilder =
       required double valor,
       required String tipo,
       required DateTime dataCompetencia,
-      required bool consolidada,
+      Value<bool> consolidada,
       Value<String?> contaId,
       Value<String?> contaDestinoId,
       Value<String?> categoriaId,
@@ -4801,7 +4870,7 @@ class $$TransacaosTableTableManager
                 required double valor,
                 required String tipo,
                 required DateTime dataCompetencia,
-                required bool consolidada,
+                Value<bool> consolidada = const Value.absent(),
                 Value<String?> contaId = const Value.absent(),
                 Value<String?> contaDestinoId = const Value.absent(),
                 Value<String?> categoriaId = const Value.absent(),

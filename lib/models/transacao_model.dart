@@ -27,48 +27,60 @@ class TransacaoModel {
     // Relationships can be full Maps or IDs.
     ContaModel? parsedConta;
     final dynamic rawConta = map['conta'];
-    if (rawConta is Map<String, dynamic>) {
-      parsedConta = ContaModel.fromMap(rawConta);
+    if (rawConta is Map) {
+      parsedConta = ContaModel.fromMap(Map<String, dynamic>.from(rawConta));
     }
 
     ContaModel? parsedContaDestino;
     final dynamic rawContaDestino = map['contaDestino'];
-    if (rawContaDestino is Map<String, dynamic>) {
-      parsedContaDestino = ContaModel.fromMap(rawContaDestino);
+    if (rawContaDestino is Map) {
+      parsedContaDestino = ContaModel.fromMap(
+        Map<String, dynamic>.from(rawContaDestino),
+      );
     }
 
     CategoriaTransacaoModel? parsedCategoria;
     final dynamic rawCategoria = map['categoria'];
-    if (rawCategoria is Map<String, dynamic>) {
-      parsedCategoria = CategoriaTransacaoModel.fromMap(rawCategoria);
+    if (rawCategoria is Map) {
+      parsedCategoria = CategoriaTransacaoModel.fromMap(
+        Map<String, dynamic>.from(rawCategoria),
+      );
     }
 
     TransacaoRecorrenciaModel? parsedRecorrencia;
     final dynamic rawRecorrencia = map['recorrencia'];
-    if (rawRecorrencia is Map<String, dynamic>) {
-      parsedRecorrencia = TransacaoRecorrenciaModel.fromMap(rawRecorrencia);
+    if (rawRecorrencia is Map) {
+      parsedRecorrencia = TransacaoRecorrenciaModel.fromMap(
+        Map<String, dynamic>.from(rawRecorrencia),
+      );
     }
 
     final List<DivisaoTransacaoModel> parsedDivisoes = [];
     final dynamic rawDiv = map['divisoes'];
     if (rawDiv is List) {
       for (final el in rawDiv) {
-        if (el is Map<String, dynamic>) {
-          parsedDivisoes.add(DivisaoTransacaoModel.fromMap(el));
+        if (el is Map) {
+          parsedDivisoes.add(
+            DivisaoTransacaoModel.fromMap(Map<String, dynamic>.from(el)),
+          );
         }
       }
     }
 
     ContatoModel? parsedDevedorContato;
     final dynamic rawDevedor = map['devedorContato'];
-    if (rawDevedor is Map<String, dynamic>) {
-      parsedDevedorContato = ContatoModel.fromMap(rawDevedor);
+    if (rawDevedor is Map) {
+      parsedDevedorContato = ContatoModel.fromMap(
+        Map<String, dynamic>.from(rawDevedor),
+      );
     }
 
     ContatoModel? parsedCredorContato;
     final dynamic rawCredor = map['credorContato'];
-    if (rawCredor is Map<String, dynamic>) {
-      parsedCredorContato = ContatoModel.fromMap(rawCredor);
+    if (rawCredor is Map) {
+      parsedCredorContato = ContatoModel.fromMap(
+        Map<String, dynamic>.from(rawCredor),
+      );
     }
 
     return TransacaoModel(
@@ -76,7 +88,9 @@ class TransacaoModel {
       descricao: map['descricao'] as String? ?? '',
       valor: (map['valor'] as num?)?.toDouble() ?? 0.0,
       tipo: map['tipo'] as String? ?? 'despesa',
-      dataCompetencia: parseDateCompetencia(map['dataCompetencia'] as String? ?? ''),
+      dataCompetencia: parseDateCompetencia(
+        map['dataCompetencia'] as String? ?? '',
+      ),
       contaDestino: parsedContaDestino,
       conta: parsedConta,
       consolidada: map['consolidada'] as bool? ?? false,
@@ -99,6 +113,7 @@ class TransacaoModel {
     }
     return DateTime.tryParse(raw) ?? DateTime.now();
   }
+
   final String id;
   final String descricao;
   final double valor;

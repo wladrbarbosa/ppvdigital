@@ -139,6 +139,7 @@ class CategoriaTransacoes extends Table {
   IntColumn get id => integer().autoIncrement()();
   TextColumn get remoteId => text().unique()();
   TextColumn get nome => text()();
+  TextColumn get icone => text().nullable()();
   TextColumn get corHex => text()();
   TextColumn get userId => text()();
 }
@@ -150,7 +151,7 @@ class Transacaos extends Table {
   RealColumn get valor => real()();
   TextColumn get tipo => text()();
   DateTimeColumn get dataCompetencia => dateTime()();
-  BoolColumn get consolidada => boolean()();
+  BoolColumn get consolidada => boolean().withDefault(const Constant(false))();
   TextColumn get contaId => text().nullable()();
   TextColumn get contaDestinoId => text().nullable()();
   TextColumn get categoriaId => text().nullable()();
@@ -178,7 +179,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase([QueryExecutor? executor]) : super(executor ?? _openConnection());
 
   @override
-  int get schemaVersion => 3;
+  int get schemaVersion => 4;
 
   @override
   MigrationStrategy get migration {
@@ -214,6 +215,20 @@ class AppDatabase extends _$AppDatabase {
             log('Migration error for transacaos: $e');
           }
         }
+        if (from < 4) {
+          try {
+            await m.addColumn(categoriaTransacoes, categoriaTransacoes.icone);
+          } catch (e) {
+            log('Migration error adding icone to categoriaTransacoes: $e');
+          }
+        }
+      },
+      beforeOpen: (details) async {
+        try {
+          await customStatement(
+            'ALTER TABLE categoria_transacoes ADD COLUMN icone TEXT;',
+          );
+        } catch (_) {}
       },
     );
   }
@@ -225,9 +240,16 @@ class AppDatabase extends _$AppDatabase {
   }
 
   Future<void> setSetting(String key, String value) async {
-    await into(appSettings).insertOnConflictUpdate(
-      AppSettingsCompanion.insert(key: key, value: value),
-    );
+    final query = select(appSettings)..where((s) => s.key.equals(key));
+    final existing = await query.getSingleOrNull();
+    if (existing != null) {
+      final updateQuery = update(appSettings)..where((s) => s.key.equals(key));
+      await updateQuery.write(AppSettingsCompanion(value: Value(value)));
+    } else {
+      await into(appSettings).insert(
+        AppSettingsCompanion.insert(key: key, value: value),
+      );
+    }
   }
 
   Future<void> deleteSetting(String key) async {

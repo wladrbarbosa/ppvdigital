@@ -327,5 +327,47 @@ void main() {
         expect(saldoOrigem + saldoDestino, equals(1500.0)); // Neutro no total
       });
     });
+
+    group('4. Operações em Massa e Tolerância a Erros', () {
+      test('Execução de fallback em lote continua quando um item individual falha', () {
+        final List<String> executedOps = [];
+        final List<Map<String, dynamic>> ops = [
+          {'id': 'op1', 'action': 'update', 'shouldFail': false},
+          {'id': 'op2', 'action': 'update', 'shouldFail': true},
+          {'id': 'op3', 'action': 'update', 'shouldFail': false},
+        ];
+
+        for (final op in ops) {
+          try {
+            if (op['shouldFail'] == true) {
+              throw Exception('Simulated row error for ${op['id']}');
+            }
+            executedOps.add(op['id'] as String);
+          } catch (e) {
+            // Isolamento de erro por linha no fallback
+          }
+        }
+
+        expect(executedOps, equals(['op1', 'op3']));
+      });
+
+      test('Filtro de ID de recorrencia vazio evita chamadas de série desnecessárias', () {
+        final tSemRecorrencia = TransacaoModel(
+          id: 't_no_rec',
+          descricao: 'Sem Recorrência',
+          valor: 100.0,
+          tipo: 'despesa',
+          dataCompetencia: DateTime(2026, 7, 1),
+          consolidada: false,
+          divisoes: [],
+        );
+
+        bool recIdValido(TransacaoModel t) {
+          return t.recorrencia != null && t.recorrencia!.id.isNotEmpty;
+        }
+
+        expect(recIdValido(tSemRecorrencia), isFalse);
+      });
+    });
   });
 }

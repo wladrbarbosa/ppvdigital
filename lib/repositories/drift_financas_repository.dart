@@ -21,6 +21,17 @@ class DriftFinancasRepository implements FinancasRepository {
   final AppDatabase database;
   final FinancasRepository remoteRepository;
 
+  bool _categoriaIconeColumnChecked = false;
+  Future<void> _ensureCategoriaIconeColumnExists() async {
+    if (_categoriaIconeColumnChecked) return;
+    try {
+      await database.customStatement(
+        'ALTER TABLE categoria_transacoes ADD COLUMN icone TEXT;',
+      );
+    } catch (_) {}
+    _categoriaIconeColumnChecked = true;
+  }
+
   Contato toContatoRow(ContatoModel model) {
     return Contato(
       id: 0,
@@ -88,6 +99,7 @@ class DriftFinancasRepository implements FinancasRepository {
       id: 0,
       remoteId: model.id,
       nome: model.name,
+      icone: model.icone,
       corHex: model.cor?.toHex() ?? '#ffffff',
       userId: model.userId,
     );
@@ -99,6 +111,7 @@ class DriftFinancasRepository implements FinancasRepository {
     return CategoriaTransacoesCompanion.insert(
       remoteId: model.id,
       nome: model.name,
+      icone: Value(model.icone),
       corHex: model.cor?.toHex() ?? '#ffffff',
       userId: model.userId,
     );
@@ -108,6 +121,7 @@ class DriftFinancasRepository implements FinancasRepository {
     return CategoriaTransacaoModel(
       id: row.remoteId,
       name: row.nome,
+      icone: row.icone,
       cor: HexColor.fromHex(row.corHex),
       userId: row.userId,
     );
@@ -120,7 +134,7 @@ class DriftFinancasRepository implements FinancasRepository {
       valor: model.valor,
       tipo: model.tipo,
       dataCompetencia: model.dataCompetencia,
-      consolidada: model.consolidada,
+      consolidada: Value(model.consolidada),
       contaId: Value(model.conta?.id),
       contaDestinoId: Value(model.contaDestino?.id),
       categoriaId: Value(model.categoria?.id),
@@ -195,9 +209,18 @@ class DriftFinancasRepository implements FinancasRepository {
           }
 
           for (final item in remote) {
-            await database
-                .into(database.contatos)
-                .insertOnConflictUpdate(toContatoCompanion(item));
+            final existing = await (database.select(database.contatos)
+                  ..where((c) => c.remoteId.equals(item.id)))
+                .getSingleOrNull();
+            if (existing != null) {
+              await (database.update(database.contatos)
+                    ..where((c) => c.remoteId.equals(item.id)))
+                  .write(toContatoCompanion(item));
+            } else {
+              await database
+                  .into(database.contatos)
+                  .insert(toContatoCompanion(item));
+            }
           }
         });
       }
@@ -256,7 +279,18 @@ class DriftFinancasRepository implements FinancasRepository {
           }
 
           for (final item in remote) {
-            await database.into(database.contas).insertOnConflictUpdate(toContaCompanion(item));
+            final existing = await (database.select(database.contas)
+                  ..where((c) => c.remoteId.equals(item.id)))
+                .getSingleOrNull();
+            if (existing != null) {
+              await (database.update(database.contas)
+                    ..where((c) => c.remoteId.equals(item.id)))
+                  .write(toContaCompanion(item));
+            } else {
+              await database
+                  .into(database.contas)
+                  .insert(toContaCompanion(item));
+            }
           }
         });
       }
@@ -354,6 +388,7 @@ class DriftFinancasRepository implements FinancasRepository {
     bool forceLocal = false,
     DateTime? lastSyncedAt,
   }) async {
+    await _ensureCategoriaIconeColumnExists();
     final localQuery = database.select(database.categoriaTransacoes)
       ..where((c) => c.userId.equals(usuarioId));
     final local = await localQuery.get();
@@ -379,9 +414,18 @@ class DriftFinancasRepository implements FinancasRepository {
           }
 
           for (final item in remote) {
-            await database
-                .into(database.categoriaTransacoes)
-                .insertOnConflictUpdate(toCategoriaCompanion(item));
+            final existing = await (database.select(database.categoriaTransacoes)
+                  ..where((c) => c.remoteId.equals(item.id)))
+                .getSingleOrNull();
+            if (existing != null) {
+              await (database.update(database.categoriaTransacoes)
+                    ..where((c) => c.remoteId.equals(item.id)))
+                  .write(toCategoriaCompanion(item));
+            } else {
+              await database
+                  .into(database.categoriaTransacoes)
+                  .insert(toCategoriaCompanion(item));
+            }
           }
         });
       }
@@ -414,19 +458,25 @@ class DriftFinancasRepository implements FinancasRepository {
     String? icone,
     required String hexColor,
   }) async {
-    final localQuery = database.select(database.categoriaTransacoes)
-      ..where((c) => c.remoteId.equals(id));
-    final local = await localQuery.getSingleOrNull();
-
-    if (local != null) {
-      final updateQuery = database.update(database.categoriaTransacoes)
+    await _ensureCategoriaIconeColumnExists();
+    try {
+      final localQuery = database.select(database.categoriaTransacoes)
         ..where((c) => c.remoteId.equals(id));
-      await updateQuery.write(
-        CategoriaTransacoesCompanion(
-          nome: Value(name),
-          corHex: Value(hexColor),
-        ),
-      );
+      final local = await localQuery.getSingleOrNull();
+
+      if (local != null) {
+        final updateQuery = database.update(database.categoriaTransacoes)
+          ..where((c) => c.remoteId.equals(id));
+        await updateQuery.write(
+          CategoriaTransacoesCompanion(
+            nome: Value(name),
+            icone: Value(icone),
+            corHex: Value(hexColor),
+          ),
+        );
+      }
+    } catch (e) {
+      log('Local update category failed: $e');
     }
 
     try {
@@ -568,9 +618,18 @@ class DriftFinancasRepository implements FinancasRepository {
           }
 
           for (final item in remote) {
-            await database
-                .into(database.transacaos)
-                .insertOnConflictUpdate(toTransacaoCompanion(item));
+            final existing = await (database.select(database.transacaos)
+                  ..where((t) => t.remoteId.equals(item.id)))
+                .getSingleOrNull();
+            if (existing != null) {
+              await (database.update(database.transacaos)
+                    ..where((t) => t.remoteId.equals(item.id)))
+                  .write(toTransacaoCompanion(item));
+            } else {
+              await database
+                  .into(database.transacaos)
+                  .insert(toTransacaoCompanion(item));
+            }
           }
         });
       }
@@ -1047,37 +1106,51 @@ class DriftFinancasRepository implements FinancasRepository {
     });
   }
 
+  String? _extractStringId(dynamic val) {
+    if (val == null) return null;
+    if (val is String) return val.isEmpty ? null : val;
+    if (val is Map) {
+      final id = val[r'$id'] ?? val['id'];
+      if (id is String && id.isNotEmpty) return id;
+    }
+    return null;
+  }
+
   TransacaosCompanion _mapDataToTransacaoCompanion(Map<String, dynamic> data) {
     return TransacaosCompanion(
       descricao: data.containsKey('descricao')
-          ? Value(data['descricao'] as String)
+          ? Value(data['descricao'] as String? ?? '')
           : const Value.absent(),
       valor: data.containsKey('valor')
-          ? Value((data['valor'] as num).toDouble())
+          ? Value((data['valor'] as num?)?.toDouble() ?? 0.0)
           : const Value.absent(),
       tipo: data.containsKey('tipo')
-          ? Value(data['tipo'] as String)
+          ? Value(data['tipo'] as String? ?? 'despesa')
           : const Value.absent(),
       dataCompetencia: data.containsKey('dataCompetencia')
-          ? Value(TransacaoModel.parseDateCompetencia(data['dataCompetencia'] as String))
+          ? Value(data['dataCompetencia'] is DateTime
+              ? (data['dataCompetencia'] as DateTime)
+              : TransacaoModel.parseDateCompetencia(
+                  data['dataCompetencia']?.toString() ?? '',
+                ))
           : const Value.absent(),
       consolidada: data.containsKey('consolidada')
-          ? Value(data['consolidada'] as bool)
+          ? Value(data['consolidada'] as bool? ?? false)
           : const Value.absent(),
       contaId: data.containsKey('conta')
-          ? Value(data['conta'] as String?)
+          ? Value(_extractStringId(data['conta']))
           : const Value.absent(),
       contaDestinoId: data.containsKey('contaDestino')
-          ? Value(data['contaDestino'] as String?)
+          ? Value(_extractStringId(data['contaDestino']))
           : const Value.absent(),
       categoriaId: data.containsKey('categoria')
-          ? Value(data['categoria'] as String?)
+          ? Value(_extractStringId(data['categoria']))
           : const Value.absent(),
       devedorContatoId: data.containsKey('devedorContato')
-          ? Value(data['devedorContato'] as String?)
+          ? Value(_extractStringId(data['devedorContato']))
           : const Value.absent(),
       credorContatoId: data.containsKey('credorContato')
-          ? Value(data['credorContato'] as String?)
+          ? Value(_extractStringId(data['credorContato']))
           : const Value.absent(),
       recorrencia: data.containsKey('recorrencia')
           ? (data['recorrencia'] is Map
@@ -1099,11 +1172,11 @@ class DriftFinancasRepository implements FinancasRepository {
     String id,
     Map<String, dynamic> data,
   ) {
-    final contaId = data['conta'] as String?;
-    final contaDestinoId = data['contaDestino'] as String?;
-    final categoriaId = data['categoria'] as String?;
-    final devedorContatoId = data['devedorContato'] as String?;
-    final credorContatoId = data['credorContato'] as String?;
+    final contaId = _extractStringId(data['conta']);
+    final contaDestinoId = _extractStringId(data['contaDestino']);
+    final categoriaId = _extractStringId(data['categoria']);
+    final devedorContatoId = _extractStringId(data['devedorContato']);
+    final credorContatoId = _extractStringId(data['credorContato']);
 
     return TransacaoModel(
       id: id,
