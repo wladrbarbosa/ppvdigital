@@ -76,29 +76,18 @@ if (fs.existsSync(assetsDir)) {
 '@
 node -e $nodeScript
 
-# 4. Empacota a build
+# 4. Verificação da Build
 $buildDir = "build/web"
-$archiveName = "code.tar.gz"
-$archivePath = Join-Path $buildDir $archiveName
 
 if (-not (Test-Path $buildDir)) {
     Write-Error "Diretório de compilação $buildDir não encontrado."
 }
 
-Write-Host "Empacotando build/web em $archiveName..." -ForegroundColor Cyan
+# Remove arquivos de arquivo (.tar.gz) do diretório de build para não enviá-los
+Get-ChildItem -Path $buildDir -Filter "*.tar.gz" | Remove-Item -Force
 
-# Remove pacote antigo se existir
-if (Test-Path $archivePath) {
-    Remove-Item $archivePath -Force
-}
-
-# Compacta usando tar
-Push-Location $buildDir
-tar --exclude $archiveName -czf $archiveName .
-Pop-Location
-
-Write-Host "Compilação e empacotamento concluídos com sucesso!" -ForegroundColor Green
-Write-Host "O pacote pronto está em: $archivePath" -ForegroundColor Green
+Write-Host "Compilação concluída com sucesso!" -ForegroundColor Green
+Write-Host "Os arquivos compilados estão em: $buildDir" -ForegroundColor Green
 
 # 5. Envio via SFTP
 $sftpHost = $env:SFTP_HOST
@@ -106,18 +95,38 @@ $sftpPort = if ($env:SFTP_PORT) { $env:SFTP_PORT } else { "22" }
 $sftpUser = $env:SFTP_USER
 $sftpRemoteDir = if ($env:SFTP_REMOTE_DIR) { $env:SFTP_REMOTE_DIR } else { "." }
 $sftpKey = $env:SFTP_KEY
+$sftpPass = $env:SFTP_PASS
 
 if ($sftpHost -and $sftpUser) {
     Write-Host ""
     Write-Host "Iniciando envio via SFTP para ${sftpUser}@${sftpHost}:${sftpRemoteDir} (Porta ${sftpPort})..." -ForegroundColor Cyan
     
-    $scpArgs = @("-P", $sftpPort, "-o", "StrictHostKeyChecking=no")
-    if ($sftpKey -and (Test-Path $sftpKey)) {
-        $scpArgs += @("-i", $sftpKey)
+    # Expande '~' no caminho da chave SSH se necessário
+    if ($sftpKey -and $sftpKey.StartsWith("~")) {
+        $userHome = if ($HOME) { $HOME } else { $env:USERPROFILE }
+        $sftpKey = $sftpKey.Replace("~", $userHome)
     }
-    $scpArgs += @($archivePath, "${sftpUser}@${sftpHost}:${sftpRemoteDir}/")
 
-    & scp @scpArgs
+    $scpArgs = @("-r", "-P", $sftpPort, "-o", "StrictHostKeyChecking=no")
+    if ($sftpKey) {
+        if (Test-Path $sftpKey) {
+            $scpArgs += @("-i", $sftpKey)
+        } else {
+            Write-Host "Aviso: Arquivo de chave SSH não encontrado em '$sftpKey'." -ForegroundColor Yellow
+        }
+    }
+
+    $uploadPath = Join-Path $buildDir "*"
+    if ($sftpPass -and (Get-Command sshpass -ErrorAction SilentlyContinue)) {
+        & sshpass -p $sftpPass scp @scpArgs $uploadPath "${sftpUser}@${sftpHost}:${sftpRemoteDir}/"
+    } else {
+        if ($sftpPass) {
+            Write-Host "Aviso: SFTP_PASS está configurado no .env, mas o utilitário 'sshpass' não está disponível no PowerShell." -ForegroundColor Yellow
+            Write-Host "Para autenticação automática no Windows, recomenda-se configurar uma chave SSH sem senha em SFTP_KEY." -ForegroundColor Yellow
+            Write-Host "Solicitando senha interativa para o envio..." -ForegroundColor Gray
+        }
+        & scp @scpArgs $uploadPath "${sftpUser}@${sftpHost}:${sftpRemoteDir}/"
+    }
 
     if ($LASTEXITCODE -eq 0) {
         Write-Host "Upload via SFTP concluído com sucesso!" -ForegroundColor Green

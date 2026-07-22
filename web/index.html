@@ -64,16 +64,21 @@
         }
       }
 
+      function triggerRepaintSequence() {
+        forceFlutterRepaint();
+        setTimeout(forceFlutterRepaint, 100);
+        setTimeout(forceFlutterRepaint, 300);
+        setTimeout(forceFlutterRepaint, 800);
+      }
+
       document.addEventListener('visibilitychange', function () {
         if (document.visibilityState === 'visible') {
-          forceFlutterRepaint();
-          setTimeout(forceFlutterRepaint, 100);
-          setTimeout(forceFlutterRepaint, 500);
+          triggerRepaintSequence();
         }
       });
 
-      window.addEventListener('focus', forceFlutterRepaint);
-      window.addEventListener('pageshow', forceFlutterRepaint);
+      window.addEventListener('focus', triggerRepaintSequence);
+      window.addEventListener('pageshow', triggerRepaintSequence);
 
       window.addEventListener('webglcontextlost', function (event) {
         console.warn('WebGL context lost. Requesting restoration...');
@@ -81,9 +86,8 @@
       }, true);
 
       window.addEventListener('webglcontextrestored', function (event) {
-        console.log('WebGL context restored. Triggering Flutter repaint.');
-        forceFlutterRepaint();
-        setTimeout(forceFlutterRepaint, 200);
+        console.log('WebGL context restored. Triggering Flutter repaint sequence.');
+        triggerRepaintSequence();
       }, true);
     })();
   </script>

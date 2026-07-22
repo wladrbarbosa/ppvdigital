@@ -36,12 +36,7 @@ class _RootAppWidgetState extends State<RootAppWidget>
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
-      log('AppLifecycleState.resumed: handleMetricsChanged & scheduleFrame');
-      WidgetsBinding.instance.handleMetricsChanged();
-      WidgetsBinding.instance.scheduleFrame();
-      if (mounted) {
-        setState(() {});
-      }
+      log('AppLifecycleState.resumed');
     }
   }
 

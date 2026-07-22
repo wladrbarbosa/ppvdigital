@@ -70,27 +70,19 @@ if (fs.existsSync(assetsDir)) {
 }
 '
 
-# 4. Empacota a build
+# 4. Verificação da Build
 BUILD_DIR="build/web"
-ARCHIVE_NAME="code.tar.gz"
 
 if [ ! -d "$BUILD_DIR" ]; then
     echo -e "\033[0;31mErro: Diretório de compilação $BUILD_DIR não encontrado.\033[0m"
     exit 1
 fi
 
-echo -e "\033[0;36mEmpacotando build/web em $ARCHIVE_NAME...\033[0m"
+# Remove arquivos de arquivo (.tar.gz) do diretório de build para não enviá-los
+rm -f "$BUILD_DIR"/*.tar.gz
 
-# Remove pacote antigo se existir
-rm -f "$BUILD_DIR/$ARCHIVE_NAME"
-
-cd "$BUILD_DIR"
-tar -czf "../$ARCHIVE_NAME" .
-mv "../$ARCHIVE_NAME" "$ARCHIVE_NAME"
-cd - > /dev/null
-
-echo -e "\033[0;32mCompilação e empacotamento concluídos com sucesso!\033[0m"
-echo -e "\033[0;32mO pacote pronto está em: $BUILD_DIR/$ARCHIVE_NAME\033[0m"
+echo -e "\033[0;32mCompilação concluída com sucesso!\033[0m"
+echo -e "\033[0;32mOs arquivos compilados estão em: $BUILD_DIR\033[0m"
 
 # 5. Envio via SFTP
 SFTP_HOST="${SFTP_HOST:-}"
@@ -104,15 +96,29 @@ if [ -n "$SFTP_HOST" ] && [ -n "$SFTP_USER" ]; then
     echo ""
     echo -e "\033[0;36mIniciando envio via SFTP para ${SFTP_USER}@${SFTP_HOST}:${SFTP_REMOTE_DIR} (Porta ${SFTP_PORT})...\033[0m"
     
-    SSH_OPTS="-P ${SFTP_PORT} -o StrictHostKeyChecking=no"
-    if [ -n "$SFTP_KEY" ] && [ -f "$SFTP_KEY" ]; then
-        SSH_OPTS="${SSH_OPTS} -i ${SFTP_KEY}"
+    # Expande '~' no caminho da chave SSH caso presente
+    SFTP_KEY="${SFTP_KEY/#\~/$HOME}"
+
+    SSH_OPTS="-r -P ${SFTP_PORT} -o StrictHostKeyChecking=no"
+    if [ -n "$SFTP_KEY" ]; then
+        if [ -f "$SFTP_KEY" ]; then
+            SSH_OPTS="${SSH_OPTS} -i ${SFTP_KEY}"
+        else
+            echo -e "\033[0;33mAviso: Arquivo de chave SSH não encontrado em '$SFTP_KEY'.\033[0m"
+        fi
     fi
 
-    if [ -n "$SFTP_PASS" ] && command -v sshpass &> /dev/null; then
-        sshpass -p "$SFTP_PASS" scp ${SSH_OPTS} "$BUILD_DIR/$ARCHIVE_NAME" "${SFTP_USER}@${SFTP_HOST}:${SFTP_REMOTE_DIR}/"
+    if [ -n "$SFTP_PASS" ]; then
+        if command -v sshpass &> /dev/null; then
+            sshpass -p "$SFTP_PASS" scp ${SSH_OPTS} "$BUILD_DIR/." "${SFTP_USER}@${SFTP_HOST}:${SFTP_REMOTE_DIR}/"
+        else
+            echo -e "\033[0;33mAviso: SFTP_PASS está configurado no .env, mas o utilitário 'sshpass' não está instalado no sistema.\033[0m"
+            echo -e "\033[0;33mPara usar a senha do .env automaticamente, instale com: sudo apt install sshpass\033[0m"
+            echo -e "\033[0;90mSolicitando senha interativa para o envio...\033[0m"
+            scp ${SSH_OPTS} "$BUILD_DIR/." "${SFTP_USER}@${SFTP_HOST}:${SFTP_REMOTE_DIR}/"
+        fi
     else
-        scp ${SSH_OPTS} "$BUILD_DIR/$ARCHIVE_NAME" "${SFTP_USER}@${SFTP_HOST}:${SFTP_REMOTE_DIR}/"
+        scp ${SSH_OPTS} "$BUILD_DIR/." "${SFTP_USER}@${SFTP_HOST}:${SFTP_REMOTE_DIR}/"
     fi
 
     if [ $? -eq 0 ]; then

@@ -1,5 +1,6 @@
 import 'dart:developer';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_web_plugins/flutter_web_plugins.dart';
 import 'package:intl/date_symbol_data_local.dart';
@@ -16,12 +17,12 @@ void main() async {
   await configureTimeZones();
 
   setUrlStrategy(PathUrlStrategy());
-  mainContext.config = ReactiveConfig(isSpyEnabled: true);
-
-  mainContext.spy((event) {
-    // ignore: avoid_print
-    log(event.toString());
-  });
+  if (kDebugMode) {
+    mainContext.config = ReactiveConfig(isSpyEnabled: true);
+    mainContext.spy((event) {
+      log(event.toString());
+    });
+  }
 
   Intl.defaultLocale = 'pt_BR';
   initializeDateFormatting(Intl.defaultLocale);

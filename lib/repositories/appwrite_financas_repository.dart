@@ -376,7 +376,7 @@ class AppwriteFinancasRepository implements FinancasRepository {
         tableId: Core.tableDivisaoTransacoes,
         queries: [
           Query.equal('contatoResponsavel', chunkIds),
-          Query.select(['*']),
+          Query.select(['transacao', 'contatoResponsavel', 'peso']),
           Query.limit(5000),
         ],
       );

@@ -109,6 +109,9 @@ class _LoginPageState extends State<LoginPage> {
                                 children: <Widget>[
                                   ElevatedButton(
                                     onPressed: () async {
+                                      final messenger = ScaffoldMessenger.of(
+                                        context,
+                                      );
                                       try {
                                         await login(
                                           emailController.text,
@@ -123,9 +126,7 @@ class _LoginPageState extends State<LoginPage> {
                                         }
                                       } catch (e) {
                                         if (mounted) {
-                                          ScaffoldMessenger.of(
-                                            context,
-                                          ).showSnackBar(
+                                          messenger.showSnackBar(
                                             SnackBar(
                                               content: Text(
                                                 'Erro ao entrar: $e',
@@ -172,6 +173,9 @@ class _LoginPageState extends State<LoginPage> {
                                 children: <Widget>[
                                   ElevatedButton(
                                     onPressed: () async {
+                                      final messenger = ScaffoldMessenger.of(
+                                        context,
+                                      );
                                       try {
                                         await register(
                                           emailController.text,
@@ -179,9 +183,7 @@ class _LoginPageState extends State<LoginPage> {
                                           nameController.text,
                                         );
                                         if (mounted) {
-                                          ScaffoldMessenger.of(
-                                            context,
-                                          ).showSnackBar(
+                                          messenger.showSnackBar(
                                             const SnackBar(
                                               content: Text(
                                                 'Conta cadastrada com sucesso! Faça login para entrar.',
@@ -192,9 +194,7 @@ class _LoginPageState extends State<LoginPage> {
                                         }
                                       } catch (e) {
                                         if (mounted) {
-                                          ScaffoldMessenger.of(
-                                            context,
-                                          ).showSnackBar(
+                                          messenger.showSnackBar(
                                             SnackBar(
                                               content: Text(
                                                 'Erro ao cadastrar: $e',
