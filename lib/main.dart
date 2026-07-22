@@ -29,5 +29,5 @@ void main() async {
   final database = AppDatabase();
   Core.initialize(database);
 
-  runApp(RootAppWidget());
+  runApp(const RootAppWidget());
 }

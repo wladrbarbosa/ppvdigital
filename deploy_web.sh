@@ -23,7 +23,46 @@ $FLUTTER_CMD pub get
 echo -e "\033[0;90mExecutando: $FLUTTER_CMD build web --wasm\033[0m"
 $FLUTTER_CMD build web --wasm
 
-# 2. Empacota a build
+# 3. Processa arquivos de manifest de assets para compatibilidade total Web / Appwrite Sites
+echo -e "\033[0;90mGarantindo compatibilidade dos arquivos AssetManifest...\033[0m"
+node -e '
+const fs = require("fs");
+const path = require("path");
+
+const buildWebDir = path.join(__dirname, "build/web");
+const assetsDir = path.join(buildWebDir, "assets");
+
+if (fs.existsSync(assetsDir)) {
+  const files = fs.readdirSync(assetsDir);
+  files.forEach(file => {
+    if (file.startsWith("AssetManifest") || file.startsWith("FontManifest")) {
+      fs.copyFileSync(path.join(assetsDir, file), path.join(buildWebDir, file));
+    }
+  });
+
+  const binJsonPath = path.join(assetsDir, "AssetManifest.bin.json");
+  if (fs.existsSync(binJsonPath)) {
+    try {
+      const raw = fs.readFileSync(binJsonPath, "utf8");
+      const base64Str = JSON.parse(raw);
+      const buf = Buffer.from(base64Str, "base64");
+      const str = buf.toString("utf8");
+      const assetMatches = str.match(/(assets\/[^\x00-\x1F]+|packages\/[^\x00-\x1F]+)/g) || [];
+      const manifest = {};
+      assetMatches.forEach(a => {
+        manifest[a] = [a];
+      });
+      const jsonStr = JSON.stringify(manifest, null, 2);
+      fs.writeFileSync(path.join(assetsDir, "AssetManifest.json"), jsonStr);
+      fs.writeFileSync(path.join(buildWebDir, "AssetManifest.json"), jsonStr);
+    } catch (e) {
+      console.error("Erro ao gerar AssetManifest.json:", e);
+    }
+  }
+}
+'
+
+# 4. Empacota a build
 BUILD_DIR="build/web"
 ARCHIVE_NAME="code.tar.gz"
 

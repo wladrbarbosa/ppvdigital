@@ -7,23 +7,27 @@ TextTheme createTextTheme(
   String displayFontString,
 ) {
   final TextTheme baseTextTheme = Theme.of(context).textTheme;
-  final TextTheme bodyTextTheme = GoogleFonts.getTextTheme(
-    bodyFontString,
-    baseTextTheme,
-  );
-  final TextTheme displayTextTheme = GoogleFonts.getTextTheme(
-    displayFontString,
-    baseTextTheme,
-  );
-  final TextTheme textTheme = displayTextTheme.copyWith(
-    bodyLarge: bodyTextTheme.bodyLarge,
-    bodyMedium: bodyTextTheme.bodyMedium,
-    bodySmall: bodyTextTheme.bodySmall,
-    labelLarge: bodyTextTheme.labelLarge,
-    labelMedium: bodyTextTheme.labelMedium,
-    labelSmall: bodyTextTheme.labelSmall,
-  );
-  return textTheme;
+  try {
+    final TextTheme bodyTextTheme = GoogleFonts.getTextTheme(
+      bodyFontString,
+      baseTextTheme,
+    );
+    final TextTheme displayTextTheme = GoogleFonts.getTextTheme(
+      displayFontString,
+      baseTextTheme,
+    );
+    return displayTextTheme.copyWith(
+      bodyLarge: bodyTextTheme.bodyLarge,
+      bodyMedium: bodyTextTheme.bodyMedium,
+      bodySmall: bodyTextTheme.bodySmall,
+      labelLarge: bodyTextTheme.labelLarge,
+      labelMedium: bodyTextTheme.labelMedium,
+      labelSmall: bodyTextTheme.labelSmall,
+    );
+  } catch (e) {
+    debugPrint('GoogleFonts loading fallback: $e');
+    return baseTextTheme;
+  }
 }
 
 /// Evaluates a mathematical expression string (e.g. "10 + 15.5 * 2" or "100 / 4")

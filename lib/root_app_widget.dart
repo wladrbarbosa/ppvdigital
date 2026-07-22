@@ -12,7 +12,39 @@ import 'package:ppvdigital/util.dart';
 import 'package:routefly/routefly.dart';
 import 'package:syncfusion_localizations/syncfusion_localizations.dart';
 
-class RootAppWidget extends StatelessWidget {
+class RootAppWidget extends StatefulWidget {
+  const RootAppWidget({super.key});
+
+  @override
+  State<RootAppWidget> createState() => _RootAppWidgetState();
+}
+
+class _RootAppWidgetState extends State<RootAppWidget>
+    with WidgetsBindingObserver {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      log('AppLifecycleState.resumed: handleMetricsChanged & scheduleFrame');
+      WidgetsBinding.instance.handleMetricsChanged();
+      WidgetsBinding.instance.scheduleFrame();
+      if (mounted) {
+        setState(() {});
+      }
+    }
+  }
+
   FutureOr<RouteInformation> _guardRoute(RouteInformation routeInformation) {
     log(routeInformation.uri.path);
 

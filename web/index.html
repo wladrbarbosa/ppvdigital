@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html>
+
 <head>
   <!--
     If you are serving your web app in a path other than the root, change the
@@ -18,7 +19,7 @@
 
   <meta charset="UTF-8">
   <meta content="IE=Edge" http-equiv="X-UA-Compatible">
-  <meta name="description" content="A new Flutter project.">
+  <meta name="description" content="Seapruma">
 
   <!-- iOS meta tags & icons -->
   <meta name="apple-mobile-web-app-capable" content="yes">
@@ -27,13 +28,69 @@
   <link rel="apple-touch-icon" href="icons/Icon-192.png">
   <meta name="theme-color" content="#1a1110">
 
+  <!-- Fonts preconnect -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
   <!-- Favicon -->
-  <link rel="icon" type="image/png" href="favicon.png"/>
+  <link rel="icon" type="image/png" href="favicon.png" />
 
   <title>Seapruma</title>
   <link rel="manifest" href="manifest.json">
+
+  <style>
+    html,
+    body,
+    flutter-view,
+    canvas {
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      padding: 0;
+      background-color: #1a1110;
+      opacity: 1 !important;
+      display: block !important;
+    }
+  </style>
+
+  <script>
+    (function () {
+      function forceFlutterRepaint() {
+        window.dispatchEvent(new Event('resize'));
+        if (window.requestAnimationFrame) {
+          window.requestAnimationFrame(function () {
+            window.dispatchEvent(new Event('resize'));
+          });
+        }
+      }
+
+      document.addEventListener('visibilitychange', function () {
+        if (document.visibilityState === 'visible') {
+          forceFlutterRepaint();
+          setTimeout(forceFlutterRepaint, 100);
+          setTimeout(forceFlutterRepaint, 500);
+        }
+      });
+
+      window.addEventListener('focus', forceFlutterRepaint);
+      window.addEventListener('pageshow', forceFlutterRepaint);
+
+      window.addEventListener('webglcontextlost', function (event) {
+        console.warn('WebGL context lost. Requesting restoration...');
+        event.preventDefault();
+      }, true);
+
+      window.addEventListener('webglcontextrestored', function (event) {
+        console.log('WebGL context restored. Triggering Flutter repaint.');
+        forceFlutterRepaint();
+        setTimeout(forceFlutterRepaint, 200);
+      }, true);
+    })();
+  </script>
 </head>
+
 <body>
   <script src="flutter_bootstrap.js" async></script>
 </body>
+
 </html>
