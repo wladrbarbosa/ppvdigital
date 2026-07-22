@@ -806,13 +806,34 @@ class FinancasController {
 
       if (original.recorrencia != null && optionRecorrencia != null) {
         if (optionRecorrencia == 'only_current') {
-          updatedRecId = null;
-          // Strip any suffix for single edited transaction split off from recurrence
-          final match = RegExp(
-            r'^(.*)\s\(Parcela\s\d+/\d+\)$',
-          ).firstMatch(descricao);
-          if (match != null) {
-            newMainDesc = match.group(1)!;
+          // Check if ONLY consolidada status was changed
+          String cleanDesc(String d) {
+            final m = RegExp(r'^(.*)\s\(Parcela\s\d+/\d+\)$').firstMatch(d);
+            return m != null ? m.group(1)! : d;
+          }
+
+          final bool isOnlyConsolidationChanged =
+              cleanDesc(descricao) == cleanDesc(original.descricao) &&
+              (valor - original.valor).abs() < 0.001 &&
+              tipo == original.tipo &&
+              dataCompetencia.isAtSameMomentAs(original.dataCompetencia) &&
+              contaId == original.conta?.id &&
+              contaDestinoId == original.contaDestino?.id &&
+              categoriaId == original.categoria?.id &&
+              devedorContatoId == original.devedorContato?.id &&
+              credorContatoId == original.credorContato?.id;
+
+          if (isOnlyConsolidationChanged) {
+            updatedRecId = original.recorrencia?.id;
+          } else {
+            updatedRecId = null;
+            // Strip any suffix for single edited transaction split off from recurrence
+            final match = RegExp(
+              r'^(.*)\s\(Parcela\s\d+/\d+\)$',
+            ).firstMatch(descricao);
+            if (match != null) {
+              newMainDesc = match.group(1)!;
+            }
           }
         } else {
           final allRecTrans = await repository.getRecurrenceSeries(

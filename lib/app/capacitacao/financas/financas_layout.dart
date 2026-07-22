@@ -45,6 +45,7 @@ class _FinancasLayoutState extends State<FinancasLayout>
   final Set<String> _selectedCategorias = {};
   final Set<String> _selectedTipos = {};
   final Set<String> _selectedContatos = {};
+  final Set<bool> _selectedConsolidadas = {};
   bool _filterOpen = false;
   late final TabController _tabController;
   final ScrollController _transacoesScrollController = ScrollController();
@@ -328,6 +329,7 @@ class _FinancasLayoutState extends State<FinancasLayout>
         _selectedCategorias.isNotEmpty ||
         _selectedTipos.isNotEmpty ||
         _selectedContatos.isNotEmpty ||
+        _selectedConsolidadas.isNotEmpty ||
         _mostrarDivisoes ||
         _somarAcumulado;
   }
@@ -491,9 +493,18 @@ class _FinancasLayoutState extends State<FinancasLayout>
                     }).toList();
                   }
 
+                  List<TransacaoModel> statusFilteredList = [];
+                  if (_selectedConsolidadas.isEmpty) {
+                    statusFilteredList = accountFilteredList;
+                  } else {
+                    statusFilteredList = accountFilteredList.where((t) {
+                      return _selectedConsolidadas.contains(t.consolidada);
+                    }).toList();
+                  }
+
                   // Apply Month filter
                   final query = _descricaoQuery.trim().toLowerCase();
-                  final filteredTransList = accountFilteredList
+                  final filteredTransList = statusFilteredList
                       .where(
                         (t) =>
                             t.dataCompetencia.year == _appliedMonth.year &&
@@ -1518,6 +1529,43 @@ class _FinancasLayoutState extends State<FinancasLayout>
                     vertical: 8.0,
                   ),
                   child: Text(
+                    'Filtrar por Status (Consolidação)',
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                ),
+                CheckboxListTile(
+                  title: const Text('Efetivadas (Consolidadas)'),
+                  value: _selectedConsolidadas.contains(true),
+                  onChanged: (val) {
+                    update(() {
+                      if (val == true) {
+                        _selectedConsolidadas.add(true);
+                      } else {
+                        _selectedConsolidadas.remove(true);
+                      }
+                    });
+                  },
+                ),
+                CheckboxListTile(
+                  title: const Text('Previstas (Não consolidadas)'),
+                  value: _selectedConsolidadas.contains(false),
+                  onChanged: (val) {
+                    update(() {
+                      if (val == true) {
+                        _selectedConsolidadas.add(false);
+                      } else {
+                        _selectedConsolidadas.remove(false);
+                      }
+                    });
+                  },
+                ),
+                const Divider(),
+                const Padding(
+                  padding: EdgeInsets.symmetric(
+                    horizontal: 16.0,
+                    vertical: 8.0,
+                  ),
+                  child: Text(
                     'Filtrar por Categoria(s)',
                     style: TextStyle(fontWeight: FontWeight.bold),
                   ),
@@ -1620,6 +1668,7 @@ class _FinancasLayoutState extends State<FinancasLayout>
                   _selectedCategorias.clear();
                   _selectedTipos.clear();
                   _selectedContatos.clear();
+                  _selectedConsolidadas.clear();
                   _mostrarDivisoes = false;
                   _somarAcumulado = false;
                   _descricaoQuery = '';
