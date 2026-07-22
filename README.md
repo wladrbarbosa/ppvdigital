@@ -15,14 +15,7 @@ O **PPVDigital** é uma plataforma completa desenvolvida em Flutter (Web/Mobile)
 
 A aplicação adota uma arquitetura reativa, offline-first e modularizada por contextos de uso (`capacitacao`, `financas`, `tarefas_habitos`, `login`).
 
-```mermaid
-graph TD
-    UI[Flutter UI Layer] --> MobX[MobX Controllers / Stores]
-    MobX --> Repositories[Repository Interface Layer]
-    Repositories --> Drift[Drift SQLite Local Database]
-    Repositories --> Appwrite[Appwrite BaaS Remote API]
-    Drift <--> Appwrite[Background Sync Engine]
-```
+![Arquitetura da Aplicação](assets/images/arquitetura.png)
 
 ### Principais Tecnologias e Bibliotecas
 
