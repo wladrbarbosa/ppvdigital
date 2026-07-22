@@ -102,7 +102,7 @@ class _CriarHabitoTarefaPageState extends State<CriarHabitoTarefaPage> {
           MetaItem(
             id: qtd.id,
             metaVezes: _tipo == 'tarefa' ? '1' : qtd.metaVezes.toString(),
-            valor: qtd.valor.toString(),
+            valor: qtd.valor.toPtBr(compactIfInteger: true),
             reiniciaEmQtd: _tipo == 'tarefa'
                 ? '1'
                 : qtd.reiniciaEmQtd.toString(),
@@ -174,7 +174,11 @@ class _CriarHabitoTarefaPageState extends State<CriarHabitoTarefaPage> {
       return {
         'id': meta.id,
         'metaVezes': int.parse(meta.metaVezesController.text),
-        'valor': evalVal ?? num.parse(meta.valorController.text),
+        'valor': evalVal ??
+            (double.tryParse(meta.valorController.text
+                    .replaceAll('.', '')
+                    .replaceAll(',', '.')) ??
+                1.0),
         'reiniciaEmQtd': int.parse(meta.reiniciaEmQtdController.text),
         'reiniciaEmTipo': meta.reiniciaEmTipo,
         'categoriaId': meta.selectedCategoryId,

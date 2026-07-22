@@ -1,5 +1,25 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:intl/intl.dart';
+
+extension NumberPtBrExtension on num {
+  /// Formats the number as currency in pt_BR format (e.g., "R$ 1.234,56").
+  String toCurrency({String symbol = 'R\$'}) {
+    final formatter = NumberFormat.currency(locale: 'pt_BR', symbol: symbol);
+    return formatter.format(this);
+  }
+
+  /// Formats the number as decimal in pt_BR format (e.g., "1.234,56").
+  String toPtBr({int fractionDigits = 2, bool compactIfInteger = false}) {
+    if (compactIfInteger && this % 1 == 0) {
+      return NumberFormat.decimalPattern('pt_BR').format(toInt());
+    }
+    final formatter = NumberFormat.currency(locale: 'pt_BR', symbol: '')
+      ..maximumFractionDigits = fractionDigits
+      ..minimumFractionDigits = fractionDigits;
+    return formatter.format(this).trim();
+  }
+}
 
 TextTheme createTextTheme(
   BuildContext context,
@@ -30,14 +50,25 @@ TextTheme createTextTheme(
   }
 }
 
-/// Evaluates a mathematical expression string (e.g. "10 + 15.5 * 2" or "100 / 4")
+/// Evaluates a mathematical expression string (e.g. "10 + 15,5 * 2" or "1.234,56 / 4")
 /// and returns the resulting [double], or `null` if the expression is invalid.
 double? evaluateMathExpression(String input) {
   if (input.trim().isEmpty) return null;
 
-  // Normalize comma to dot, and handle common math symbols/spaces
-  final String expr = input
-      .replaceAll(',', '.')
+  String expr = input.trim();
+  if (expr.contains('.') && expr.contains(',')) {
+    final lastDot = expr.lastIndexOf('.');
+    final lastComma = expr.lastIndexOf(',');
+    if (lastComma > lastDot) {
+      expr = expr.replaceAll('.', '').replaceAll(',', '.');
+    } else {
+      expr = expr.replaceAll(',', '');
+    }
+  } else {
+    expr = expr.replaceAll(',', '.');
+  }
+
+  expr = expr
       .replaceAll('×', '*')
       .replaceAll('x', '*')
       .replaceAll('X', '*')

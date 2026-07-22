@@ -10,6 +10,7 @@ import 'package:ppvdigital/core.dart';
 import 'package:ppvdigital/models/contato_model.dart';
 import 'package:ppvdigital/models/transacao_model.dart';
 import 'package:ppvdigital/routes.g.dart';
+import 'package:ppvdigital/util.dart';
 import 'package:routefly/routefly.dart';
 
 class FinancasLayout extends StatefulWidget {
@@ -151,7 +152,7 @@ class _FinancasLayoutState extends State<FinancasLayout>
                 ),
               ),
               Text(
-                'Saldo acumulado: R\$ ${saldoExibido.toStringAsFixed(2)}',
+                'Saldo acumulado: ${saldoExibido.toCurrency()}',
                 style: TextStyle(
                   fontWeight: FontWeight.bold,
                   color: saldoExibido >= 0 ? Colors.green : Colors.red,
@@ -219,7 +220,7 @@ class _FinancasLayoutState extends State<FinancasLayout>
                 ),
                 if (_mostrarDivisoes)
                   Text(
-                    'Sua parcela (Valor Total: R\$ ${t.valor.toStringAsFixed(2)})',
+                    'Sua parcela (Valor Total: ${t.valor.toCurrency()})',
                     style: const TextStyle(
                       fontStyle: FontStyle.italic,
                       fontSize: 12,
@@ -267,7 +268,7 @@ class _FinancasLayoutState extends State<FinancasLayout>
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
                 Text(
-                  'R\$ ${valToDisplay.toStringAsFixed(2)}',
+                  valToDisplay.toCurrency(),
                   style: TextStyle(
                     fontWeight: FontWeight.bold,
                     fontSize: 16,
@@ -750,7 +751,7 @@ class _FinancasLayoutState extends State<FinancasLayout>
                                       ),
                                     ),
                                     Text(
-                                      'R\$ ${c.saldoAtual.toStringAsFixed(2)}',
+                                      c.saldoAtual.toCurrency(),
                                       style: const TextStyle(
                                         fontWeight: FontWeight.bold,
                                         fontSize: 20,
@@ -1356,7 +1357,7 @@ class _FinancasLayoutState extends State<FinancasLayout>
                 return ListTile(
                   title: Text(conta.name),
                   subtitle: Text(
-                    'Saldo: R\$ ${conta.saldoAtual.toStringAsFixed(2)}',
+                    'Saldo: ${conta.saldoAtual.toCurrency()}',
                   ),
                   onTap: () {
                     Navigator.of(context).pop(conta.id);
@@ -1443,7 +1444,7 @@ class _FinancasLayoutState extends State<FinancasLayout>
                         return CheckboxListTile(
                           title: Text(account.name),
                           subtitle: Text(
-                            'Saldo: R\$ ${account.saldoAtual.toStringAsFixed(2)}',
+                            'Saldo: ${account.saldoAtual.toCurrency()}',
                           ),
                           value: isChecked,
                           onChanged: (val) {

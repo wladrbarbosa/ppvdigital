@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:ppvdigital/core.dart';
 import 'package:ppvdigital/models/conta_model.dart';
+import 'package:ppvdigital/util.dart';
 import 'package:routefly/routefly.dart';
 
 Route routeBuilder(BuildContext context, RouteSettings settings) {
@@ -52,7 +53,7 @@ class CriarEditarContaPage extends StatefulWidget {
 class _CriarEditarContaPageState extends State<CriarEditarContaPage> {
   final _formKey = GlobalKey<FormState>();
   final _nomeController = TextEditingController();
-  final _saldoController = TextEditingController(text: '0.0');
+  final _saldoController = TextEditingController(text: '0,00');
   bool _isLoading = false;
 
   @override
@@ -60,7 +61,7 @@ class _CriarEditarContaPageState extends State<CriarEditarContaPage> {
     super.initState();
     if (widget.editingItem != null) {
       _nomeController.text = widget.editingItem!.name;
-      _saldoController.text = widget.editingItem!.saldoAtual.toString();
+      _saldoController.text = widget.editingItem!.saldoAtual.toPtBr();
     }
   }
 
@@ -79,7 +80,7 @@ class _CriarEditarContaPageState extends State<CriarEditarContaPage> {
     });
 
     final String nome = _nomeController.text.trim();
-    final double saldo = double.parse(_saldoController.text);
+    final double saldo = evaluateMathExpression(_saldoController.text) ?? 0.0;
 
     final bool success;
     if (widget.editingItem != null) {
@@ -227,7 +228,7 @@ class _CriarEditarContaPageState extends State<CriarEditarContaPage> {
                 if (value == null || value.trim().isEmpty) {
                   return 'Insira o saldo.';
                 }
-                if (double.tryParse(value) == null) {
+                if (evaluateMathExpression(value) == null) {
                   return 'Insira um valor numérico válido.';
                 }
                 return null;

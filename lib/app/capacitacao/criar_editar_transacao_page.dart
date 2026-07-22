@@ -57,7 +57,7 @@ class CriarEditarTransacaoPage extends StatefulWidget {
 class _CriarEditarTransacaoPageState extends State<CriarEditarTransacaoPage> {
   final _formKey = GlobalKey<FormState>();
   final _descricaoController = TextEditingController();
-  final _valorController = TextEditingController(text: '0.0');
+  final _valorController = TextEditingController(text: '0,00');
   final _descricaoFocusNode = FocusNode();
   final _valorFocusNode = FocusNode();
   bool _isLoading = false;
@@ -108,7 +108,7 @@ class _CriarEditarTransacaoPageState extends State<CriarEditarTransacaoPage> {
     if (widget.editingItem != null) {
       final t = widget.editingItem!;
       _descricaoController.text = t.descricao;
-      _valorController.text = t.valor.toString();
+      _valorController.text = t.valor.toPtBr();
       _tipo = t.tipo;
       _dataCompetencia = t.dataCompetencia;
       _selectedContaId = t.conta?.id;
@@ -158,7 +158,7 @@ class _CriarEditarTransacaoPageState extends State<CriarEditarTransacaoPage> {
     if (result != null) {
       final formatted = (result % 1 == 0)
           ? result.toInt().toString()
-          : result.toStringAsFixed(2);
+          : result.toPtBr();
       if (formatted != text) {
         _valorController.text = formatted;
       }
@@ -515,10 +515,7 @@ class _CriarEditarTransacaoPageState extends State<CriarEditarTransacaoPage> {
                           text.contains('÷')) {
                         final result = evaluateMathExpression(text);
                         if (result != null) {
-                          final formatted = (result % 1 == 0)
-                              ? result.toInt().toString()
-                              : result.toStringAsFixed(2);
-                          helperText = '= R\$ $formatted';
+                          helperText = '= ${result.toCurrency()}';
                         }
                       }
 
@@ -646,7 +643,7 @@ class _CriarEditarTransacaoPageState extends State<CriarEditarTransacaoPage> {
                     return DropdownMenuItem(
                       value: c.id,
                       child: Text(
-                        '${c.name} (Saldo: R\$ ${c.saldoAtual.toStringAsFixed(2)})',
+                        '${c.name} (Saldo: ${c.saldoAtual.toCurrency()})',
                         overflow: TextOverflow.ellipsis,
                       ),
                     );
@@ -681,7 +678,7 @@ class _CriarEditarTransacaoPageState extends State<CriarEditarTransacaoPage> {
                       return DropdownMenuItem(
                         value: c.id,
                         child: Text(
-                          '${c.name} (Saldo: R\$ ${c.saldoAtual.toStringAsFixed(2)})',
+                          '${c.name} (Saldo: ${c.saldoAtual.toCurrency()})',
                           overflow: TextOverflow.ellipsis,
                         ),
                       );

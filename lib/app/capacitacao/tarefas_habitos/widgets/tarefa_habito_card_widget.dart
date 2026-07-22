@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
-import 'package:ppvdigital/app/capacitacao/tarefas_habitos/lista_habitos_tarefas_widget.dart';
 import 'package:ppvdigital/models/tarefas_habitos_model.dart';
+import 'package:ppvdigital/util.dart';
 
 class TarefaHabitoCardWidget extends StatelessWidget {
   const TarefaHabitoCardWidget({
@@ -22,7 +22,7 @@ class TarefaHabitoCardWidget extends StatelessWidget {
     if (item.tarefasHabitosQtd.isEmpty) return 'Sem metas';
     if (item.tarefasHabitosQtd.length == 1) {
       final qtd = item.tarefasHabitosQtd.first;
-      return '${(qtd.vezesPraticado as double).roundDouble(1)} / ${qtd.metaVezes} vezes';
+      return '${qtd.vezesPraticado.toPtBr(compactIfInteger: true)} / ${qtd.metaVezes} vezes';
     }
     final completedCount = item.tarefasHabitosQtd
         .where((el) => el.vezesPraticado >= el.metaVezes)

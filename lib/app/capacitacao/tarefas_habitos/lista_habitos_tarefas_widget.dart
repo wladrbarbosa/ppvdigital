@@ -11,6 +11,7 @@ import 'package:ppvdigital/models/local/app_database.dart';
 import 'package:ppvdigital/models/tarefas_habitos_model.dart';
 import 'package:ppvdigital/models/tarefas_habitos_qtd_model.dart';
 import 'package:ppvdigital/routes.g.dart';
+import 'package:ppvdigital/util.dart';
 import 'package:routefly/routefly.dart';
 
 extension RoundCorrectDouble on double {
@@ -513,7 +514,7 @@ class ListaHabitosTarefasWidgetState extends State<ListaHabitosTarefasWidget> {
     if (item.tarefasHabitosQtd.isEmpty) return 'Sem metas';
     if (item.tarefasHabitosQtd.length == 1) {
       final qtd = item.tarefasHabitosQtd.first;
-      return '${qtd.vezesPraticado.roundDouble(1)} / ${qtd.metaVezes} vezes';
+      return '${qtd.vezesPraticado.toPtBr(compactIfInteger: true)} / ${qtd.metaVezes} vezes';
     }
     final completedCount = item.tarefasHabitosQtd
         .where((el) => el.vezesPraticado >= el.metaVezes)
