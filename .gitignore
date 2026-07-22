@@ -125,3 +125,11 @@ GoogleService-Info.plist
 
 # FVM Version Cache
 .fvm/
+
+# Environment and Secrets
+.env
+.env.*
+!*.example
+*.key
+*.pem
+id_rsa*

@@ -1,0 +1,7 @@
+# Ignore environment credential files and secrets from AI agent context
+.env
+.env.*
+!*.example
+*.key
+*.pem
+id_rsa*

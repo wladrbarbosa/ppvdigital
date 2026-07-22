@@ -1,7 +1,15 @@
 #!/bin/bash
-# Script de Compilação e Empacotamento para Appwrite Sites (Flutter Web)
+# Script de Compilação, Empacotamento e Deploy SFTP (Flutter Web)
 
 set -e
+
+# 0. Carrega variáveis de ambiente do arquivo .env se existir
+if [ -f ".env" ]; then
+    echo -e "\033[0;90mCarregando variáveis do arquivo .env...\033[0m"
+    set -a
+    source .env
+    set +a
+fi
 
 echo -e "\033[0;36mIniciando compilação do Flutter Web...\033[0m"
 
@@ -82,11 +90,39 @@ mv "../$ARCHIVE_NAME" "$ARCHIVE_NAME"
 cd - > /dev/null
 
 echo -e "\033[0;32mCompilação e empacotamento concluídos com sucesso!\033[0m"
-echo -e "\033[0;32mO pacote pronto para o Appwrite Sites está em: $BUILD_DIR/$ARCHIVE_NAME\033[0m"
-echo ""
-echo -e "\033[0;33mComo fazer o Deploy no console do Appwrite:\033[0m"
-echo "1. Acesse o console do Appwrite."
-echo "2. Vá em Sites e crie/selecione o site correspondente."
-echo "3. Clique em 'Create deployment' -> selecione a aba 'Manual'."
-echo "4. Faça o upload do arquivo: $BUILD_DIR/$ARCHIVE_NAME"
-echo "5. Escolha o entrypoint (index.html) e ative a compilação."
+echo -e "\033[0;32mO pacote pronto está em: $BUILD_DIR/$ARCHIVE_NAME\033[0m"
+
+# 5. Envio via SFTP
+SFTP_HOST="${SFTP_HOST:-}"
+SFTP_PORT="${SFTP_PORT:-22}"
+SFTP_USER="${SFTP_USER:-}"
+SFTP_REMOTE_DIR="${SFTP_REMOTE_DIR:-.}"
+SFTP_KEY="${SFTP_KEY:-}"
+SFTP_PASS="${SFTP_PASS:-}"
+
+if [ -n "$SFTP_HOST" ] && [ -n "$SFTP_USER" ]; then
+    echo ""
+    echo -e "\033[0;36mIniciando envio via SFTP para ${SFTP_USER}@${SFTP_HOST}:${SFTP_REMOTE_DIR} (Porta ${SFTP_PORT})...\033[0m"
+    
+    SSH_OPTS="-P ${SFTP_PORT} -o StrictHostKeyChecking=no"
+    if [ -n "$SFTP_KEY" ] && [ -f "$SFTP_KEY" ]; then
+        SSH_OPTS="${SSH_OPTS} -i ${SFTP_KEY}"
+    fi
+
+    if [ -n "$SFTP_PASS" ] && command -v sshpass &> /dev/null; then
+        sshpass -p "$SFTP_PASS" scp ${SSH_OPTS} "$BUILD_DIR/$ARCHIVE_NAME" "${SFTP_USER}@${SFTP_HOST}:${SFTP_REMOTE_DIR}/"
+    else
+        scp ${SSH_OPTS} "$BUILD_DIR/$ARCHIVE_NAME" "${SFTP_USER}@${SFTP_HOST}:${SFTP_REMOTE_DIR}/"
+    fi
+
+    if [ $? -eq 0 ]; then
+        echo -e "\033[0;32mUpload via SFTP concluído com sucesso!\033[0m"
+    else
+        echo -e "\033[0;31mFalha no upload via SFTP. Verifique as credenciais e parâmetros.\033[0m"
+        exit 1
+    fi
+else
+    echo ""
+    echo -e "\033[0;33mConfigurações de SFTP (SFTP_HOST e SFTP_USER) não encontradas em .env ou variáveis de ambiente.\033[0m"
+    echo -e "\033[0;33mPara ativar o upload automático, configure o arquivo .env (consulte .env.example).\033[0m"
+fi
