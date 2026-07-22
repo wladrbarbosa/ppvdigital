@@ -1,11 +1,12 @@
 {
     "name": "Seapruma",
     "short_name": "Seapruma",
+    "version": "0.20.3",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#1a1110",
     "theme_color": "#1a1110",
-    "description": "A new Flutter project.",
+    "description": "Seapruma",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [

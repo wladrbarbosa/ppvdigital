@@ -17,25 +17,30 @@ class AppwriteTarefaHabitoRepository implements TarefaHabitoRepository {
   Future<List<TarefaHabitoModel>> getTarefasEHabitos({
     required String usuarioId,
     bool forceLocal = false,
+    DateTime? lastSyncedAt,
   }) async {
     final TablesDB tablesDB = TablesDB(databases.client);
+    final List<String> queries = [
+      Query.select([
+        'nome',
+        'tipo',
+        'usuario',
+        'concluida',
+        'agendamento',
+        'duration',
+        'tarefasHabitosQtds.*',
+        'tarefasHabitosQtds.categoriasTarefasHabitos.*',
+      ]),
+      Query.equal('usuario', usuarioId),
+      Query.limit(5000),
+    ];
+    if (lastSyncedAt != null) {
+      queries.add(Query.greaterThan(r'$updatedAt', lastSyncedAt.toIso8601String()));
+    }
     final RowList tarefasHabitosDocs = await tablesDB.listRows(
       databaseId: Core.databaseId,
       tableId: Core.tableTarefasEHabitos,
-      queries: [
-        Query.select([
-          'nome',
-          'tipo',
-          'usuario',
-          'concluida',
-          'agendamento',
-          'duration',
-          'tarefasHabitosQtds.*',
-          'tarefasHabitosQtds.categoriasTarefasHabitos.*',
-        ]),
-        Query.equal('usuario', usuarioId),
-        Query.limit(5000),
-      ],
+      queries: queries,
     );
     return await tarefasHabitosDocs.rows.toTarefaHabitoModelList(
       databases,
@@ -47,16 +52,21 @@ class AppwriteTarefaHabitoRepository implements TarefaHabitoRepository {
   Future<List<HistoricoItemModel>> getHistorico({
     required String usuarioId,
     bool forceLocal = false,
+    DateTime? lastSyncedAt,
   }) async {
     final TablesDB tablesDB = TablesDB(databases.client);
+    final List<String> queries = [
+      Query.equal('usuario', usuarioId),
+      Query.orderDesc(r'$createdAt'),
+      Query.limit(5000),
+    ];
+    if (lastSyncedAt != null) {
+      queries.add(Query.greaterThan(r'$updatedAt', lastSyncedAt.toIso8601String()));
+    }
     final RowList res = await tablesDB.listRows(
       databaseId: Core.databaseId,
       tableId: Core.tableHistoricoTarefasHabitos,
-      queries: [
-        Query.equal('usuario', usuarioId),
-        Query.orderDesc(r'$createdAt'),
-        Query.limit(5000),
-      ],
+      queries: queries,
     );
     return res.rows.toHistoricoModelList();
   }

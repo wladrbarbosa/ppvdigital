@@ -8,7 +8,6 @@ import 'package:mobx/mobx.dart' as mobx;
 import 'package:ppvdigital/core.dart';
 import 'package:ppvdigital/routes.g.dart';
 import 'package:routefly/routefly.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 enum AuthStatus { uninitialized, authenticated, unauthenticated }
 
@@ -55,16 +54,15 @@ class LoginController {
   }
 
   Future<void> loadUser() async {
-    final prefs = await SharedPreferences.getInstance();
     try {
       final user = await account.get();
-      await prefs.setString('cached_user_json', json.encode(user.toMap()));
+      await Core.database.setSetting('cached_user_json', json.encode(user.toMap()));
       mobx.runInAction(() {
         _currentUser.value = user;
         _statusStreamController.add(AuthStatus.authenticated);
       });
     } catch (e) {
-      final cachedJson = prefs.getString('cached_user_json');
+      final cachedJson = await Core.database.getSetting('cached_user_json');
       if (cachedJson != null) {
         try {
           final user = User.fromMap(
@@ -104,8 +102,7 @@ class LoginController {
         password: password,
       );
       final user = await account.get();
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setString('cached_user_json', json.encode(user.toMap()));
+      await Core.database.setSetting('cached_user_json', json.encode(user.toMap()));
       mobx.runInAction(() {
         _currentUser.value = user;
         _statusStreamController.add(AuthStatus.authenticated);
@@ -121,6 +118,7 @@ class LoginController {
           password: password,
         );
         final user = await account.get();
+        await Core.database.setSetting('cached_user_json', json.encode(user.toMap()));
         mobx.runInAction(() {
           _currentUser.value = user;
           _statusStreamController.add(AuthStatus.authenticated);
@@ -136,8 +134,7 @@ class LoginController {
       provider: provider,
     );
     final user = await account.get();
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('cached_user_json', json.encode(user.toMap()));
+    await Core.database.setSetting('cached_user_json', json.encode(user.toMap()));
     mobx.runInAction(() {
       _currentUser.value = user;
       _statusStreamController.add(AuthStatus.authenticated);
@@ -146,8 +143,7 @@ class LoginController {
   }
 
   Future<void> signOut() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.remove('cached_user_json');
+    await Core.database.deleteSetting('cached_user_json');
     try {
       await account.deleteSession(sessionId: 'current');
     } catch (_) {}

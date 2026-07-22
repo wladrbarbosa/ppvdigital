@@ -218,6 +218,23 @@ class AppDatabase extends _$AppDatabase {
     );
   }
 
+  Future<String?> getSetting(String key) async {
+    final query = select(appSettings)..where((s) => s.key.equals(key));
+    final row = await query.getSingleOrNull();
+    return row?.value;
+  }
+
+  Future<void> setSetting(String key, String value) async {
+    await into(appSettings).insertOnConflictUpdate(
+      AppSettingsCompanion.insert(key: key, value: value),
+    );
+  }
+
+  Future<void> deleteSetting(String key) async {
+    final query = delete(appSettings)..where((s) => s.key.equals(key));
+    await query.go();
+  }
+
   static QueryExecutor _openConnection() {
     return driftDatabase(
       name: 'ppv_digital_db',

@@ -63,3 +63,20 @@ Welcome agent! This file contains project-specific guidelines, technical rules, 
 * **Always prefix commands with `fvm`:**
   This project pins its Flutter SDK version using FVM to guarantee environment consistency and reproducible builds.
   * **Rule:** Never run global `flutter` commands. Always use `fvm flutter <command>` (e.g., `fvm flutter analyze`, `fvm flutter pub get`, `fvm flutter run`).
+
+---
+
+## 7. Database Read Optimization & Incremental Delta Sync
+* **Cache-First & Delta Sync with `$updatedAt`:**
+  To prevent excessive database read quotas in Appwrite, repositories must serve UI requests directly from the local Drift SQLite cache (`forceLocal: true` / local reactive streams) and perform incremental remote syncs using `$updatedAt` filtering (`Query.greaterThan('$updatedAt', lastSyncedAt)`).
+  * **Rule:** Never execute unconditional full-collection `listRows` queries on every screen navigation or state update. Always use timestamps stored in Drift `AppSettings` to query only modified/created documents, and use `insertOnConflictUpdate` to update local Drift SQLite rows.
+
+---
+
+## 8. Continuous Documentation & Test Verification
+* **Mandatory Evaluation of `README.md` and Test Suite Updates:**
+  Whenever introducing architectural changes, modifying business rules, adding new features, or changing package dependencies/models:
+  * **Rule:** Always evaluate if `README.md` needs to be updated to document the new architecture, dependencies, or features.
+  * **Rule:** Always evaluate and update existing unit/integration tests under `test/` (or add new test cases) to ensure business logic coverage remains complete and valid.
+
+

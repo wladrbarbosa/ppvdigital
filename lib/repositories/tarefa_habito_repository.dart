@@ -5,11 +5,13 @@ abstract class TarefaHabitoRepository {
   Future<List<TarefaHabitoModel>> getTarefasEHabitos({
     required String usuarioId,
     bool forceLocal = false,
+    DateTime? lastSyncedAt,
   });
 
   Future<List<HistoricoItemModel>> getHistorico({
     required String usuarioId,
     bool forceLocal = false,
+    DateTime? lastSyncedAt,
   });
 
   Future<void> recordHistorico({

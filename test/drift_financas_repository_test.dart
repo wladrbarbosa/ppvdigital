@@ -5,7 +5,6 @@ import 'package:ppvdigital/models/transacao_model.dart';
 import 'package:ppvdigital/models/transacao_recorrencia_model.dart';
 import 'package:ppvdigital/repositories/drift_financas_repository.dart';
 import 'package:ppvdigital/repositories/financas_repository.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 class MockRemoteFinancasRepository implements FinancasRepository {
   List<TransacaoModel> transacoes = [];
@@ -18,6 +17,7 @@ class MockRemoteFinancasRepository implements FinancasRepository {
     DateTime? beforeDate,
     bool lightweight = false,
     bool forceLocal = false,
+    DateTime? lastSyncedAt,
   }) async {
     return transacoes;
   }
@@ -77,7 +77,6 @@ class MockRemoteFinancasRepository implements FinancasRepository {
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
-  SharedPreferences.setMockInitialValues({});
   late AppDatabase database;
   late MockRemoteFinancasRepository remoteRepository;
   late DriftFinancasRepository driftRepository;

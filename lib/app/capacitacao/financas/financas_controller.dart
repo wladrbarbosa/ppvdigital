@@ -181,16 +181,46 @@ class FinancasController {
   );
   bool get isSyncing => _isSyncing.value;
 
+  DateTime? _lastSyncTime;
+  DateTime? _lastSyncMonth;
+  final Set<String> _syncedMonths = {};
+
   Future<void> _syncRemoteDataInBackground(
     String user,
     DateTime targetMonth,
   ) async {
+    final now = DateTime.now();
+    final String monthKey = '${targetMonth.year}_${targetMonth.month}';
+    final bool monthChanged = _lastSyncMonth == null ||
+        _lastSyncMonth!.year != targetMonth.year ||
+        _lastSyncMonth!.month != targetMonth.month;
+
+    // Skip throttling if month changed or month has never been synced in this session
+    final bool shouldSkipThrottle =
+        monthChanged || !_syncedMonths.contains(monthKey);
+
+    if (!shouldSkipThrottle &&
+        _lastSyncTime != null &&
+        now.difference(_lastSyncTime!) < const Duration(minutes: 3)) {
+      return;
+    }
+
+    _lastSyncMonth = targetMonth;
+
     mobx.runInAction(() {
       _isSyncing.value = true;
     });
     try {
-      // 0. Fetch and cache contatos
-      final contatos = await repository.getContatos(usuarioId: user);
+      final String? lastSyncStr =
+          await Core.database.getSetting('last_financas_sync_time');
+      final DateTime? lastSyncedAt =
+          lastSyncStr != null ? DateTime.tryParse(lastSyncStr) : null;
+
+      // 0. Fetch and cache contatos incrementally
+      final contatos = await repository.getContatos(
+        usuarioId: user,
+        lastSyncedAt: lastSyncedAt,
+      );
 
       // Auto-create a contact for the current user if they don't have one
       final bool hasUserContato = contatos.any((c) => c.userId == user);
@@ -211,28 +241,63 @@ class FinancasController {
         }
       }
 
-      // 1. Fetch and cache contas
-      final contas = await repository.getContas(usuarioId: user);
+      // 1. Fetch and cache contas incrementally
+      final contas = await repository.getContas(
+        usuarioId: user,
+        lastSyncedAt: lastSyncedAt,
+      );
       final List<String> contaIds = contas.map((c) => c.id).toList();
 
-      // 2. Fetch and cache categorias
-      await repository.getCategorias(usuarioId: user);
+      // 2. Fetch and cache categorias incrementally
+      await repository.getCategorias(
+        usuarioId: user,
+        lastSyncedAt: lastSyncedAt,
+      );
 
       if (contaIds.isNotEmpty) {
-        // 3. Fetch and cache transactions (for targetMonth)
+        final String? monthSyncedSetting =
+            await Core.database.getSetting('synced_month_$monthKey');
+        final bool isMonthAlreadySynced =
+            monthSyncedSetting != null || _syncedMonths.contains(monthKey);
+
+        // 3. Fetch and cache transactions for targetMonth:
+        // Pass lastSyncedAt ONLY if this targetMonth was already full-synced once.
         await repository.getTransacoes(
           usuarioId: user,
           contaIds: contaIds,
           targetMonth: targetMonth,
+          lastSyncedAt: isMonthAlreadySynced ? lastSyncedAt : null,
         );
 
+        _syncedMonths.add(monthKey);
+        await Core.database.setSetting(
+          'synced_month_$monthKey',
+          now.toIso8601String(),
+        );
+
+        // 4. Fetch and cache past transactions (before targetMonth) for accumulated balance:
         final firstDayOfMonth = DateTime(targetMonth.year, targetMonth.month);
+        final String? pastSyncedSetting =
+            await Core.database.getSetting('synced_past_financas');
+        final bool isPastAlreadySynced = pastSyncedSetting != null;
+
         await repository.getTransacoes(
           usuarioId: user,
           contaIds: contaIds,
           beforeDate: firstDayOfMonth,
+          lastSyncedAt: isPastAlreadySynced ? lastSyncedAt : null,
+        );
+        await Core.database.setSetting(
+          'synced_past_financas',
+          now.toIso8601String(),
         );
       }
+
+      _lastSyncTime = now;
+      await Core.database.setSetting(
+        'last_financas_sync_time',
+        now.toIso8601String(),
+      );
     } catch (e) {
       log('Background sync failed: $e');
     } finally {

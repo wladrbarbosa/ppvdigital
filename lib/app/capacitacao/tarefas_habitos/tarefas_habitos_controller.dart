@@ -324,9 +324,29 @@ class TarefasHabitosController {
     }, name: 'loadDocuments');
   }
 
+  DateTime? _lastSyncTime;
+
   Future<void> _syncRemoteDataInBackground(String userId) async {
+    final now = DateTime.now();
+    if (_lastSyncTime != null &&
+        now.difference(_lastSyncTime!) < const Duration(minutes: 3)) {
+      return;
+    }
     try {
-      await repository.getTarefasEHabitos(usuarioId: userId);
+      final String? lastSyncStr = await Core.database.getSetting('last_tarefas_habitos_sync_time');
+      final DateTime? lastSyncedAt = lastSyncStr != null ? DateTime.tryParse(lastSyncStr) : null;
+
+      await repository.getTarefasEHabitos(
+        usuarioId: userId,
+        lastSyncedAt: lastSyncedAt,
+      );
+      await repository.getHistorico(
+        usuarioId: userId,
+        lastSyncedAt: lastSyncedAt,
+      );
+
+      _lastSyncTime = now;
+      await Core.database.setSetting('last_tarefas_habitos_sync_time', now.toIso8601String());
     } catch (e) {
       log('Background sync of habits failed: $e');
     }

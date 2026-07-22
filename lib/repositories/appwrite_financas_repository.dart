@@ -18,12 +18,17 @@ class AppwriteFinancasRepository implements FinancasRepository {
   Future<List<ContatoModel>> getContatos({
     required String usuarioId,
     bool forceLocal = false,
+    DateTime? lastSyncedAt,
   }) async {
     final TablesDB tablesDB = TablesDB(databases.client);
+    final queries = [Query.equal('ownerId', usuarioId), Query.limit(5000)];
+    if (lastSyncedAt != null) {
+      queries.add(Query.greaterThan(r'$updatedAt', lastSyncedAt.toIso8601String()));
+    }
     final contatosDocs = await tablesDB.listRows(
       databaseId: Core.databaseId,
       tableId: Core.tableContatos,
-      queries: [Query.equal('ownerId', usuarioId), Query.limit(5000)],
+      queries: queries,
     );
     return contatosDocs.rows.map((d) {
       final map = Map<String, dynamic>.from(d.data);
@@ -60,12 +65,17 @@ class AppwriteFinancasRepository implements FinancasRepository {
   Future<List<ContaModel>> getContas({
     required String usuarioId,
     bool forceLocal = false,
+    DateTime? lastSyncedAt,
   }) async {
     final TablesDB tablesDB = TablesDB(databases.client);
+    final queries = [Query.equal('userId', usuarioId), Query.limit(5000)];
+    if (lastSyncedAt != null) {
+      queries.add(Query.greaterThan(r'$updatedAt', lastSyncedAt.toIso8601String()));
+    }
     final accountsDocs = await tablesDB.listRows(
       databaseId: Core.databaseId,
       tableId: Core.tableContas,
-      queries: [Query.equal('userId', usuarioId), Query.limit(5000)],
+      queries: queries,
     );
     return accountsDocs.rows.map((d) {
       final map = Map<String, dynamic>.from(d.data);
@@ -121,12 +131,17 @@ class AppwriteFinancasRepository implements FinancasRepository {
   Future<List<CategoriaTransacaoModel>> getCategorias({
     required String usuarioId,
     bool forceLocal = false,
+    DateTime? lastSyncedAt,
   }) async {
     final TablesDB tablesDB = TablesDB(databases.client);
+    final queries = [Query.equal('userId', usuarioId), Query.limit(5000)];
+    if (lastSyncedAt != null) {
+      queries.add(Query.greaterThan(r'$updatedAt', lastSyncedAt.toIso8601String()));
+    }
     final catDocs = await tablesDB.listRows(
       databaseId: Core.databaseId,
       tableId: Core.tableCategoriasTransacoes,
-      queries: [Query.equal('userId', usuarioId), Query.limit(5000)],
+      queries: queries,
     );
     return catDocs.rows.map((d) {
       final map = Map<String, dynamic>.from(d.data);
@@ -193,6 +208,7 @@ class AppwriteFinancasRepository implements FinancasRepository {
     DateTime? beforeDate,
     bool lightweight = false,
     bool forceLocal = false,
+    DateTime? lastSyncedAt,
   }) async {
     final TablesDB tablesDB = TablesDB(databases.client);
     final List<TransacaoModel> loadedTrans = [];
@@ -227,6 +243,12 @@ class AppwriteFinancasRepository implements FinancasRepository {
       Query.select(selectFields),
       Query.limit(5000),
     ];
+
+    if (lastSyncedAt != null) {
+      baseQueries.add(
+        Query.greaterThan(r'$updatedAt', lastSyncedAt.toIso8601String()),
+      );
+    }
 
     if (targetMonth != null) {
       final firstDayOfMonth = DateTime(targetMonth.year, targetMonth.month);

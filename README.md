@@ -77,16 +77,17 @@ Acompanhamento do desenvolvimento pessoal através da criação e monitoramento 
   $$\text{vezesPraticado} = \text{Quantidade de Históricos na Janela} \times \text{Valor Multiplicador}$$
 - **Meta Atingida**: Hábito considerado concluído no ciclo quando $\text{vezesPraticado} \ge \text{metaVezes}$.
 
-#### Matriz de Calendário e Histórico
+#### Matriz de Calendário, Histórico e Cache Reativo
 - Matriz dinâmica de dias (35 ou 42 células) gerada pelo `CalendarioController` exibindo preenchimento dos dias vizinhos.
 - Histórico imutável de execuções (`HistoricoItemModel`) registrado no banco local e sincronizado remotamente.
+- **Cache-First & Sincronização Incremental (Delta Sync)**: Renderização instantânea dos hábitos e tarefas diretamente do Drift SQLite, com sincronização em segundo plano filtrando registros alterados via `$updatedAt` e timestamps salvos em `AppSettings`.
 
 ---
 
 ### 🔑 3. Módulo de Autenticação
 
 - Gerenciamento de sessão via `LoginController` integrado ao Appwrite `Account`.
-- Persistência e restauração offline do perfil do usuário em `SharedPreferences` para acesso sem conexão à internet.
+- Persistência e restauração offline do perfil do usuário em `Drift SQLite` (`AppSettings`) para acesso sem conexão à internet.
 - Validação estrita de e-mail e requisitos mínimos de senha.
 
 ---

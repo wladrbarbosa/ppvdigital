@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:developer';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:ppvdigital/app/capacitacao/tarefas_habitos/tarefas_habitos_layout.dart';
 import 'package:ppvdigital/app/login/auth_builder.dart';
@@ -37,6 +38,15 @@ class _RootAppWidgetState extends State<RootAppWidget>
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
       log('AppLifecycleState.resumed');
+      if (kIsWeb) {
+        WidgetsBinding.instance.scheduleFrame();
+        Future.delayed(const Duration(milliseconds: 50), () {
+          if (mounted) setState(() {});
+        });
+        Future.delayed(const Duration(milliseconds: 200), () {
+          if (mounted) setState(() {});
+        });
+      }
     }
   }
 

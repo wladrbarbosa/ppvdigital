@@ -8,6 +8,7 @@ abstract class FinancasRepository {
   Future<List<ContatoModel>> getContatos({
     required String usuarioId,
     bool forceLocal = false,
+    DateTime? lastSyncedAt,
   });
 
   Future<ContatoModel> createContato({
@@ -20,6 +21,7 @@ abstract class FinancasRepository {
   Future<List<ContaModel>> getContas({
     required String usuarioId,
     bool forceLocal = false,
+    DateTime? lastSyncedAt,
   });
 
   Future<bool> createConta({
@@ -39,6 +41,7 @@ abstract class FinancasRepository {
   Future<List<CategoriaTransacaoModel>> getCategorias({
     required String usuarioId,
     bool forceLocal = false,
+    DateTime? lastSyncedAt,
   });
 
   Future<bool> createCategoria({
@@ -64,6 +67,7 @@ abstract class FinancasRepository {
     DateTime? beforeDate,
     bool lightweight = false,
     bool forceLocal = false,
+    DateTime? lastSyncedAt,
   });
 
   Future<List<TransacaoModel>> getRecurrenceSeries({

@@ -10,7 +10,6 @@ import 'package:ppvdigital/models/local/app_database.dart';
 import 'package:ppvdigital/models/tarefas_habitos_model.dart';
 import 'package:ppvdigital/models/tarefas_habitos_qtd_model.dart';
 import 'package:ppvdigital/repositories/tarefa_habito_repository.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 class DriftTarefaHabitoRepository implements TarefaHabitoRepository {
   DriftTarefaHabitoRepository({
@@ -70,17 +69,15 @@ class DriftTarefaHabitoRepository implements TarefaHabitoRepository {
   }
 
   Future<List<Map<String, dynamic>>> _getPendingSyncs() async {
-    final prefs = await SharedPreferences.getInstance();
-    final list = prefs.getStringList('pending_tarefas_habitos_syncs') ?? [];
-    return list
-        .map((item) => json.decode(item) as Map<String, dynamic>)
-        .toList();
+    final str = await database.getSetting('pending_tarefas_habitos_syncs');
+    if (str == null || str.isEmpty) return [];
+    final list = json.decode(str) as List;
+    return list.map((item) => Map<String, dynamic>.from(item as Map)).toList();
   }
 
   Future<void> _savePendingSyncs(List<Map<String, dynamic>> syncs) async {
-    final prefs = await SharedPreferences.getInstance();
-    final list = syncs.map((item) => json.encode(item)).toList();
-    await prefs.setStringList('pending_tarefas_habitos_syncs', list);
+    final str = json.encode(syncs);
+    await database.setSetting('pending_tarefas_habitos_syncs', str);
   }
 
   Future<void> _addPendingSync(Map<String, dynamic> syncItem) async {
@@ -169,6 +166,7 @@ class DriftTarefaHabitoRepository implements TarefaHabitoRepository {
   Future<List<TarefaHabitoModel>> getTarefasEHabitos({
     required String usuarioId,
     bool forceLocal = false,
+    DateTime? lastSyncedAt,
   }) async {
     // 1. Fetch cached data from Drift
     final localQuery = database.select(database.tarefaHabitos)
@@ -187,26 +185,30 @@ class DriftTarefaHabitoRepository implements TarefaHabitoRepository {
     try {
       final remoteDocs = await remoteRepository.getTarefasEHabitos(
         usuarioId: usuarioId,
+        lastSyncedAt: lastSyncedAt,
       );
 
-      await database.transaction(() async {
-        // Delete old cache
-        final deleteQuery = database.delete(database.tarefaHabitos)
-          ..where((t) => t.usuario.equals(usuarioId));
-        await deleteQuery.go();
+      if (remoteDocs.isNotEmpty || lastSyncedAt == null) {
+        await database.transaction(() async {
+          if (lastSyncedAt == null) {
+            final deleteQuery = database.delete(database.tarefaHabitos)
+              ..where((t) => t.usuario.equals(usuarioId));
+            await deleteQuery.go();
+          }
 
-        // Insert new cache
-        for (final doc in remoteDocs) {
-          await database.into(database.tarefaHabitos).insert(toCompanion(doc));
-        }
-      });
+          for (final doc in remoteDocs) {
+            await database.into(database.tarefaHabitos).insertOnConflictUpdate(toCompanion(doc));
+          }
+        });
+      }
 
-      return remoteDocs;
+      final updatedLocalDocs = await localQuery.get();
+      return updatedLocalDocs.map(toDomain).toList();
     } catch (e) {
       log(
         'Appwrite offline or failed to fetch: $e. Returning cached local data.',
       );
-      return localDocs.map(toDomain).toList();
+      return localList;
     }
   }
 
@@ -214,6 +216,7 @@ class DriftTarefaHabitoRepository implements TarefaHabitoRepository {
   Future<List<HistoricoItemModel>> getHistorico({
     required String usuarioId,
     bool forceLocal = false,
+    DateTime? lastSyncedAt,
   }) async {
     final localQuery = database.select(database.historicoTarefasHabitos)
       ..where((h) => h.usuario.equals(usuarioId))
@@ -236,40 +239,39 @@ class DriftTarefaHabitoRepository implements TarefaHabitoRepository {
     try {
       final remoteList = await remoteRepository.getHistorico(
         usuarioId: usuarioId,
+        lastSyncedAt: lastSyncedAt,
       );
 
-      await database.transaction(() async {
-        // Delete all local history cache first
-        final deleteQuery = database.delete(database.historicoTarefasHabitos)
-          ..where((h) => h.usuario.equals(usuarioId));
-        await deleteQuery.go();
+      if (remoteList.isNotEmpty || lastSyncedAt == null) {
+        await database.transaction(() async {
+          if (lastSyncedAt == null) {
+            final deleteQuery = database.delete(database.historicoTarefasHabitos)
+              ..where((h) => h.usuario.equals(usuarioId));
+            await deleteQuery.go();
+          }
 
-        // Insert new cache
-        for (final item in remoteList) {
-          await database
-              .into(database.historicoTarefasHabitos)
-              .insert(
-                HistoricoTarefasHabitosCompanion.insert(
-                  remoteId: item.id,
-                  usuario: item.usuario.isNotEmpty ? item.usuario : usuarioId,
-                  tarefaHabitoId: item.tarefasEHabitos.id,
-                  createdAt: item.createdAt,
-                ),
-                mode: InsertMode.insertOrReplace,
-              );
-        }
-      });
-
-      final List<HistoricoItemModel> updatedRemoteList = [];
-      for (final item in remoteList) {
-        final correctHabit =
-            habitsMap[item.tarefasEHabitos.id] ?? item.tarefasEHabitos;
-        updatedRemoteList.add(item.copyWith(tarefasEHabitos: correctHabit));
+          for (final item in remoteList) {
+            await database
+                .into(database.historicoTarefasHabitos)
+                .insert(
+                  HistoricoTarefasHabitosCompanion.insert(
+                    remoteId: item.id,
+                    usuario: item.usuario.isNotEmpty ? item.usuario : usuarioId,
+                    tarefaHabitoId: item.tarefasEHabitos.id,
+                    createdAt: item.createdAt,
+                  ),
+                  mode: InsertMode.insertOrReplace,
+                );
+          }
+        });
       }
 
-      return updatedRemoteList;
+      final updatedLocalRows = await localQuery.get();
+      return updatedLocalRows
+          .map((r) => toHistoricoDomain(r, habitsMap))
+          .toList();
     } catch (e) {
-      log('Appwrite offline: $e. Returning cached local history.');
+      log('Appwrite offline or failed to fetch history: $e');
       return localList;
     }
   }

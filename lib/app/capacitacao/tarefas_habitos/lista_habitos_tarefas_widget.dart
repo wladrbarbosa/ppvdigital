@@ -745,15 +745,15 @@ class ListaHabitosTarefasWidgetState extends State<ListaHabitosTarefasWidget> {
                                         }
                                       }
 
-                                      final cardWidget = Stack(
+                                      Widget backgroundLayer = Stack(
+                                        fit: StackFit.passthrough,
                                         children: [
                                           Row(children: children),
-                                          Card(
-                                            clipBehavior: Clip.hardEdge,
-                                            shape: RoundedRectangleBorder(
+                                          Container(
+                                            decoration: BoxDecoration(
                                               borderRadius:
                                                   BorderRadius.circular(22),
-                                              side: BorderSide(
+                                              border: Border.all(
                                                 color: item.tipo == 'habito'
                                                     ? habitColor.withValues(
                                                         alpha: 0.4,
@@ -763,6 +763,36 @@ class ListaHabitosTarefasWidgetState extends State<ListaHabitosTarefasWidget> {
                                                       ),
                                                 width: 1.5,
                                               ),
+                                            ),
+                                          ),
+                                        ],
+                                      );
+
+                                      if (showAnimation) {
+                                        backgroundLayer = backgroundLayer
+                                            .animate(
+                                              onPlay: (controller) => controller
+                                                  .repeat(reverse: true),
+                                            )
+                                            .fade(
+                                              begin: 1.0,
+                                              end: 0.1,
+                                              duration: Duration(
+                                                milliseconds: animDurationMs,
+                                              ),
+                                            );
+                                      }
+
+                                      final cardWidget = Stack(
+                                        children: [
+                                          Positioned.fill(child: backgroundLayer),
+                                          Card(
+                                            clipBehavior: Clip.hardEdge,
+                                            elevation: 0,
+                                            shape: RoundedRectangleBorder(
+                                              borderRadius:
+                                                  BorderRadius.circular(22),
+                                              side: BorderSide.none,
                                             ),
                                             color: Colors.transparent,
                                             child: InkWell(
@@ -1042,19 +1072,6 @@ class ListaHabitosTarefasWidgetState extends State<ListaHabitosTarefasWidget> {
                                             milliseconds: 500,
                                           ),
                                         );
-                                      } else if (showAnimation) {
-                                        return cardWidget
-                                            .animate(
-                                              onPlay: (controller) => controller
-                                                  .repeat(reverse: true),
-                                            )
-                                            .fade(
-                                              begin: 1.0,
-                                              end: 0.1,
-                                              duration: Duration(
-                                                milliseconds: animDurationMs,
-                                              ),
-                                            );
                                       } else {
                                         return cardWidget;
                                       }

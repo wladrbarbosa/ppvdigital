@@ -12,7 +12,6 @@ import 'package:ppvdigital/models/local/app_database.dart';
 import 'package:ppvdigital/models/transacao_model.dart';
 import 'package:ppvdigital/models/transacao_recorrencia_model.dart';
 import 'package:ppvdigital/repositories/financas_repository.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 class DriftFinancasRepository implements FinancasRepository {
   DriftFinancasRepository({
@@ -169,6 +168,7 @@ class DriftFinancasRepository implements FinancasRepository {
   Future<List<ContatoModel>> getContatos({
     required String usuarioId,
     bool forceLocal = false,
+    DateTime? lastSyncedAt,
   }) async {
     final localQuery = database.select(database.contatos)
       ..where((c) => c.ownerId.equals(usuarioId));
@@ -182,19 +182,26 @@ class DriftFinancasRepository implements FinancasRepository {
     await flushPendingSyncs();
 
     try {
-      final remote = await remoteRepository.getContatos(usuarioId: usuarioId);
-      await database.transaction(() async {
-        final deleteQuery = database.delete(database.contatos)
-          ..where((c) => c.ownerId.equals(usuarioId));
-        await deleteQuery.go();
+      final remote = await remoteRepository.getContatos(
+        usuarioId: usuarioId,
+        lastSyncedAt: lastSyncedAt,
+      );
+      if (remote.isNotEmpty || lastSyncedAt == null) {
+        await database.transaction(() async {
+          if (lastSyncedAt == null) {
+            final deleteQuery = database.delete(database.contatos)
+              ..where((c) => c.ownerId.equals(usuarioId));
+            await deleteQuery.go();
+          }
 
-        for (final item in remote) {
-          await database
-              .into(database.contatos)
-              .insert(toContatoCompanion(item));
-        }
-      });
-      return remote;
+          for (final item in remote) {
+            await database
+                .into(database.contatos)
+                .insertOnConflictUpdate(toContatoCompanion(item));
+          }
+        });
+      }
+      return (await localQuery.get()).map(toContatoDomain).toList();
     } catch (e) {
       log('Offline contatos load fallback: $e');
       return local.map(toContatoDomain).toList();
@@ -222,6 +229,7 @@ class DriftFinancasRepository implements FinancasRepository {
   Future<List<ContaModel>> getContas({
     required String usuarioId,
     bool forceLocal = false,
+    DateTime? lastSyncedAt,
   }) async {
     final localQuery = database.select(database.contas)
       ..where((c) => c.userId.equals(usuarioId));
@@ -235,17 +243,24 @@ class DriftFinancasRepository implements FinancasRepository {
     await flushPendingSyncs();
 
     try {
-      final remote = await remoteRepository.getContas(usuarioId: usuarioId);
-      await database.transaction(() async {
-        final deleteQuery = database.delete(database.contas)
-          ..where((c) => c.userId.equals(usuarioId));
-        await deleteQuery.go();
+      final remote = await remoteRepository.getContas(
+        usuarioId: usuarioId,
+        lastSyncedAt: lastSyncedAt,
+      );
+      if (remote.isNotEmpty || lastSyncedAt == null) {
+        await database.transaction(() async {
+          if (lastSyncedAt == null) {
+            final deleteQuery = database.delete(database.contas)
+              ..where((c) => c.userId.equals(usuarioId));
+            await deleteQuery.go();
+          }
 
-        for (final item in remote) {
-          await database.into(database.contas).insert(toContaCompanion(item));
-        }
-      });
-      return remote;
+          for (final item in remote) {
+            await database.into(database.contas).insertOnConflictUpdate(toContaCompanion(item));
+          }
+        });
+      }
+      return (await localQuery.get()).map(toContaDomain).toList();
     } catch (e) {
       log('Offline contas load fallback: $e');
       return local.map(toContaDomain).toList();
@@ -337,6 +352,7 @@ class DriftFinancasRepository implements FinancasRepository {
   Future<List<CategoriaTransacaoModel>> getCategorias({
     required String usuarioId,
     bool forceLocal = false,
+    DateTime? lastSyncedAt,
   }) async {
     final localQuery = database.select(database.categoriaTransacoes)
       ..where((c) => c.userId.equals(usuarioId));
@@ -350,19 +366,26 @@ class DriftFinancasRepository implements FinancasRepository {
     await flushPendingSyncs();
 
     try {
-      final remote = await remoteRepository.getCategorias(usuarioId: usuarioId);
-      await database.transaction(() async {
-        final deleteQuery = database.delete(database.categoriaTransacoes)
-          ..where((c) => c.userId.equals(usuarioId));
-        await deleteQuery.go();
+      final remote = await remoteRepository.getCategorias(
+        usuarioId: usuarioId,
+        lastSyncedAt: lastSyncedAt,
+      );
+      if (remote.isNotEmpty || lastSyncedAt == null) {
+        await database.transaction(() async {
+          if (lastSyncedAt == null) {
+            final deleteQuery = database.delete(database.categoriaTransacoes)
+              ..where((c) => c.userId.equals(usuarioId));
+            await deleteQuery.go();
+          }
 
-        for (final item in remote) {
-          await database
-              .into(database.categoriaTransacoes)
-              .insert(toCategoriaCompanion(item));
-        }
-      });
-      return remote;
+          for (final item in remote) {
+            await database
+                .into(database.categoriaTransacoes)
+                .insertOnConflictUpdate(toCategoriaCompanion(item));
+          }
+        });
+      }
+      return (await localQuery.get()).map(toCategoriaDomain).toList();
     } catch (e) {
       log('Offline categorias load fallback: $e');
       return local.map(toCategoriaDomain).toList();
@@ -447,6 +470,7 @@ class DriftFinancasRepository implements FinancasRepository {
     DateTime? beforeDate,
     bool lightweight = false,
     bool forceLocal = false,
+    DateTime? lastSyncedAt,
   }) async {
     final localContas = await database.select(database.contas).get();
     final localContatos = await database.select(database.contatos).get();
@@ -510,48 +534,49 @@ class DriftFinancasRepository implements FinancasRepository {
         targetMonth: targetMonth,
         beforeDate: beforeDate,
         lightweight: lightweight,
+        lastSyncedAt: lastSyncedAt,
       );
 
-      if (!lightweight) {
+      if (!lightweight && (remote.isNotEmpty || lastSyncedAt == null)) {
         await database.transaction(() async {
-          final deleteQuery = database.delete(database.transacaos);
-          if (targetMonth != null) {
-            final firstDayOfMonth = DateTime(
-              targetMonth.year,
-              targetMonth.month,
-            );
-            final lastDayOfMonth = DateTime(
-              targetMonth.year,
-              targetMonth.month + 1,
-            ).subtract(const Duration(milliseconds: 1));
-            deleteQuery.where(
-              (t) =>
-                  t.dataCompetencia.isBiggerThanValue(
-                    firstDayOfMonth.subtract(const Duration(seconds: 1)),
-                  ) &
-                  t.dataCompetencia.isSmallerThanValue(
-                    lastDayOfMonth.add(const Duration(seconds: 1)),
-                  ),
-            );
-          } else if (beforeDate != null) {
-            deleteQuery.where(
-              (t) => t.dataCompetencia.isSmallerThanValue(beforeDate),
-            );
+          if (lastSyncedAt == null) {
+            final deleteQuery = database.delete(database.transacaos);
+            if (targetMonth != null) {
+              final firstDayOfMonth = DateTime(
+                targetMonth.year,
+                targetMonth.month,
+              );
+              final lastDayOfMonth = DateTime(
+                targetMonth.year,
+                targetMonth.month + 1,
+              ).subtract(const Duration(milliseconds: 1));
+              deleteQuery.where(
+                (t) =>
+                    t.dataCompetencia.isBiggerThanValue(
+                      firstDayOfMonth.subtract(const Duration(seconds: 1)),
+                    ) &
+                    t.dataCompetencia.isSmallerThanValue(
+                      lastDayOfMonth.add(const Duration(seconds: 1)),
+                    ),
+              );
+            } else if (beforeDate != null) {
+              deleteQuery.where(
+                (t) => t.dataCompetencia.isSmallerThanValue(beforeDate),
+              );
+            }
+            await deleteQuery.go();
           }
-          await deleteQuery.go();
 
           for (final item in remote) {
             await database
                 .into(database.transacaos)
-                .insert(toTransacaoCompanion(item));
+                .insertOnConflictUpdate(toTransacaoCompanion(item));
           }
         });
       }
 
-      return remote;
-    } catch (e) {
-      log('Offline transactions load fallback: $e');
-      return localTrans
+      final updatedLocalTrans = await localQuery.get();
+      return updatedLocalTrans
           .map(
             (t) => toTransacaoDomain(
               t,
@@ -561,6 +586,9 @@ class DriftFinancasRepository implements FinancasRepository {
             ),
           )
           .toList();
+    } catch (e) {
+      log('Offline transactions load fallback: $e');
+      return localList;
     }
   }
 
@@ -873,17 +901,15 @@ class DriftFinancasRepository implements FinancasRepository {
   }
 
   Future<List<Map<String, dynamic>>> _getPendingSyncs() async {
-    final prefs = await SharedPreferences.getInstance();
-    final list = prefs.getStringList('pending_financas_syncs') ?? [];
-    return list
-        .map((item) => json.decode(item) as Map<String, dynamic>)
-        .toList();
+    final str = await database.getSetting('pending_financas_syncs');
+    if (str == null || str.isEmpty) return [];
+    final list = json.decode(str) as List;
+    return list.map((item) => Map<String, dynamic>.from(item as Map)).toList();
   }
 
   Future<void> _savePendingSyncs(List<Map<String, dynamic>> syncs) async {
-    final prefs = await SharedPreferences.getInstance();
-    final list = syncs.map((item) => json.encode(item)).toList();
-    await prefs.setStringList('pending_financas_syncs', list);
+    final str = json.encode(syncs);
+    await database.setSetting('pending_financas_syncs', str);
   }
 
   Future<void> _addPendingSync(Map<String, dynamic> syncItem) async {
