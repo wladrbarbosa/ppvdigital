@@ -55,40 +55,59 @@
 
   <script>
     (function () {
-      function forceFlutterRepaint() {
-        window.dispatchEvent(new Event('resize'));
-        if (window.requestAnimationFrame) {
-          window.requestAnimationFrame(function () {
-            window.dispatchEvent(new Event('resize'));
-          });
-        }
+      // Função para anexar os listeners no canvas do Flutter/Skwasm
+      function attachWebGLProtection(canvas) {
+        if (canvas._hasWebGLProtection) return;
+        canvas._hasWebGLProtection = true;
+
+        canvas.addEventListener('webglcontextlost', function (event) {
+          // Previne o comportamento padrão do browser para permitir tratamento customizado
+          event.preventDefault();
+          console.warn('[PWA/Flutter] WebGL Context Lost detectado. Recarregando app...');
+
+          // Recarrega a aplicação para restaurar o pipeline gráfico
+          window.location.reload();
+        }, false);
       }
 
-      function triggerRepaintSequence() {
-        forceFlutterRepaint();
-        setTimeout(forceFlutterRepaint, 100);
-        setTimeout(forceFlutterRepaint, 300);
-        setTimeout(forceFlutterRepaint, 800);
-      }
-
-      document.addEventListener('visibilitychange', function () {
-        if (document.visibilityState === 'visible') {
-          triggerRepaintSequence();
+      // 1. Escuta a criação dinâmica do elemento <canvas> pelo Flutter Engine
+      const observer = new MutationObserver(function (mutations) {
+        for (const mutation of mutations) {
+          for (const node of mutation.addedNodes) {
+            if (node.nodeName === 'CANVAS') {
+              attachWebGLProtection(node);
+            } else if (node.querySelectorAll) {
+              const canvases = node.querySelectorAll('canvas');
+              canvases.forEach(attachWebGLProtection);
+            }
+          }
         }
       });
 
-      window.addEventListener('focus', triggerRepaintSequence);
-      window.addEventListener('pageshow', triggerRepaintSequence);
+      // Inicia a observação no DOM assim que o script carregar
+      document.addEventListener('DOMContentLoaded', function () {
+        observer.observe(document.body, { childList: true, subtree: true });
 
-      window.addEventListener('webglcontextlost', function (event) {
-        console.warn('WebGL context lost. Requesting restoration...');
-        event.preventDefault();
-      }, true);
+        // Procura se já existe algum canvas inserido
+        document.querySelectorAll('canvas').forEach(attachWebGLProtection);
+      });
 
-      window.addEventListener('webglcontextrestored', function (event) {
-        console.log('WebGL context restored. Triggering Flutter repaint sequence.');
-        triggerRepaintSequence();
-      }, true);
+      // 2. Fallback por Ciclo de Vida: Checa se a página voltou do segundo plano
+      let hiddenTime = 0;
+
+      document.addEventListener('visibilitychange', function () {
+        if (document.visibilityState === 'hidden') {
+          hiddenTime = Date.now();
+        } else if (document.visibilityState === 'visible') {
+          // Se o app ficou em segundo plano por mais de 30 segundos,
+          // forçamos um reload preventivo caso o contexto tenha morrido silenciosamente
+          const timeBackground = Date.now() - hiddenTime;
+          if (hiddenTime > 0 && timeBackground > 30000) {
+            console.warn('[PWA/Flutter] Retornando após tempo prolongado em background. Recarregando...');
+            window.location.reload();
+          }
+        }
+      });
     })();
   </script>
 </head>
