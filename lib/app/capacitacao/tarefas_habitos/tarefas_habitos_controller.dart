@@ -6,7 +6,6 @@ import 'package:appwrite/models.dart';
 import 'package:drift/drift.dart' hide Column, Query;
 import 'package:flutter/material.dart' hide Row;
 import 'package:mobx/mobx.dart' as mobx;
-import 'package:ppvdigital/app/capacitacao/tarefas_habitos/historico_controller.dart';
 import 'package:ppvdigital/core.dart';
 import 'package:ppvdigital/models/categorias_tarefas_habitos_model.dart';
 import 'package:ppvdigital/models/historico_item_model.dart';
@@ -153,20 +152,12 @@ extension TarefasHabitosTransformDocumentList on List<Row> {
     String usuarioId,
   ) async {
     final List<TarefaHabitoModel> temp = [];
-    final TablesDB tablesDB = TablesDB(databases.client);
 
-    final RowList res = await tablesDB.listRows(
-      databaseId: Core.databaseId,
-      tableId: Core.tableHistoricoTarefasHabitos,
-      queries: [
-        Query.equal('usuario', usuarioId),
-        Query.orderDesc(r'$createdAt'),
-        Query.limit(5000),
-      ],
-    );
-
-    final List<HistoricoItemModel> allHistoryItems = res.rows
-        .toHistoricoModelList();
+    final List<HistoricoItemModel> allHistoryItems =
+        await Core.tarefaHabitoRepository.getHistorico(
+          usuarioId: usuarioId,
+          forceLocal: true,
+        );
 
     for (final e1 in this) {
       final List<HistoricoItemModel> tarefaHabitoQtdList = allHistoryItems

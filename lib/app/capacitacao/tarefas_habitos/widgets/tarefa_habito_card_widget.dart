@@ -53,6 +53,7 @@ class TarefaHabitoCardWidget extends StatelessWidget {
       builder: (context) {
         return Card(
           clipBehavior: Clip.hardEdge,
+          margin: EdgeInsets.zero,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(22),
             side: BorderSide(

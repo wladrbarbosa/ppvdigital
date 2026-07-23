@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:developer';
 import 'dart:ui';
 import 'package:appwrite/appwrite.dart';
@@ -39,6 +40,42 @@ class CategoriasController {
     databases = Databases(Core.client);
   }
 
+  Future<void> _saveCache() async {
+    try {
+      final listMap = _categoriasList.map((c) => c.toMap()).toList();
+      await Core.database.setSetting(
+        'cached_categorias_tarefas_habitos_json',
+        json.encode(listMap),
+      );
+    } catch (e) {
+      log('Error saving categorias cache: $e');
+    }
+  }
+
+  Future<void> _loadCache() async {
+    try {
+      final cachedJson = await Core.database.getSetting(
+        'cached_categorias_tarefas_habitos_json',
+      );
+      if (cachedJson != null && cachedJson.isNotEmpty) {
+        final list = json.decode(cachedJson) as List;
+        final loaded = list
+            .map(
+              (item) => CategoriasTarefasHabitosModel.fromMap(
+                Map<String, dynamic>.from(item as Map),
+              ),
+            )
+            .toList();
+        mobx.runInAction(() {
+          _categoriasList.clear();
+          _categoriasList.addAll(loaded);
+        });
+      }
+    } catch (e) {
+      log('Error loading cached categorias: $e');
+    }
+  }
+
   Future<bool> loadDocuments() async {
     return await mobx.runInAction(() async {
       try {
@@ -46,20 +83,61 @@ class CategoriasController {
           await Core.loginController.loadUser();
         }
 
+        final userId = Core.loginController.currentUser?.$id ?? '';
+
+        if (_categoriasList.isEmpty) {
+          await _loadCache();
+        }
+
+        final String? lastSyncStr = await Core.database.getSetting(
+          'last_categorias_tarefas_habitos_sync_time',
+        );
+        final DateTime? lastSyncedAt = lastSyncStr != null
+            ? DateTime.tryParse(lastSyncStr)
+            : null;
+        final now = DateTime.now();
+
         final TablesDB tablesDB = TablesDB(databases.client);
+        final List<String> queries = [
+          Query.equal('usuario', [userId]),
+          Query.limit(5000),
+        ];
+        if (lastSyncedAt != null) {
+          queries.add(
+            Query.greaterThan(r'$updatedAt', lastSyncedAt.toIso8601String()),
+          );
+        }
+
         final RowList docs = await tablesDB.listRows(
           databaseId: Core.databaseId,
           tableId: Core.tableCategoriasTarefasHabitos,
-          queries: [
-            Query.equal('usuario', [
-              Core.loginController.currentUser?.$id ?? '',
-            ]),
-            Query.limit(5000),
-          ],
+          queries: queries,
         );
 
-        _categoriasList.clear();
-        _categoriasList.addAll(docs.rows.toCategoriasModelList());
+        final remoteItems = docs.rows.toCategoriasModelList();
+
+        mobx.runInAction(() {
+          if (lastSyncedAt == null) {
+            _categoriasList.clear();
+            _categoriasList.addAll(remoteItems);
+          } else if (remoteItems.isNotEmpty) {
+            for (final item in remoteItems) {
+              final idx = _categoriasList.indexWhere((c) => c.id == item.id);
+              if (idx != -1) {
+                _categoriasList[idx] = item;
+              } else {
+                _categoriasList.add(item);
+              }
+            }
+          }
+        });
+
+        await _saveCache();
+        await Core.database.setSetting(
+          'last_categorias_tarefas_habitos_sync_time',
+          now.toIso8601String(),
+        );
+
         return true;
       } on AppwriteException catch (e) {
         log(e.toString());
@@ -113,6 +191,7 @@ class CategoriasController {
           ),
         );
       });
+      await _saveCache();
       return true;
     } on AppwriteException catch (e) {
       log(e.toString());
@@ -161,6 +240,7 @@ class CategoriasController {
           );
         }
       });
+      await _saveCache();
       return true;
     } on AppwriteException catch (e) {
       log(e.toString());
@@ -183,6 +263,7 @@ class CategoriasController {
       mobx.runInAction(() {
         _categoriasList.removeWhere((el) => el.id == documentId);
       });
+      await _saveCache();
       return true;
     } on AppwriteException catch (e) {
       log(e.toString());

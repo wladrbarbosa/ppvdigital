@@ -77,6 +77,7 @@ abstract class FinancasRepository {
   Future<List<DivisaoTransacaoModel>> getDivisoes({
     required List<String> contatoResponsavelIds,
     bool forceLocal = false,
+    DateTime? lastSyncedAt,
   });
 
   Future<String> createRecorrenciaRow({

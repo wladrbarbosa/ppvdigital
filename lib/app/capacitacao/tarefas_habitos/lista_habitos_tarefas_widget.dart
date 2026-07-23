@@ -652,6 +652,11 @@ class ListaHabitosTarefasWidgetState extends State<ListaHabitosTarefasWidget> {
                                           .firstOrNull
                                           ?.categoriasTarefasHabitos;
 
+                                      final Color indicatorBgColor =
+                                          item.tipo == 'habito'
+                                              ? habitColor.withValues(alpha: 0.08)
+                                              : taskColor.withValues(alpha: 0.08);
+
                                       for (
                                         int i = 0;
                                         i < item.tarefasHabitosQtd.length;
@@ -673,11 +678,6 @@ class ListaHabitosTarefasWidgetState extends State<ListaHabitosTarefasWidget> {
                                                   .categoriasTarefasHabitos
                                                   ?.cor
                                             : null;
-
-                                        final Color indicatorBgColor =
-                                            item.tipo == 'habito'
-                                            ? habitColor.withValues(alpha: 0.08)
-                                            : taskColor.withValues(alpha: 0.08);
 
                                         // Para tarefas, não preencher com cor (manter progresso em 0.0)
                                         if (item.tipo == 'habito') {
@@ -702,18 +702,16 @@ class ListaHabitosTarefasWidgetState extends State<ListaHabitosTarefasWidget> {
                                                   ..addRRect(
                                                     RRect.fromRectAndCorners(
                                                       Rect.fromLTWH(
-                                                        i == 0 ? 5 : 0,
-                                                        5,
-                                                        ((constraints.maxWidth -
-                                                                10) /
+                                                        0,
+                                                        0,
+                                                        (constraints.maxWidth /
                                                             item
                                                                 .tarefasHabitosQtd
                                                                 .length),
-                                                        constraints.maxHeight -
-                                                            10,
+                                                        constraints.maxHeight,
                                                       ),
                                                       topLeft: Radius.circular(
-                                                        i == 0 ? 20 : 0,
+                                                        i == 0 ? 22 : 0,
                                                       ),
                                                       topRight: Radius.circular(
                                                         i ==
@@ -721,12 +719,12 @@ class ListaHabitosTarefasWidgetState extends State<ListaHabitosTarefasWidget> {
                                                                         .tarefasHabitosQtd
                                                                         .length -
                                                                     1
-                                                            ? 20
+                                                            ? 22
                                                             : 0,
                                                       ),
                                                       bottomLeft:
                                                           Radius.circular(
-                                                            i == 0 ? 20 : 0,
+                                                            i == 0 ? 22 : 0,
                                                           ),
                                                       bottomRight: Radius.circular(
                                                         i ==
@@ -734,7 +732,7 @@ class ListaHabitosTarefasWidgetState extends State<ListaHabitosTarefasWidget> {
                                                                         .tarefasHabitosQtd
                                                                         .length -
                                                                     1
-                                                            ? 20
+                                                            ? 22
                                                             : 0,
                                                       ),
                                                     ),
@@ -745,27 +743,29 @@ class ListaHabitosTarefasWidgetState extends State<ListaHabitosTarefasWidget> {
                                         }
                                       }
 
-                                      Widget backgroundLayer = Stack(
-                                        fit: StackFit.passthrough,
-                                        children: [
-                                          Row(children: children),
-                                          Container(
-                                            decoration: BoxDecoration(
-                                              borderRadius:
-                                                  BorderRadius.circular(22),
-                                              border: Border.all(
-                                                color: item.tipo == 'habito'
-                                                    ? habitColor.withValues(
-                                                        alpha: 0.4,
-                                                      )
-                                                    : taskColor.withValues(
-                                                        alpha: 0.4,
-                                                      ),
-                                                width: 1.5,
-                                              ),
-                                            ),
+                                      Widget backgroundLayer = Container(
+                                        decoration: BoxDecoration(
+                                          color: indicatorBgColor,
+                                          borderRadius:
+                                              BorderRadius.circular(22),
+                                          border: Border.all(
+                                            color: item.tipo == 'habito'
+                                                ? habitColor.withValues(
+                                                    alpha: 0.4,
+                                                  )
+                                                : taskColor.withValues(
+                                                    alpha: 0.4,
+                                                  ),
+                                            width: 1.5,
                                           ),
-                                        ],
+                                        ),
+                                        child: ClipRRect(
+                                          borderRadius:
+                                              BorderRadius.circular(22),
+                                          child: children.isNotEmpty
+                                              ? Row(children: children)
+                                              : const SizedBox.expand(),
+                                        ),
                                       );
 
                                       if (showAnimation) {
@@ -788,6 +788,7 @@ class ListaHabitosTarefasWidgetState extends State<ListaHabitosTarefasWidget> {
                                           Positioned.fill(child: backgroundLayer),
                                           Card(
                                             clipBehavior: Clip.hardEdge,
+                                            margin: EdgeInsets.zero,
                                             elevation: 0,
                                             shape: RoundedRectangleBorder(
                                               borderRadius:

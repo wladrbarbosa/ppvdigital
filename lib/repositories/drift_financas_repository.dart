@@ -209,18 +209,9 @@ class DriftFinancasRepository implements FinancasRepository {
           }
 
           for (final item in remote) {
-            final existing = await (database.select(database.contatos)
-                  ..where((c) => c.remoteId.equals(item.id)))
-                .getSingleOrNull();
-            if (existing != null) {
-              await (database.update(database.contatos)
-                    ..where((c) => c.remoteId.equals(item.id)))
-                  .write(toContatoCompanion(item));
-            } else {
-              await database
-                  .into(database.contatos)
-                  .insert(toContatoCompanion(item));
-            }
+            await database
+                .into(database.contatos)
+                .insertOnConflictUpdate(toContatoCompanion(item));
           }
         });
       }
@@ -279,18 +270,9 @@ class DriftFinancasRepository implements FinancasRepository {
           }
 
           for (final item in remote) {
-            final existing = await (database.select(database.contas)
-                  ..where((c) => c.remoteId.equals(item.id)))
-                .getSingleOrNull();
-            if (existing != null) {
-              await (database.update(database.contas)
-                    ..where((c) => c.remoteId.equals(item.id)))
-                  .write(toContaCompanion(item));
-            } else {
-              await database
-                  .into(database.contas)
-                  .insert(toContaCompanion(item));
-            }
+            await database
+                .into(database.contas)
+                .insertOnConflictUpdate(toContaCompanion(item));
           }
         });
       }
@@ -414,18 +396,9 @@ class DriftFinancasRepository implements FinancasRepository {
           }
 
           for (final item in remote) {
-            final existing = await (database.select(database.categoriaTransacoes)
-                  ..where((c) => c.remoteId.equals(item.id)))
-                .getSingleOrNull();
-            if (existing != null) {
-              await (database.update(database.categoriaTransacoes)
-                    ..where((c) => c.remoteId.equals(item.id)))
-                  .write(toCategoriaCompanion(item));
-            } else {
-              await database
-                  .into(database.categoriaTransacoes)
-                  .insert(toCategoriaCompanion(item));
-            }
+            await database
+                .into(database.categoriaTransacoes)
+                .insertOnConflictUpdate(toCategoriaCompanion(item));
           }
         });
       }
@@ -618,18 +591,9 @@ class DriftFinancasRepository implements FinancasRepository {
           }
 
           for (final item in remote) {
-            final existing = await (database.select(database.transacaos)
-                  ..where((t) => t.remoteId.equals(item.id)))
-                .getSingleOrNull();
-            if (existing != null) {
-              await (database.update(database.transacaos)
-                    ..where((t) => t.remoteId.equals(item.id)))
-                  .write(toTransacaoCompanion(item));
-            } else {
-              await database
-                  .into(database.transacaos)
-                  .insert(toTransacaoCompanion(item));
-            }
+            await database
+                .into(database.transacaos)
+                .insertOnConflictUpdate(toTransacaoCompanion(item));
           }
         });
       }
@@ -699,6 +663,7 @@ class DriftFinancasRepository implements FinancasRepository {
   Future<List<DivisaoTransacaoModel>> getDivisoes({
     required List<String> contatoResponsavelIds,
     bool forceLocal = false,
+    DateTime? lastSyncedAt,
   }) async {
     if (forceLocal) {
       return [];
@@ -706,6 +671,7 @@ class DriftFinancasRepository implements FinancasRepository {
     try {
       return await remoteRepository.getDivisoes(
         contatoResponsavelIds: contatoResponsavelIds,
+        lastSyncedAt: lastSyncedAt,
       );
     } catch (e) {
       log('Offline divisions fetch: $e');

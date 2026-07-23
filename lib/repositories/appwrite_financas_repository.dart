@@ -382,6 +382,7 @@ class AppwriteFinancasRepository implements FinancasRepository {
   Future<List<DivisaoTransacaoModel>> getDivisoes({
     required List<String> contatoResponsavelIds,
     bool forceLocal = false,
+    DateTime? lastSyncedAt,
   }) async {
     final TablesDB tablesDB = TablesDB(databases.client);
     final List<DivisaoTransacaoModel> allDivs = [];
@@ -393,14 +394,18 @@ class AppwriteFinancasRepository implements FinancasRepository {
             ? contatoResponsavelIds.length
             : k + 100,
       );
+      final queries = [
+        Query.equal('contatoResponsavel', chunkIds),
+        Query.select(['transacao', 'contatoResponsavel', 'peso']),
+        Query.limit(5000),
+      ];
+      if (lastSyncedAt != null) {
+        queries.add(Query.greaterThan(r'$updatedAt', lastSyncedAt.toIso8601String()));
+      }
       final divsDocs = await tablesDB.listRows(
         databaseId: Core.databaseId,
         tableId: Core.tableDivisaoTransacoes,
-        queries: [
-          Query.equal('contatoResponsavel', chunkIds),
-          Query.select(['transacao', 'contatoResponsavel', 'peso']),
-          Query.limit(5000),
-        ],
+        queries: queries,
       );
       for (final doc in divsDocs.rows) {
         final map = Map<String, dynamic>.from(doc.data);

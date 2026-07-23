@@ -122,24 +122,13 @@ class CalendarioController {
           await Core.tarefasHabitosController.loadDocuments();
         }
 
-        final TablesDB tablesDB = TablesDB(databases.client);
-        final RowList historicoDocs = await tablesDB.listRows(
-          databaseId: Core.databaseId,
-          tableId: Core.tableHistoricoTarefasHabitos,
-          queries: [
-            Query.equal('usuario', [
-              Core.loginController.currentUser?.$id ?? '',
-            ]),
-            Query.limit(5000),
-          ],
-        );
+        final String userId = Core.loginController.currentUser?.$id ?? '';
+        final List<HistoricoItemModel> historicoItems =
+            await Core.tarefaHabitoRepository.getHistorico(usuarioId: userId);
 
         _historicoList.clear();
-        _historicoList.addAll(historicoDocs.rows.toHistoricoModelList());
+        _historicoList.addAll(historicoItems);
         return true;
-      } on AppwriteException catch (e) {
-        log(e.toString());
-        return false;
       } on Exception catch (e) {
         log(e.toString());
         return false;
