@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ppvdigital/models/conta_model.dart';
+import 'package:ppvdigital/models/contato_model.dart';
 import 'package:ppvdigital/models/divisao_transacao_model.dart';
 import 'package:ppvdigital/models/transacao_model.dart';
 
@@ -103,6 +104,59 @@ void main() {
         );
 
         expect(calcularValorDivisao(t, 'userA'), equals(0.0));
+      });
+
+      test('Filtro por contato apenas inclui devedor ou credor, ignorando divisões', () {
+        final contatoA = ContatoModel(id: 'c1', ownerId: 'u1', nome: 'Contato A');
+
+        final tDevedor = TransacaoModel(
+          id: 't1',
+          descricao: 'Empréstimo A',
+          valor: 100.0,
+          tipo: 'despesa',
+          dataCompetencia: DateTime(2026, 7, 1),
+          consolidada: true,
+          devedorContato: contatoA,
+          divisoes: [],
+        );
+
+        final tDivisaoA = TransacaoModel(
+          id: 't2',
+          descricao: 'Jantar Dividido',
+          valor: 200.0,
+          tipo: 'despesa',
+          dataCompetencia: DateTime(2026, 7, 1),
+          consolidada: true,
+          divisoes: [
+            DivisaoTransacaoModel(
+              id: 'd1',
+              transacaoId: 't2',
+              contatoResponsavel: 'c1',
+              peso: 1.0,
+            ),
+          ],
+        );
+
+        final selectedContatos = {'c1'};
+
+        List<TransacaoModel> filtrarPorContato(
+          List<TransacaoModel> list,
+          Set<String> selected,
+        ) {
+          if (selected.isEmpty) return list;
+          return list.where((t) {
+            final bool isDevedor =
+                t.devedorContato != null && selected.contains(t.devedorContato!.id);
+            final bool isCredor =
+                t.credorContato != null && selected.contains(t.credorContato!.id);
+            return isDevedor || isCredor;
+          }).toList();
+        }
+
+        final result = filtrarPorContato([tDevedor, tDivisaoA], selectedContatos);
+
+        expect(result.length, equals(1));
+        expect(result.first.id, equals('t1'));
       });
     });
 

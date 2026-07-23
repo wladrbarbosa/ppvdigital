@@ -485,11 +485,7 @@ class _FinancasLayoutState extends State<FinancasLayout>
                       final bool isCredor =
                           t.credorContato != null &&
                           _selectedContatos.contains(t.credorContato!.id);
-                      final bool inDivisao = t.divisoes.any(
-                        (div) =>
-                            _selectedContatos.contains(div.contatoResponsavel),
-                      );
-                      return isDevedor || isCredor || inDivisao;
+                      return isDevedor || isCredor;
                     }).toList();
                   }
 
