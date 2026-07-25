@@ -99,10 +99,10 @@
         if (document.visibilityState === 'hidden') {
           hiddenTime = Date.now();
         } else if (document.visibilityState === 'visible') {
-          // Se o app ficou em segundo plano por mais de 30 segundos,
+          // Se o app ficou em segundo plano por mais de 10 minutos,
           // forçamos um reload preventivo caso o contexto tenha morrido silenciosamente
           const timeBackground = Date.now() - hiddenTime;
-          if (hiddenTime > 0 && timeBackground > 30000) {
+          if (hiddenTime > 0 && timeBackground > 600000) {
             console.warn('[PWA/Flutter] Retornando após tempo prolongado em background. Recarregando...');
             window.location.reload();
           }
