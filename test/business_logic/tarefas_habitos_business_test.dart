@@ -116,6 +116,52 @@ void main() {
 
         expect(result.first.vezesPraticado, equals(5.0)); // 2 registros * 2.5
       });
+
+      test('Reset de hábito mensal criado no ano anterior', () {
+        // Hábito mensal criado em 2025-01-01
+        final creationDate = DateTime(2025, 1, 1);
+        final rawList = [
+          {
+            r'$id': 'qtd_mensal',
+            'usuario': 'user1',
+            'metaVezes': 1,
+            'valor': 1.0,
+            'reiniciaEmTipo': 'meses',
+            'reiniciaEmQtd': 1,
+            'dataCriacao': creationDate.millisecondsSinceEpoch,
+          }
+        ];
+
+        final historicoList = [
+          // Praticado no ano anterior em 2025-05-10 (mês passado, não deve contar para o mês atual)
+          HistoricoItemModel(
+            id: 'hist_antigo',
+            usuario: 'user1',
+            createdAt: DateTime(2025, 5, 10),
+            tarefasEHabitos: mockHabito,
+          ),
+          // Praticado no mês passado em 2026-06-15 (mês anterior ao atual)
+          HistoricoItemModel(
+            id: 'hist_mes_passado',
+            usuario: 'user1',
+            createdAt: DateTime(2026, 6, 15),
+            tarefasEHabitos: mockHabito,
+          ),
+          // Praticado no mês atual
+          HistoricoItemModel(
+            id: 'hist_mes_atual',
+            usuario: 'user1',
+            createdAt: now,
+            tarefasEHabitos: mockHabito,
+          ),
+        ];
+
+        final result = rawList.toTarefaHabitoQtdModelList(historicoList);
+
+        expect(result.length, equals(1));
+        // Apenas o hist_mes_atual deve contar
+        expect(result.first.vezesPraticado, equals(1.0));
+      });
     });
 
     group('2. Lógica de Matriz de Calendário de Tarefas e Hábitos', () {

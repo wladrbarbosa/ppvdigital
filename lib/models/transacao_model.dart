@@ -53,6 +53,12 @@ class TransacaoModel {
       parsedRecorrencia = TransacaoRecorrenciaModel.fromMap(
         Map<String, dynamic>.from(rawRecorrencia),
       );
+    } else if (rawRecorrencia is String && rawRecorrencia.isNotEmpty) {
+      parsedRecorrencia = TransacaoRecorrenciaModel(
+        id: rawRecorrencia,
+        tipoRecorrencia: 'mês',
+        frequencia: 1,
+      );
     }
 
     final List<DivisaoTransacaoModel> parsedDivisoes = [];

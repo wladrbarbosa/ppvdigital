@@ -248,30 +248,30 @@ class AppwriteFinancasRepository implements FinancasRepository {
       baseQueries.add(
         Query.greaterThan(r'$updatedAt', lastSyncedAt.toIso8601String()),
       );
-    }
-
-    if (targetMonth != null) {
-      final firstDayOfMonth = DateTime(targetMonth.year, targetMonth.month);
-      final lastDayOfMonth = DateTime(
-        targetMonth.year,
-        targetMonth.month + 1,
-      ).subtract(const Duration(milliseconds: 1));
-      baseQueries.add(
-        Query.greaterThanEqual(
-          'dataCompetencia',
-          firstDayOfMonth.toIso8601String(),
-        ),
-      );
-      baseQueries.add(
-        Query.lessThanEqual(
-          'dataCompetencia',
-          lastDayOfMonth.toIso8601String(),
-        ),
-      );
-    } else if (beforeDate != null) {
-      baseQueries.add(
-        Query.lessThan('dataCompetencia', beforeDate.toIso8601String()),
-      );
+    } else {
+      if (targetMonth != null) {
+        final firstDayOfMonth = DateTime(targetMonth.year, targetMonth.month);
+        final lastDayOfMonth = DateTime(
+          targetMonth.year,
+          targetMonth.month + 1,
+        ).subtract(const Duration(milliseconds: 1));
+        baseQueries.add(
+          Query.greaterThanEqual(
+            'dataCompetencia',
+            firstDayOfMonth.toIso8601String(),
+          ),
+        );
+        baseQueries.add(
+          Query.lessThanEqual(
+            'dataCompetencia',
+            lastDayOfMonth.toIso8601String(),
+          ),
+        );
+      } else if (beforeDate != null) {
+        baseQueries.add(
+          Query.lessThan('dataCompetencia', beforeDate.toIso8601String()),
+        );
+      }
     }
 
     if (contaIds.isNotEmpty) {

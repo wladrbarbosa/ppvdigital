@@ -53,53 +53,50 @@ extension TarefasHabitosTransformList on List<dynamic>? {
 
           if (tarefaHabitoHistoricoList != null &&
               tarefaHabitoHistoricoList.isNotEmpty) {
-            final Duration beginningNowDiff = now.difference(beginning);
+            beginning = DateTime(
+              beginning.year,
+              beginning.month,
+              beginning.day,
+            );
+            final int daysDiff = now.difference(beginning).inDays;
             late DateTime startPeriod;
 
             switch (reiniciaEmTipo) {
               case 'dias':
-                final Duration durationToStartPeriod = Duration(
-                  days: beginningNowDiff.inDays ~/ reiniciaEmQtd,
-                );
-                beginning = DateTime(
-                  beginning.year,
-                  beginning.month,
-                  beginning.day,
-                );
-                startPeriod = beginning.add(durationToStartPeriod);
+                final int cycles = daysDiff > 0 ? (daysDiff ~/ reiniciaEmQtd) : 0;
+                startPeriod = beginning.add(Duration(days: cycles * reiniciaEmQtd));
               case 'semanas':
-                final Duration durationToStartPeriod = Duration(
-                  days:
-                      (beginningNowDiff.inDays ~/ (7 * reiniciaEmQtd)) * 7 -
-                      (beginning.weekday - 1),
-                );
-                beginning = DateTime(
-                  beginning.year,
-                  beginning.month,
-                  beginning.day,
-                );
-                startPeriod = beginning.add(durationToStartPeriod);
+                final int cycleDays = 7 * reiniciaEmQtd;
+                final int cycles = daysDiff > 0 ? (daysDiff ~/ cycleDays) : 0;
+                startPeriod = beginning.add(Duration(days: cycles * cycleDays));
               case 'meses':
-                final int monthDiff =
-                    (now.year - beginning.year) * 12 +
+                int monthDiff = (now.year - beginning.year) * 12 +
                     (now.month - beginning.month);
-                startPeriod = DateTime(
-                  beginning.year,
-                  now.month - (monthDiff % reiniciaEmQtd),
-                );
+                if (now.day < beginning.day) {
+                  monthDiff -= 1;
+                }
+                final int cycles = monthDiff < 0 ? 0 : (monthDiff ~/ reiniciaEmQtd);
+                final int totalMonths = cycles * reiniciaEmQtd;
+                final int targetMonthIdx = (beginning.month - 1) + totalMonths;
+                final int startYear = beginning.year + (targetMonthIdx ~/ 12);
+                final int startMonth = (targetMonthIdx % 12) + 1;
+                startPeriod = DateTime(startYear, startMonth, beginning.day);
               case 'anos':
-                final int yearDiff = now.year - beginning.year;
-                startPeriod = DateTime(now.year - (yearDiff % reiniciaEmQtd));
-              default:
-                final Duration durationToStartPeriod = Duration(
-                  days: beginningNowDiff.inDays ~/ reiniciaEmQtd,
-                );
-                beginning = DateTime(
-                  beginning.year,
+                int yearDiff = now.year - beginning.year;
+                final DateTime targetThisYear = DateTime(
+                  now.year,
                   beginning.month,
                   beginning.day,
                 );
-                startPeriod = beginning.add(durationToStartPeriod);
+                if (now.isBefore(targetThisYear)) {
+                  yearDiff -= 1;
+                }
+                final int cycles = yearDiff < 0 ? 0 : (yearDiff ~/ reiniciaEmQtd);
+                final int startYear = beginning.year + (cycles * reiniciaEmQtd);
+                startPeriod = DateTime(startYear, beginning.month, beginning.day);
+              default:
+                final int cycles = daysDiff > 0 ? (daysDiff ~/ reiniciaEmQtd) : 0;
+                startPeriod = beginning.add(Duration(days: cycles * reiniciaEmQtd));
             }
 
             withPeriodFilter = tarefaHabitoHistoricoList.where((el) {

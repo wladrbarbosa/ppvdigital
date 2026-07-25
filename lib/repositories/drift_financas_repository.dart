@@ -1144,6 +1144,19 @@ class DriftFinancasRepository implements FinancasRepository {
     final devedorContatoId = _extractStringId(data['devedorContato']);
     final credorContatoId = _extractStringId(data['credorContato']);
 
+    final String? recId = _extractStringId(data['recorrencia']);
+    final TransacaoRecorrenciaModel? recorrenciaModel = data['recorrencia'] is Map
+        ? TransacaoRecorrenciaModel.fromMap(
+            Map<String, dynamic>.from(data['recorrencia'] as Map),
+          )
+        : (recId != null
+            ? TransacaoRecorrenciaModel(
+                id: recId,
+                tipoRecorrencia: data['tipoRecorrencia'] as String? ?? 'mês',
+                frequencia: (data['frequencia'] as num?)?.toInt() ?? 1,
+              )
+            : null);
+
     return TransacaoModel(
       id: id,
       descricao: data['descricao'] as String? ?? '',
@@ -1175,6 +1188,7 @@ class DriftFinancasRepository implements FinancasRepository {
       credorContato: credorContatoId != null
           ? ContatoModel(id: credorContatoId, ownerId: '', nome: '')
           : null,
+      recorrencia: recorrenciaModel,
       divisoes: [],
     );
   }
