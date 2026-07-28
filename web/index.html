@@ -54,6 +54,15 @@
   </style>
 
   <script>
+    // Garante a desinstalação de Service Workers antigos acumulados no navegador do cliente
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.getRegistrations().then(function (registrations) {
+        for (let registration of registrations) {
+          registration.unregister();
+        }
+      });
+    }
+
     (function () {
       // Função para anexar os listeners no canvas do Flutter/Skwasm
       function attachWebGLProtection(canvas) {
