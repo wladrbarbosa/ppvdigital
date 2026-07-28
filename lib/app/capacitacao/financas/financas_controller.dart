@@ -47,7 +47,10 @@ class FinancasController {
   StreamSubscription? _transacoesSub;
   DateTime? _subscribedMonth;
 
-  Future<bool> loadDocuments({DateTime? selectedMonth}) async {
+  Future<bool> loadDocuments({
+    DateTime? selectedMonth,
+    bool forceSync = false,
+  }) async {
     final DateTime targetMonth = selectedMonth ?? _lastSelectedMonth;
     final bool isAlreadySubscribed =
         _contatosSub != null &&
@@ -63,6 +66,9 @@ class FinancasController {
           await Core.loginController.loadUser();
         }
         final String user = Core.loginController.currentUser?.$id ?? '';
+        if (user.isNotEmpty) {
+          Core.realtimeService.startSubscription(userId: user);
+        }
 
         // Only resubscribe to streams if month changed or streams aren't active yet
         if (!isAlreadySubscribed) {
@@ -71,7 +77,7 @@ class FinancasController {
         }
 
         // Start remote sync in background (non-blocking)
-        _syncRemoteDataInBackground(user, targetMonth);
+        _syncRemoteDataInBackground(user, targetMonth, forceSync: forceSync);
 
         return true;
       } catch (e) {
@@ -188,8 +194,9 @@ class FinancasController {
 
   Future<void> _syncRemoteDataInBackground(
     String user,
-    DateTime targetMonth,
-  ) async {
+    DateTime targetMonth, {
+    bool forceSync = false,
+  }) async {
     final now = DateTime.now();
     final String monthKey = '${targetMonth.year}_${targetMonth.month}';
     final bool monthChanged =
@@ -197,9 +204,9 @@ class FinancasController {
         _lastSyncMonth!.year != targetMonth.year ||
         _lastSyncMonth!.month != targetMonth.month;
 
-    // Skip throttling if month changed or month has never been synced in this session
+    // Skip throttling if month changed, never synced, or forceSync requested
     final bool shouldSkipThrottle =
-        monthChanged || !_syncedMonths.contains(monthKey);
+        forceSync || monthChanged || !_syncedMonths.contains(monthKey);
 
     if (!shouldSkipThrottle &&
         _lastSyncTime != null &&

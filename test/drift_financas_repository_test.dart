@@ -425,4 +425,97 @@ void main() {
     final value = await database.getSetting('pending_financas_syncs');
     expect(value, equals('updated_value_2'));
   });
+
+  test('handleRealtimeEvent deletes and upserts local transactions correctly', () async {
+    // 1. Create via Realtime
+    await driftRepository.handleRealtimeEvent(
+      tableId: '671f7a6f000cb3ab17b9',
+      action: 'create',
+      payload: {
+        '\$id': 'rt1',
+        'descricao': 'Realtime Tx 1',
+        'valor': 150.0,
+        'tipo': 'despesa',
+        'dataCompetencia': DateTime(2026, 7, 15).toIso8601String(),
+        'consolidada': true,
+      },
+    );
+
+    var rows = await database.select(database.transacaos).get();
+    expect(rows.length, equals(1));
+    expect(rows.first.remoteId, equals('rt1'));
+    expect(rows.first.descricao, equals('Realtime Tx 1'));
+
+    // 2. Update via Realtime
+    await driftRepository.handleRealtimeEvent(
+      tableId: '671f7a6f000cb3ab17b9',
+      action: 'update',
+      payload: {
+        '\$id': 'rt1',
+        'descricao': 'Realtime Tx 1 Updated',
+        'valor': 200.0,
+        'tipo': 'despesa',
+        'dataCompetencia': DateTime(2026, 7, 15).toIso8601String(),
+        'consolidada': true,
+      },
+    );
+
+    rows = await database.select(database.transacaos).get();
+    expect(rows.length, equals(1));
+    expect(rows.first.descricao, equals('Realtime Tx 1 Updated'));
+
+    // 3. Delete via Realtime
+    await driftRepository.handleRealtimeEvent(
+      tableId: '671f7a6f000cb3ab17b9',
+      action: 'delete',
+      payload: {'\$id': 'rt1'},
+    );
+
+    rows = await database.select(database.transacaos).get();
+    expect(rows, isEmpty);
+  });
+
+  test('getTransacoes reconciles deleted remote transactions when lastSyncedAt is provided', () async {
+    final t1 = TransacaoModel(
+      id: 't_active',
+      descricao: 'Active Tx',
+      valor: 100.0,
+      tipo: 'despesa',
+      dataCompetencia: DateTime(2026, 7, 10),
+      consolidada: true,
+      divisoes: [],
+    );
+    final t2 = TransacaoModel(
+      id: 't_deleted',
+      descricao: 'Deleted Tx',
+      valor: 50.0,
+      tipo: 'despesa',
+      dataCompetencia: DateTime(2026, 7, 12),
+      consolidada: true,
+      divisoes: [],
+    );
+
+    // Initial state in SQLite: contains both t1 and t2
+    await database.into(database.transacaos).insert(driftRepository.toTransacaoCompanion(t1));
+    await database.into(database.transacaos).insert(driftRepository.toTransacaoCompanion(t2));
+
+    var localRows = await database.select(database.transacaos).get();
+    expect(localRows.length, equals(2));
+
+    // Remote database only has t1 left (t2 was deleted on remote)
+    remoteRepository.transacoes = [t1];
+
+    // Incremental sync for targetMonth
+    await driftRepository.getTransacoes(
+      usuarioId: 'user1',
+      contaIds: ['c1'],
+      targetMonth: DateTime(2026, 7, 1),
+      lastSyncedAt: DateTime(2026, 7, 1),
+    );
+
+    // t_deleted should be reconciled and removed from SQLite
+    localRows = await database.select(database.transacaos).get();
+    expect(localRows.length, equals(1));
+    expect(localRows.first.remoteId, equals('t_active'));
+  });
 }

@@ -4,6 +4,7 @@ import 'dart:ui' show Color;
 
 import 'package:appwrite/appwrite.dart';
 import 'package:drift/drift.dart';
+import 'package:ppvdigital/core.dart';
 import 'package:ppvdigital/models/categorias_tarefas_habitos_model.dart';
 import 'package:ppvdigital/models/historico_item_model.dart';
 import 'package:ppvdigital/models/local/app_database.dart';
@@ -197,9 +198,25 @@ class DriftTarefaHabitoRepository implements TarefaHabitoRepository {
           }
 
           for (final doc in remoteDocs) {
-            await database.into(database.tarefaHabitos).insertOnConflictUpdate(toCompanion(doc));
+            await _upsertTarefaHabito(doc);
           }
         });
+      }
+
+      if (lastSyncedAt != null) {
+        final fullRemote =
+            await remoteRepository.getTarefasEHabitos(usuarioId: usuarioId);
+        final remoteIds = fullRemote.map((t) => t.id).toSet();
+        final pendingIds = await _getPendingIds();
+        final localRows = await localQuery.get();
+        for (final row in localRows) {
+          if (!remoteIds.contains(row.remoteId) &&
+              !pendingIds.contains(row.remoteId)) {
+            await (database.delete(database.tarefaHabitos)
+                  ..where((t) => t.remoteId.equals(row.remoteId)))
+                .go();
+          }
+        }
       }
 
       final updatedLocalDocs = await localQuery.get();
@@ -251,19 +268,25 @@ class DriftTarefaHabitoRepository implements TarefaHabitoRepository {
           }
 
           for (final item in remoteList) {
-            await database
-                .into(database.historicoTarefasHabitos)
-                .insert(
-                  HistoricoTarefasHabitosCompanion.insert(
-                    remoteId: item.id,
-                    usuario: item.usuario.isNotEmpty ? item.usuario : usuarioId,
-                    tarefaHabitoId: item.tarefasEHabitos.id,
-                    createdAt: item.createdAt,
-                  ),
-                  mode: InsertMode.insertOrReplace,
-                );
+            await _upsertHistoricoItem(item);
           }
         });
+      }
+
+      if (lastSyncedAt != null) {
+        final fullRemote =
+            await remoteRepository.getHistorico(usuarioId: usuarioId);
+        final remoteIds = fullRemote.map((h) => h.id).toSet();
+        final pendingIds = await _getPendingIds();
+        final localRows = await localQuery.get();
+        for (final row in localRows) {
+          if (!remoteIds.contains(row.remoteId) &&
+              !pendingIds.contains(row.remoteId)) {
+            await (database.delete(database.historicoTarefasHabitos)
+                  ..where((h) => h.remoteId.equals(row.remoteId)))
+                .go();
+          }
+        }
       }
 
       final updatedLocalRows = await localQuery.get();
@@ -644,5 +667,132 @@ class DriftTarefaHabitoRepository implements TarefaHabitoRepository {
     final query = database.select(database.tarefaHabitos)
       ..where((t) => t.usuario.equals(usuarioId));
     return query.watch().map((rows) => rows.map(toDomain).toList());
+  }
+
+  Future<Set<String>> _getPendingIds() async {
+    final syncs = await _getPendingSyncs();
+    final Set<String> ids = {};
+    for (final item in syncs) {
+      final rowId = item['id'] as String? ?? item['rowId'] as String?;
+      if (rowId != null && rowId.isNotEmpty) ids.add(rowId);
+    }
+    return ids;
+  }
+
+  Future<void> _upsertTarefaHabito(TarefaHabitoModel model) async {
+    final existing = await (database.select(database.tarefaHabitos)
+          ..where((t) => t.remoteId.equals(model.id)))
+        .getSingleOrNull();
+    if (existing != null) {
+      await (database.update(database.tarefaHabitos)
+            ..where((t) => t.remoteId.equals(model.id)))
+          .write(toCompanion(model));
+    } else {
+      await database.into(database.tarefaHabitos).insert(toCompanion(model));
+    }
+  }
+
+  Future<void> _upsertHistoricoItem(HistoricoItemModel model) async {
+    final existing = await (database.select(database.historicoTarefasHabitos)
+          ..where((h) => h.remoteId.equals(model.id)))
+        .getSingleOrNull();
+    if (existing != null) {
+      await (database.update(database.historicoTarefasHabitos)
+            ..where((h) => h.remoteId.equals(model.id)))
+          .write(
+            HistoricoTarefasHabitosCompanion(
+              remoteId: Value(model.id),
+              usuario: Value(model.usuario),
+              createdAt: Value(model.createdAt),
+              tarefaHabitoId: Value(model.tarefasEHabitos.id),
+            ),
+          );
+    } else {
+      await database.into(database.historicoTarefasHabitos).insert(
+            HistoricoTarefasHabitosCompanion.insert(
+              remoteId: model.id,
+              usuario: model.usuario,
+              createdAt: model.createdAt,
+              tarefaHabitoId: model.tarefasEHabitos.id,
+            ),
+          );
+    }
+  }
+
+  Future<void> _upsertHistoricoPayload(Map<String, dynamic> payload) async {
+    final String rowId =
+        payload[r'$id'] as String? ?? payload['id'] as String? ?? '';
+    if (rowId.isEmpty) return;
+
+    final String usuario = payload['usuario'] as String? ?? '';
+    final String createdAtStr =
+        payload[r'$createdAt'] as String? ?? payload['createdAt'] as String? ?? '';
+    final DateTime createdAt =
+        DateTime.tryParse(createdAtStr) ?? DateTime.now();
+
+    final dynamic rawTarefa = payload['tarefasEHabitos'];
+    String tarefaId = '';
+    if (rawTarefa is Map) {
+      tarefaId = (rawTarefa[r'$id'] ?? rawTarefa['id'] ?? '') as String;
+    } else if (rawTarefa is String) {
+      tarefaId = rawTarefa;
+    }
+
+    final existing = await (database.select(database.historicoTarefasHabitos)
+          ..where((h) => h.remoteId.equals(rowId)))
+        .getSingleOrNull();
+
+    if (existing != null) {
+      await (database.update(database.historicoTarefasHabitos)
+            ..where((h) => h.remoteId.equals(rowId)))
+          .write(
+            HistoricoTarefasHabitosCompanion(
+              remoteId: Value(rowId),
+              usuario: Value(usuario),
+              createdAt: Value(createdAt),
+              tarefaHabitoId: Value(tarefaId),
+            ),
+          );
+    } else {
+      await database.into(database.historicoTarefasHabitos).insert(
+            HistoricoTarefasHabitosCompanion.insert(
+              remoteId: rowId,
+              usuario: usuario,
+              createdAt: createdAt,
+              tarefaHabitoId: tarefaId,
+            ),
+          );
+    }
+  }
+
+  Future<void> handleRealtimeEvent({
+    required String tableId,
+    required String action,
+    required Map<String, dynamic> payload,
+  }) async {
+    final String rowId =
+        payload[r'$id'] as String? ?? payload['id'] as String? ?? '';
+    if (rowId.isEmpty) return;
+
+    await database.transaction(() async {
+      if (action == 'delete') {
+        if (tableId == Core.tableTarefasEHabitos) {
+          await (database.delete(database.tarefaHabitos)
+                ..where((t) => t.remoteId.equals(rowId)))
+              .go();
+        } else if (tableId == Core.tableHistoricoTarefasHabitos) {
+          await (database.delete(database.historicoTarefasHabitos)
+                ..where((h) => h.remoteId.equals(rowId)))
+              .go();
+        }
+      } else if (action == 'create' || action == 'update') {
+        if (tableId == Core.tableTarefasEHabitos) {
+          final model = TarefaHabitoModel.fromMap(payload);
+          await _upsertTarefaHabito(model);
+        } else if (tableId == Core.tableHistoricoTarefasHabitos) {
+          await _upsertHistoricoPayload(payload);
+        }
+      }
+    });
   }
 }

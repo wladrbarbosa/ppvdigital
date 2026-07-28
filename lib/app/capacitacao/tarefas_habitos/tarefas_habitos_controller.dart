@@ -276,13 +276,16 @@ class TarefasHabitosController {
 
   StreamSubscription? _tarefasHabitosSub;
 
-  Future<bool> loadDocuments() async {
+  Future<bool> loadDocuments({bool forceSync = false}) async {
     return await mobx.runInAction(() async {
       try {
         if (Core.loginController.currentUser == null) {
           await Core.loginController.loadUser();
         }
         final String userId = Core.loginController.currentUser?.$id ?? '';
+        if (userId.isNotEmpty) {
+          Core.realtimeService.startSubscription(userId: userId);
+        }
 
         // 1. Subscribe to Drift streams reactively
         _tarefasHabitosSub?.cancel();
@@ -302,7 +305,7 @@ class TarefasHabitosController {
         });
 
         // 2. Start remote sync in background (non-blocking)
-        _syncRemoteDataInBackground(userId);
+        _syncRemoteDataInBackground(userId, forceSync: forceSync);
 
         return true;
       } on Exception catch (e) {
@@ -314,9 +317,13 @@ class TarefasHabitosController {
 
   DateTime? _lastSyncTime;
 
-  Future<void> _syncRemoteDataInBackground(String userId) async {
+  Future<void> _syncRemoteDataInBackground(
+    String userId, {
+    bool forceSync = false,
+  }) async {
     final now = DateTime.now();
-    if (_lastSyncTime != null &&
+    if (!forceSync &&
+        _lastSyncTime != null &&
         now.difference(_lastSyncTime!) < const Duration(minutes: 3)) {
       return;
     }

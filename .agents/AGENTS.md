@@ -79,4 +79,13 @@ Welcome agent! This file contains project-specific guidelines, technical rules, 
   * **Rule:** Always evaluate if `README.md` needs to be updated to document the new architecture, dependencies, or features.
   * **Rule:** Always evaluate and update existing unit/integration tests under `test/` (or add new test cases) to ensure business logic coverage remains complete and valid.
 
+---
+
+## 9. Realtime Synchronization & Scope Reconciliation
+* **User-Scoped Appwrite Realtime & Deletion Reconciliation (Finanças & Tarefas/Hábitos):**
+  To guarantee multi-device state consistency across all modules without overwhelming server resources:
+  * **Rule:** Appwrite Realtime subscriptions (`AppwriteRealtimeService`) must be scoped per authenticated user (`user.[userId]`) and handle events across all active domain collections (Finanças and Tarefas/Hábitos).
+  * **Rule:** When performing incremental delta syncs (`lastSyncedAt != null`), repositories (`DriftFinancasRepository`, `DriftTarefaHabitoRepository`) must reconcile active remote document IDs against local Drift SQLite rows for the active scope (e.g. target month, active user tasks) and delete local rows that no longer exist on remote (unless present in pending offline sync queue).
+
+
 

@@ -15,6 +15,7 @@ import 'package:ppvdigital/repositories/drift_financas_repository.dart';
 import 'package:ppvdigital/repositories/drift_tarefa_habito_repository.dart';
 import 'package:ppvdigital/repositories/financas_repository.dart';
 import 'package:ppvdigital/repositories/tarefa_habito_repository.dart';
+import 'package:ppvdigital/services/appwrite_realtime_service.dart';
 
 extension HexColor on Color {
   /// String is in the format "aabbcc" or "ffaabbcc" with an optional leading "#".
@@ -83,10 +84,16 @@ class Core {
       getIt<CalendarioController>();
   static CategoriasController get categoriasController =>
       getIt<CategoriasController>();
+  static AppwriteRealtimeService get realtimeService =>
+      getIt<AppwriteRealtimeService>();
 
   static void initialize(AppDatabase dbInstance) {
     if (!getIt.isRegistered<AppDatabase>()) {
       getIt.registerSingleton<AppDatabase>(dbInstance);
+
+      getIt.registerSingleton<AppwriteRealtimeService>(
+        AppwriteRealtimeService(client),
+      );
 
       getIt.registerSingleton<TarefaHabitoRepository>(
         DriftTarefaHabitoRepository(
@@ -116,6 +123,9 @@ class Core {
   }
 
   static void resetAllControllers() {
+    if (getIt.isRegistered<AppwriteRealtimeService>()) {
+      getIt<AppwriteRealtimeService>().stopSubscription();
+    }
     if (getIt.isRegistered<FinancasController>()) {
       getIt<FinancasController>().reset();
     }
@@ -134,5 +144,5 @@ class Core {
   }
 
   static GlobalKey<TarefasPageState> globalKey = GlobalKey<TarefasPageState>();
-  static const String appVersion = 'b0.20.11+1';
+  static const String appVersion = 'b0.21.0+1';
 }

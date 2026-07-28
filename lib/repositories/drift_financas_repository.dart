@@ -209,11 +209,24 @@ class DriftFinancasRepository implements FinancasRepository {
           }
 
           for (final item in remote) {
-            await database
-                .into(database.contatos)
-                .insertOnConflictUpdate(toContatoCompanion(item));
+            await _upsertContato(item);
           }
         });
+      }
+      if (lastSyncedAt != null) {
+        final fullRemote =
+            await remoteRepository.getContatos(usuarioId: usuarioId);
+        final remoteIds = fullRemote.map((c) => c.id).toSet();
+        final pendingIds = await _getPendingIds();
+        final localRows = await localQuery.get();
+        for (final row in localRows) {
+          if (!remoteIds.contains(row.remoteId) &&
+              !pendingIds.contains(row.remoteId)) {
+            await (database.delete(database.contatos)
+                  ..where((c) => c.remoteId.equals(row.remoteId)))
+                .go();
+          }
+        }
       }
       return (await localQuery.get()).map(toContatoDomain).toList();
     } catch (e) {
@@ -270,11 +283,23 @@ class DriftFinancasRepository implements FinancasRepository {
           }
 
           for (final item in remote) {
-            await database
-                .into(database.contas)
-                .insertOnConflictUpdate(toContaCompanion(item));
+            await _upsertConta(item);
           }
         });
+      }
+      if (lastSyncedAt != null) {
+        final fullRemote = await remoteRepository.getContas(usuarioId: usuarioId);
+        final remoteIds = fullRemote.map((c) => c.id).toSet();
+        final pendingIds = await _getPendingIds();
+        final localRows = await localQuery.get();
+        for (final row in localRows) {
+          if (!remoteIds.contains(row.remoteId) &&
+              !pendingIds.contains(row.remoteId)) {
+            await (database.delete(database.contas)
+                  ..where((c) => c.remoteId.equals(row.remoteId)))
+                .go();
+          }
+        }
       }
       return (await localQuery.get()).map(toContaDomain).toList();
     } catch (e) {
@@ -396,11 +421,24 @@ class DriftFinancasRepository implements FinancasRepository {
           }
 
           for (final item in remote) {
-            await database
-                .into(database.categoriaTransacoes)
-                .insertOnConflictUpdate(toCategoriaCompanion(item));
+            await _upsertCategoria(item);
           }
         });
+      }
+      if (lastSyncedAt != null) {
+        final fullRemote =
+            await remoteRepository.getCategorias(usuarioId: usuarioId);
+        final remoteIds = fullRemote.map((c) => c.id).toSet();
+        final pendingIds = await _getPendingIds();
+        final localRows = await localQuery.get();
+        for (final row in localRows) {
+          if (!remoteIds.contains(row.remoteId) &&
+              !pendingIds.contains(row.remoteId)) {
+            await (database.delete(database.categoriaTransacoes)
+                  ..where((c) => c.remoteId.equals(row.remoteId)))
+                .go();
+          }
+        }
       }
       return (await localQuery.get()).map(toCategoriaDomain).toList();
     } catch (e) {
@@ -591,11 +629,47 @@ class DriftFinancasRepository implements FinancasRepository {
           }
 
           for (final item in remote) {
-            await database
-                .into(database.transacaos)
-                .insertOnConflictUpdate(toTransacaoCompanion(item));
+            await _upsertTransacao(item);
           }
         });
+      }
+
+      if (lastSyncedAt != null && targetMonth != null && contaIds.isNotEmpty) {
+        final activeRemote = await remoteRepository.getTransacoes(
+          usuarioId: usuarioId,
+          contaIds: contaIds,
+          targetMonth: targetMonth,
+          lightweight: true,
+        );
+        final activeIds = activeRemote.map((t) => t.id).toSet();
+        final pendingIds = await _getPendingIds();
+
+        final firstDayOfMonth = DateTime(targetMonth.year, targetMonth.month);
+        final lastDayOfMonth = DateTime(
+          targetMonth.year,
+          targetMonth.month + 1,
+        ).subtract(const Duration(milliseconds: 1));
+
+        final scopeQuery = database.select(database.transacaos)
+          ..where(
+            (t) =>
+                t.dataCompetencia.isBiggerThanValue(
+                  firstDayOfMonth.subtract(const Duration(seconds: 1)),
+                ) &
+                t.dataCompetencia.isSmallerThanValue(
+                  lastDayOfMonth.add(const Duration(seconds: 1)),
+                ),
+          );
+
+        final localRowsInMonth = await scopeQuery.get();
+        for (final row in localRowsInMonth) {
+          if (!activeIds.contains(row.remoteId) &&
+              !pendingIds.contains(row.remoteId)) {
+            await (database.delete(database.transacaos)
+                  ..where((t) => t.remoteId.equals(row.remoteId)))
+                .go();
+          }
+        }
       }
 
       final updatedLocalTrans = await localQuery.get();
@@ -1191,5 +1265,145 @@ class DriftFinancasRepository implements FinancasRepository {
       recorrencia: recorrenciaModel,
       divisoes: [],
     );
+  }
+
+  Future<Set<String>> _getPendingIds() async {
+    final syncs = await _getPendingSyncs();
+    final Set<String> ids = {};
+    for (final item in syncs) {
+      final actionType = item['actionType'] as String?;
+      if (actionType == 'executeBatchOperations') {
+        final opsStr = item['operations'] as String?;
+        if (opsStr != null) {
+          try {
+            final ops = List<Map<String, dynamic>>.from(
+              json.decode(opsStr) as List,
+            );
+            for (final op in ops) {
+              final rowId = op['rowId'] as String?;
+              if (rowId != null && rowId.isNotEmpty) ids.add(rowId);
+            }
+          } catch (_) {}
+        }
+      } else {
+        final rowId = item['rowId'] as String? ?? item['id'] as String?;
+        if (rowId != null && rowId.isNotEmpty) ids.add(rowId);
+      }
+    }
+    return ids;
+  }
+
+  Future<void> handleRealtimeEvent({
+    required String tableId,
+    required String action,
+    required Map<String, dynamic> payload,
+  }) async {
+    final String rowId =
+        payload[r'$id'] as String? ?? payload['id'] as String? ?? '';
+    if (rowId.isEmpty) return;
+
+    await database.transaction(() async {
+      if (action == 'delete') {
+        if (tableId == Core.tableTransacoes) {
+          await (database.delete(database.transacaos)
+                ..where((t) => t.remoteId.equals(rowId)))
+              .go();
+        } else if (tableId == Core.tableContas) {
+          await (database.delete(database.contas)
+                ..where((c) => c.remoteId.equals(rowId)))
+              .go();
+        } else if (tableId == Core.tableCategoriasTransacoes) {
+          await (database.delete(database.categoriaTransacoes)
+                ..where((c) => c.remoteId.equals(rowId)))
+              .go();
+        } else if (tableId == Core.tableContatos) {
+          await (database.delete(database.contatos)
+                ..where((c) => c.remoteId.equals(rowId)))
+              .go();
+        } else if (tableId == Core.tableDivisaoTransacoes) {
+          final allTx = await database.select(database.transacaos).get();
+          for (final tx in allTx) {
+            if (tx.divisoes.any((d) => d.id == rowId)) {
+              final updatedDivs = List<DivisaoTransacaoModel>.from(tx.divisoes)
+                ..removeWhere((d) => d.id == rowId);
+              await (database.update(database.transacaos)
+                    ..where((t) => t.remoteId.equals(tx.remoteId)))
+                  .write(TransacaosCompanion(divisoes: Value(updatedDivs)));
+              break;
+            }
+          }
+        }
+      } else if (action == 'create' || action == 'update') {
+        if (tableId == Core.tableTransacoes) {
+          final model = TransacaoModel.fromMap(payload);
+          await _upsertTransacao(model);
+        } else if (tableId == Core.tableContas) {
+          final model = ContaModel.fromMap(payload);
+          await _upsertConta(model);
+        } else if (tableId == Core.tableCategoriasTransacoes) {
+          final model = CategoriaTransacaoModel.fromMap(payload);
+          await _upsertCategoria(model);
+        } else if (tableId == Core.tableContatos) {
+          final model = ContatoModel.fromMap(payload);
+          await _upsertContato(model);
+        }
+      }
+    });
+  }
+
+  Future<void> _upsertTransacao(TransacaoModel model) async {
+    final existing = await (database.select(database.transacaos)
+          ..where((t) => t.remoteId.equals(model.id)))
+        .getSingleOrNull();
+    if (existing != null) {
+      await (database.update(database.transacaos)
+            ..where((t) => t.remoteId.equals(model.id)))
+          .write(toTransacaoCompanion(model));
+    } else {
+      await database
+          .into(database.transacaos)
+          .insert(toTransacaoCompanion(model));
+    }
+  }
+
+  Future<void> _upsertConta(ContaModel model) async {
+    final existing = await (database.select(database.contas)
+          ..where((c) => c.remoteId.equals(model.id)))
+        .getSingleOrNull();
+    if (existing != null) {
+      await (database.update(database.contas)
+            ..where((c) => c.remoteId.equals(model.id)))
+          .write(toContaCompanion(model));
+    } else {
+      await database.into(database.contas).insert(toContaCompanion(model));
+    }
+  }
+
+  Future<void> _upsertCategoria(CategoriaTransacaoModel model) async {
+    final existing = await (database.select(database.categoriaTransacoes)
+          ..where((c) => c.remoteId.equals(model.id)))
+        .getSingleOrNull();
+    if (existing != null) {
+      await (database.update(database.categoriaTransacoes)
+            ..where((c) => c.remoteId.equals(model.id)))
+          .write(toCategoriaCompanion(model));
+    } else {
+      await database
+          .into(database.categoriaTransacoes)
+          .insert(toCategoriaCompanion(model));
+    }
+  }
+
+  Future<void> _upsertContato(ContatoModel model) async {
+    final existing = await (database.select(database.contatos)
+          ..where((c) => c.remoteId.equals(model.id)))
+        .getSingleOrNull();
+    if (existing != null) {
+      await (database.update(database.contatos)
+            ..where((c) => c.remoteId.equals(model.id)))
+          .write(toContatoCompanion(model));
+    } else {
+      await database.into(database.contatos).insert(toContatoCompanion(model));
+    }
   }
 }

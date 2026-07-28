@@ -5,7 +5,7 @@
 ![MobX](https://img.shields.io/badge/State-MobX-orange)
 ![Drift](https://img.shields.io/badge/Database-Drift%20SQLite-lightgrey)
 ![Appwrite](https://img.shields.io/badge/Backend-Appwrite-FD366E?logo=appwrite)
-![Tests](https://img.shields.io/badge/Tests-26%2F26%20Passed-brightgreen)
+![Tests](https://img.shields.io/badge/Tests-35%2F35%20Passed-brightgreen)
 
 O **PPVDigital** é uma plataforma completa desenvolvida em Flutter (Web/Mobile) para planejamento pessoal, acompanhamento de hábitos, gestão de tarefas e controle financeiro pessoal e compartilhado. O projeto traz para o formato digital o conceito do **Projeto Pessoal de Vida (PPV)**, com foco em capacitação, acompanhamento de métricas e funcionamento offline transparente.
 
@@ -22,7 +22,8 @@ A aplicação adota uma arquitetura reativa, offline-first e modularizada por co
 - **Framework**: [Flutter](https://flutter.dev) (gerenciado via **FVM** - Flutter Version Manager).
 - **Gerenciamento de Estado**: [MobX](https://pub.dev/packages/mobx) e `flutter_mobx` utilizando reatividade com instanciações manuais (`mobx.Observable`) e mutações seguras via `mobx.runInAction()`.
 - **Banco de Dados Local & Cache Offline**: [Drift](https://drift.simonbinder.eu/) (SQLite reativo), permitindo navegação rápida sem dependência imediata de rede.
-- **Backend & Backend-as-a-Service (BaaS)**: [Appwrite SDK](https://appwrite.io), gerenciando autenticação de usuários, sessões e persistência remota no banco de dados.
+- **Backend & Backend-as-a-Service (BaaS)**: [Appwrite SDK](https://appwrite.io), gerenciando autenticação, sessões, persistência remota e **Appwrite Realtime (WebSockets)** escopado por usuário para sincronização instantânea inter-dispositivos.
+- **Arquitetura Híbrida de Sincronização**: Combinação de mutações REST API, canal Realtime Pub/Sub WebSocket para atualizações ativas, e **Delta Sync com Reconciliação de Exclusões** ao retomar o foco da aplicação (`AppLifecycleState.resumed`).
 - **Roteamento Baseado em Arquivos**: [Routefly](https://github.com/wladrbarbosa/routefly) para navegação declarativa baseada na estrutura do sistema de arquivos.
 - **Visualização de Dados**: `fl_chart`, `timeline_tile`, `flutter_animation_progress_bar` e `syncfusion_flutter_calendar`.
 
@@ -71,9 +72,9 @@ Acompanhamento do desenvolvimento pessoal através da criação e monitoramento 
 - **Meta Atingida**: Hábito considerado concluído no ciclo quando $\text{vezesPraticado} \ge \text{metaVezes}$.
 
 #### Matriz de Calendário, Histórico e Cache Reativo
-- Matriz dinâmica de dias (35 ou 42 células) gerada pelo `CalendarioController` exibindo preenchimento dos dias vizinhos.
+- Matriz dinâmica de dias (35 ou 42 células) gerada pelo `CalendarioController` exibindo o preenchimento dos dias vizinhos.
 - Histórico imutável de execuções (`HistoricoItemModel`) registrado no banco local e sincronizado remotamente.
-- **Cache-First & Sincronização Incremental (Delta Sync)**: Renderização instantânea dos hábitos e tarefas diretamente do Drift SQLite, com sincronização em segundo plano filtrando registros alterados via `$updatedAt` e timestamps salvos em `AppSettings`.
+- **Cache-First, Delta Sync & Realtime WebSockets**: Renderização instantânea dos hábitos e tarefas diretamente do Drift SQLite, com atualização em tempo real via WebSockets (`AppwriteRealtimeService`), reconciliação de itens excluídos remotamente e sincronização incremental em segundo plano filtrando registros alterados via `$updatedAt` e timestamps salvos em `AppSettings`.
 
 ---
 
@@ -129,7 +130,8 @@ fvm flutter test
 - `test/business_logic/tarefas_habitos_business_test.dart`: Testes de janelas de reinício de hábitos, progresso de metas e matriz de calendário.
 - `test/business_logic/login_business_test.dart`: Testes de validação de formulários e estados da sessão de autenticação.
 - `test/business_logic/drift_cache_sync_test.dart`: Teste automatizado que varre a codebase para garantir que nenhuma consulta viole a regra do `Query.select()` do Appwrite, e teste de preservação do cache local Drift.
-- `test/drift_financas_repository_test.dart`: Testes de integração das operações no banco SQLite local.
+- `test/drift_financas_repository_test.dart`: Testes de integração das operações de finanças e realtime no banco SQLite local.
+- `test/drift_tarefa_habito_repository_test.dart`: Testes de integração das operações de tarefas/hábitos e realtime no banco SQLite local.
 - `test/widget_test.dart`: Teste de fumaça de instanciação de widgets.
 
 ---

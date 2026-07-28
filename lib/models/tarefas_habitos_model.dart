@@ -62,20 +62,27 @@ class TarefaHabitoModel {
   }
 
   factory TarefaHabitoModel.fromMap(Map<String, dynamic> map) {
+    final String docId = (map[r'$id'] ?? map['id'] ?? '') as String;
+    final dynamic rawMetas = map['metas'] ?? map['tarefaHabitoQtd'];
+    List<TarefaHabitoQtdModel> metas = [];
+    if (rawMetas is List) {
+      metas = rawMetas
+          .where((x) => x is Map)
+          .map((x) => TarefaHabitoQtdModel.fromMap(Map<String, dynamic>.from(x as Map)))
+          .toList();
+    }
     return TarefaHabitoModel(
-      id: map['id'] as String,
-      nome: map['nome'] as String,
-      tipo: map['tipo'] as String,
-      usuario: map['usuario'] as String,
-      concluida: map['concluida'] as bool,
+      id: docId,
+      nome: (map['nome'] ?? '') as String,
+      tipo: (map['tipo'] ?? 'tarefa') as String,
+      usuario: (map['usuario'] ?? '') as String,
+      concluida: map['concluida'] is bool ? map['concluida'] as bool : false,
       agendamento: map['agendamento'] != null
-          ? DateTime.fromMillisecondsSinceEpoch(map['agendamento'] as int)
+          ? (map['agendamento'] is int
+              ? DateTime.fromMillisecondsSinceEpoch(map['agendamento'] as int)
+              : DateTime.tryParse(map['agendamento'].toString()))
           : null,
-      tarefasHabitosQtd: List<TarefaHabitoQtdModel>.from(
-        (map['tarefaHabitoQtd'] as List<dynamic>).map<TarefaHabitoQtdModel>(
-          (x) => TarefaHabitoQtdModel.fromMap(x as Map<String, dynamic>),
-        ),
-      ),
+      tarefasHabitosQtd: metas,
       duration: map['duration'] is num
           ? (map['duration'] as num).toInt()
           : null,

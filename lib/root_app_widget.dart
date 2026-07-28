@@ -38,6 +38,10 @@ class _RootAppWidgetState extends State<RootAppWidget>
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
       log('AppLifecycleState.resumed');
+      if (Core.loginController.currentUser != null) {
+        Core.financasController.loadDocuments(forceSync: true);
+        Core.tarefasHabitosController.loadDocuments(forceSync: true);
+      }
       if (kIsWeb) {
         WidgetsBinding.instance.scheduleFrame();
         Future.delayed(const Duration(milliseconds: 50), () {
