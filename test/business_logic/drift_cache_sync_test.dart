@@ -30,7 +30,7 @@ void main() {
     });
 
     group('2. Preservação de Cache Local no Drift SQLite', () {
-      test('Resultados de consultas leves (lightweight) não devem corromper dados locais completos', () {
+      test('Resultados de consultas parciais não devem corromper dados locais completos', () {
         const fullTransactionData = {
           'id': 't1',
           'descricao': 'Supermercado Completo',
@@ -41,7 +41,7 @@ void main() {
 
         const partialTransactionData = {
           'id': 't1',
-          'descricao': null, // Query leve sem o atributo descrição
+          'descricao': null, // Query parcial sem o atributo descrição
           'valor': 250.0,
           'tipo': 'despesa',
           'consolidada': true,
@@ -50,18 +50,15 @@ void main() {
         Map<String, dynamic>? localCache = Map.from(fullTransactionData);
 
         // Função utilitária que simula a lógica de atualização com proteção de cache
-        void updateLocalCache(Map<String, dynamic> incoming, {required bool isLightweight}) {
-          if (isLightweight) {
-            // Se for resposta leve, apenas atualiza valores não-nulos ou mantém em memória sem sobrescrever o banco local
-            if (localCache != null && incoming['descricao'] == null) {
-              return; // Preserva o dado completo pré-existente
-            }
+        void updateLocalCache(Map<String, dynamic> incoming) {
+          if (localCache != null && incoming['descricao'] == null) {
+            return; // Preserva o dado completo pré-existente
           }
           localCache = Map.from(incoming);
         }
 
-        // Tentar atualizar com dado parcial (lightweight)
-        updateLocalCache(partialTransactionData, isLightweight: true);
+        // Tentar atualizar com dado parcial
+        updateLocalCache(partialTransactionData);
 
         // O cache deve ter mantido a descrição completa
         expect(localCache?['descricao'], equals('Supermercado Completo'));

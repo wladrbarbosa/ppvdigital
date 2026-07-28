@@ -65,7 +65,6 @@ abstract class FinancasRepository {
     required List<String> contaIds,
     DateTime? targetMonth,
     DateTime? beforeDate,
-    bool lightweight = false,
     bool forceLocal = false,
     DateTime? lastSyncedAt,
   });

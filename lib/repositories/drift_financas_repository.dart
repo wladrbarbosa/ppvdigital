@@ -529,7 +529,6 @@ class DriftFinancasRepository implements FinancasRepository {
     required List<String> contaIds,
     DateTime? targetMonth,
     DateTime? beforeDate,
-    bool lightweight = false,
     bool forceLocal = false,
     DateTime? lastSyncedAt,
   }) async {
@@ -594,11 +593,10 @@ class DriftFinancasRepository implements FinancasRepository {
         contaIds: contaIds,
         targetMonth: targetMonth,
         beforeDate: beforeDate,
-        lightweight: lightweight,
         lastSyncedAt: lastSyncedAt,
       );
 
-      if (!lightweight && (remote.isNotEmpty || lastSyncedAt == null)) {
+      if (remote.isNotEmpty || lastSyncedAt == null) {
         await database.transaction(() async {
           if (lastSyncedAt == null) {
             final deleteQuery = database.delete(database.transacaos);
@@ -639,7 +637,6 @@ class DriftFinancasRepository implements FinancasRepository {
           usuarioId: usuarioId,
           contaIds: contaIds,
           targetMonth: targetMonth,
-          lightweight: true,
         );
         final activeIds = activeRemote.map((t) => t.id).toSet();
         final pendingIds = await _getPendingIds();

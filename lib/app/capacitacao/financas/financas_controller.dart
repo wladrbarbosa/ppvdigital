@@ -266,14 +266,10 @@ class FinancasController {
       );
 
       if (contaIds.isNotEmpty) {
-        final String? monthSyncedSetting = await Core.database.getSetting(
-          'synced_month_$monthKey',
-        );
         final bool isMonthAlreadySynced =
-            monthSyncedSetting != null || _syncedMonths.contains(monthKey);
+            !forceSync && _syncedMonths.contains(monthKey);
 
         // 3. Fetch and cache transactions for targetMonth:
-        // Pass lastSyncedAt ONLY if this targetMonth was already full-synced once.
         await repository.getTransacoes(
           usuarioId: user,
           contaIds: contaIds,
@@ -292,7 +288,8 @@ class FinancasController {
         final String? pastSyncedSetting = await Core.database.getSetting(
           'synced_past_financas',
         );
-        final bool isPastAlreadySynced = pastSyncedSetting != null;
+        final bool isPastAlreadySynced =
+            !forceSync && pastSyncedSetting != null && _syncedMonths.contains('past');
 
         await repository.getTransacoes(
           usuarioId: user,
@@ -300,6 +297,7 @@ class FinancasController {
           beforeDate: firstDayOfMonth,
           lastSyncedAt: isPastAlreadySynced ? lastSyncedAt : null,
         );
+        _syncedMonths.add('past');
         await Core.database.setSetting(
           'synced_past_financas',
           now.toIso8601String(),

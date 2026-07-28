@@ -206,72 +206,59 @@ class AppwriteFinancasRepository implements FinancasRepository {
     required List<String> contaIds,
     DateTime? targetMonth,
     DateTime? beforeDate,
-    bool lightweight = false,
     bool forceLocal = false,
     DateTime? lastSyncedAt,
   }) async {
     final TablesDB tablesDB = TablesDB(databases.client);
     final List<TransacaoModel> loadedTrans = [];
 
-    final List<String> selectFields = lightweight
-        ? [
-            'valor',
-            'tipo',
-            'conta.*',
-            'contaDestino.*',
-            'consolidada',
-            'dataCompetencia',
-            'categoria.*',
-            'devedorContato.*',
-            'credorContato.*',
-          ]
-        : [
-            'descricao',
-            'valor',
-            'tipo',
-            'dataCompetencia',
-            'consolidada',
-            'conta.*',
-            'contaDestino.*',
-            'categoria.*',
-            'recorrencia.*',
-            'devedorContato.*',
-            'credorContato.*',
-          ];
+    final List<String> selectFields = [
+      'descricao',
+      'valor',
+      'tipo',
+      'dataCompetencia',
+      'consolidada',
+      'conta.*',
+      'contaDestino.*',
+      'categoria.*',
+      'recorrencia.*',
+      'devedorContato.*',
+      'credorContato.*',
+    ];
 
     final List<String> baseQueries = [
       Query.select(selectFields),
       Query.limit(5000),
     ];
 
+    if (targetMonth != null) {
+      final firstDayOfMonth = DateTime(targetMonth.year, targetMonth.month);
+      final lastDayOfMonth = DateTime(
+        targetMonth.year,
+        targetMonth.month + 1,
+      ).subtract(const Duration(milliseconds: 1));
+      baseQueries.add(
+        Query.greaterThanEqual(
+          'dataCompetencia',
+          firstDayOfMonth.toIso8601String(),
+        ),
+      );
+      baseQueries.add(
+        Query.lessThanEqual(
+          'dataCompetencia',
+          lastDayOfMonth.toIso8601String(),
+        ),
+      );
+    } else if (beforeDate != null) {
+      baseQueries.add(
+        Query.lessThan('dataCompetencia', beforeDate.toIso8601String()),
+      );
+    }
+
     if (lastSyncedAt != null) {
       baseQueries.add(
         Query.greaterThan(r'$updatedAt', lastSyncedAt.toIso8601String()),
       );
-    } else {
-      if (targetMonth != null) {
-        final firstDayOfMonth = DateTime(targetMonth.year, targetMonth.month);
-        final lastDayOfMonth = DateTime(
-          targetMonth.year,
-          targetMonth.month + 1,
-        ).subtract(const Duration(milliseconds: 1));
-        baseQueries.add(
-          Query.greaterThanEqual(
-            'dataCompetencia',
-            firstDayOfMonth.toIso8601String(),
-          ),
-        );
-        baseQueries.add(
-          Query.lessThanEqual(
-            'dataCompetencia',
-            lastDayOfMonth.toIso8601String(),
-          ),
-        );
-      } else if (beforeDate != null) {
-        baseQueries.add(
-          Query.lessThan('dataCompetencia', beforeDate.toIso8601String()),
-        );
-      }
     }
 
     if (contaIds.isNotEmpty) {
