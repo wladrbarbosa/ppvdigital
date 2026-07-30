@@ -2,6 +2,7 @@ import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ppvdigital/models/local/app_database.dart';
 import 'package:ppvdigital/models/tarefas_habitos_model.dart';
+import 'package:ppvdigital/models/tarefas_habitos_qtd_model.dart';
 import 'package:ppvdigital/repositories/drift_tarefa_habito_repository.dart';
 import 'package:ppvdigital/repositories/tarefa_habito_repository.dart';
 
@@ -130,5 +131,65 @@ void main() {
     localRows = await database.select(database.tarefaHabitos).get();
     expect(localRows.length, equals(1));
     expect(localRows.first.remoteId, equals('th_active'));
+  });
+
+  test('habit vezesPraticado calculates dynamically per daily cycle and resets on new day', () async {
+    final habitMeta = TarefaHabitoQtdModel(
+      id: 'meta1',
+      metaVezes: 1,
+      usuario: 'user1',
+      valor: 1,
+      reiniciaEmQtd: 1,
+      reiniciaEmTipo: 'dias',
+      vezesPraticado: 0,
+      createdAt: DateTime.now().subtract(const Duration(days: 10)),
+    );
+
+    final habit = TarefaHabitoModel(
+      id: 'h1',
+      nome: 'Beber Agua',
+      tipo: 'habito',
+      usuario: 'user1',
+      concluida: false,
+      agendamento: null,
+      tarefasHabitosQtd: [habitMeta],
+    );
+
+    await database.into(database.tarefaHabitos).insert(driftRepository.toCompanion(habit));
+
+    // 1. Record practice yesterday
+    final yesterday = DateTime.now().subtract(const Duration(days: 1));
+    await database.into(database.historicoTarefasHabitos).insert(
+      HistoricoTarefasHabitosCompanion.insert(
+        remoteId: 'hist_yesterday',
+        usuario: 'user1',
+        tarefaHabitoId: 'h1',
+        createdAt: yesterday,
+      ),
+    );
+
+    // 2. Fetch habits for Today: yesterday practice must NOT count for today's daily cycle
+    var habits = await driftRepository.getTarefasEHabitos(
+      usuarioId: 'user1',
+      forceLocal: true,
+    );
+    expect(habits.first.tarefasHabitosQtd.first.vezesPraticado, equals(0));
+
+    // 3. Record practice Today
+    await database.into(database.historicoTarefasHabitos).insert(
+      HistoricoTarefasHabitosCompanion.insert(
+        remoteId: 'hist_today',
+        usuario: 'user1',
+        tarefaHabitoId: 'h1',
+        createdAt: DateTime.now(),
+      ),
+    );
+
+    // 4. Fetch habits for Today: today practice MUST count for today's daily cycle
+    habits = await driftRepository.getTarefasEHabitos(
+      usuarioId: 'user1',
+      forceLocal: true,
+    );
+    expect(habits.first.tarefasHabitosQtd.first.vezesPraticado, equals(1));
   });
 }

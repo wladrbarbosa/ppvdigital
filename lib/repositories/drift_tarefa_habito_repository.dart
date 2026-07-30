@@ -176,7 +176,7 @@ class DriftTarefaHabitoRepository implements TarefaHabitoRepository {
     final localList = localDocs.map(toDomain).toList();
 
     if (forceLocal) {
-      return localList;
+      return await _populatePeriodVezesPraticado(localList, usuarioId);
     }
 
     // Flush pending sync queue first!
@@ -220,12 +220,15 @@ class DriftTarefaHabitoRepository implements TarefaHabitoRepository {
       }
 
       final updatedLocalDocs = await localQuery.get();
-      return updatedLocalDocs.map(toDomain).toList();
+      return await _populatePeriodVezesPraticado(
+        updatedLocalDocs.map(toDomain).toList(),
+        usuarioId,
+      );
     } catch (e) {
       log(
         'Appwrite offline or failed to fetch: $e. Returning cached local data.',
       );
-      return localList;
+      return await _populatePeriodVezesPraticado(localList, usuarioId);
     }
   }
 
@@ -304,26 +307,7 @@ class DriftTarefaHabitoRepository implements TarefaHabitoRepository {
     required String foundId,
     required String usuarioId,
   }) async {
-    // 1. Optimistic Update: Increment locally in Drift first
-    final localQuery = database.select(database.tarefaHabitos)
-      ..where((t) => t.remoteId.equals(foundId));
-    final localDoc = await localQuery.getSingleOrNull();
-
-    if (localDoc != null) {
-      final updatedMetas = localDoc.metas.map((meta) {
-        return meta.copyWith(vezesPraticado: meta.vezesPraticado + meta.valor);
-      }).toList();
-
-      final updatedCompanion = TarefaHabitosCompanion(
-        metas: Value(updatedMetas),
-      );
-
-      final updateQuery = database.update(database.tarefaHabitos)
-        ..where((t) => t.remoteId.equals(foundId));
-      await updateQuery.write(updatedCompanion);
-    }
-
-    // 1.1 Optimistic Update: Insert new history record locally into SQLite
+    // 1. Insert new history record locally into SQLite
     final tempHistoryId = ID.unique();
     await database
         .into(database.historicoTarefasHabitos)
@@ -366,39 +350,10 @@ class DriftTarefaHabitoRepository implements TarefaHabitoRepository {
 
   @override
   Future<bool> deleteHistoricoItem({required String id}) async {
-    // 1. Find the history item to know which habit it is related to
-    final query = database.select(database.historicoTarefasHabitos)
+    // 1. Find the history item to delete locally first
+    final query = database.delete(database.historicoTarefasHabitos)
       ..where((h) => h.remoteId.equals(id));
-    final historyRow = await query.getSingleOrNull();
-
-    if (historyRow != null) {
-      final habitId = historyRow.tarefaHabitoId;
-
-      // Decrement locally in SQLite first
-      final habitQuery = database.select(database.tarefaHabitos)
-        ..where((t) => t.remoteId.equals(habitId));
-      final localDoc = await habitQuery.getSingleOrNull();
-
-      if (localDoc != null) {
-        final updatedMetas = localDoc.metas.map((meta) {
-          final newCount = meta.vezesPraticado - meta.valor;
-          return meta.copyWith(vezesPraticado: newCount >= 0 ? newCount : 0);
-        }).toList();
-
-        final updatedCompanion = TarefaHabitosCompanion(
-          metas: Value(updatedMetas),
-        );
-
-        final updateQuery = database.update(database.tarefaHabitos)
-          ..where((t) => t.remoteId.equals(habitId));
-        await updateQuery.write(updatedCompanion);
-      }
-
-      // Delete history item locally
-      final deleteQuery = database.delete(database.historicoTarefasHabitos)
-        ..where((h) => h.remoteId.equals(id));
-      await deleteQuery.go();
-    }
+    await query.go();
 
     await _addPendingSync({'actionType': 'deleteHistoricoItem', 'id': id});
 
@@ -664,9 +619,123 @@ class DriftTarefaHabitoRepository implements TarefaHabitoRepository {
   Stream<List<TarefaHabitoModel>> watchTarefasEHabitos({
     required String usuarioId,
   }) {
-    final query = database.select(database.tarefaHabitos)
-      ..where((t) => t.usuario.equals(usuarioId));
-    return query.watch().map((rows) => rows.map(toDomain).toList());
+    return database
+        .customSelect(
+          'SELECT 1',
+          readsFrom: {database.tarefaHabitos, database.historicoTarefasHabitos},
+        )
+        .watch()
+        .asyncMap(
+          (_) => getTarefasEHabitos(usuarioId: usuarioId, forceLocal: true),
+        );
+  }
+
+  Future<List<TarefaHabitoModel>> _populatePeriodVezesPraticado(
+    List<TarefaHabitoModel> items,
+    String usuarioId,
+  ) async {
+    final historyQuery = database.select(database.historicoTarefasHabitos)
+      ..where((h) => h.usuario.equals(usuarioId));
+    final historyRows = await historyQuery.get();
+
+    final Map<String, List<DateTime>> habitHistoryDates = {};
+    for (final row in historyRows) {
+      habitHistoryDates
+          .putIfAbsent(row.tarefaHabitoId, () => [])
+          .add(row.createdAt);
+    }
+
+    return items.map((habit) {
+      if (habit.tipo != 'habito' || habit.tarefasHabitosQtd.isEmpty) {
+        return habit;
+      }
+
+      final dates = habitHistoryDates[habit.id] ?? [];
+
+      final updatedMetas = habit.tarefasHabitosQtd.map((meta) {
+        final startPeriod = _calculateStartPeriod(
+          createdAt: meta.createdAt,
+          reiniciaEmTipo: meta.reiniciaEmTipo,
+          reiniciaEmQtd: meta.reiniciaEmQtd,
+        );
+
+        final periodCount = dates.where((d) {
+          final dDate = DateTime(d.year, d.month, d.day);
+          return dDate.isAtSameMomentAs(startPeriod) ||
+              dDate.isAfter(startPeriod);
+        }).length;
+
+        final calculatedVezes = periodCount * meta.valor;
+        return meta.copyWith(vezesPraticado: calculatedVezes);
+      }).toList();
+
+      return habit.copyWith(tarefaHabitoQtd: updatedMetas);
+    }).toList();
+  }
+
+  DateTime _calculateStartPeriod({
+    required DateTime createdAt,
+    required String reiniciaEmTipo,
+    required int reiniciaEmQtd,
+  }) {
+    final DateTime nowToday = DateTime.now();
+    final DateTime now = DateTime(
+      nowToday.year,
+      nowToday.month,
+      nowToday.day,
+    );
+    final DateTime beginning = DateTime(
+      createdAt.year,
+      createdAt.month,
+      createdAt.day,
+    );
+
+    if (now.isBefore(beginning)) {
+      return beginning;
+    }
+
+    final int daysDiff = now.difference(beginning).inDays;
+
+    switch (reiniciaEmTipo) {
+      case 'dias':
+        final int cycles = daysDiff > 0 ? (daysDiff ~/ reiniciaEmQtd) : 0;
+        return beginning.add(Duration(days: cycles * reiniciaEmQtd));
+      case 'semanas':
+        final int cycleDays = 7 * reiniciaEmQtd;
+        final int cycles = daysDiff > 0 ? (daysDiff ~/ cycleDays) : 0;
+        return beginning.add(Duration(days: cycles * cycleDays));
+      case 'meses':
+        int monthDiff = (now.year - beginning.year) * 12 +
+            (now.month - beginning.month);
+        if (now.day < beginning.day) {
+          monthDiff -= 1;
+        }
+        final int cycles = monthDiff < 0 ? 0 : (monthDiff ~/ reiniciaEmQtd);
+        return DateTime(
+          beginning.year,
+          beginning.month + (cycles * reiniciaEmQtd),
+          beginning.day,
+        );
+      case 'anos':
+        int yearDiff = now.year - beginning.year;
+        final DateTime targetThisYear = DateTime(
+          now.year,
+          beginning.month,
+          beginning.day,
+        );
+        if (now.isBefore(targetThisYear)) {
+          yearDiff -= 1;
+        }
+        final int cycles = yearDiff < 0 ? 0 : (yearDiff ~/ reiniciaEmQtd);
+        return DateTime(
+          beginning.year + (cycles * reiniciaEmQtd),
+          beginning.month,
+          beginning.day,
+        );
+      default:
+        final int cycles = daysDiff > 0 ? (daysDiff ~/ reiniciaEmQtd) : 0;
+        return beginning.add(Duration(days: cycles * reiniciaEmQtd));
+    }
   }
 
   Future<Set<String>> _getPendingIds() async {
