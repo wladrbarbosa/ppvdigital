@@ -678,65 +678,13 @@ class DriftTarefaHabitoRepository implements TarefaHabitoRepository {
     required String reiniciaEmTipo,
     required int reiniciaEmQtd,
   }) {
-    final DateTime nowToday = DateTime.now();
-    final DateTime now = DateTime(
-      nowToday.year,
-      nowToday.month,
-      nowToday.day,
+    return TarefaHabitoQtdModel.calculateStartPeriod(
+      createdAt: createdAt,
+      reiniciaEmTipo: reiniciaEmTipo,
+      reiniciaEmQtd: reiniciaEmQtd,
     );
-    final DateTime beginning = DateTime(
-      createdAt.year,
-      createdAt.month,
-      createdAt.day,
-    );
-
-    if (now.isBefore(beginning)) {
-      return beginning;
-    }
-
-    final int daysDiff = now.difference(beginning).inDays;
-
-    switch (reiniciaEmTipo) {
-      case 'dias':
-        final int cycles = daysDiff > 0 ? (daysDiff ~/ reiniciaEmQtd) : 0;
-        return beginning.add(Duration(days: cycles * reiniciaEmQtd));
-      case 'semanas':
-        final int cycleDays = 7 * reiniciaEmQtd;
-        final int cycles = daysDiff > 0 ? (daysDiff ~/ cycleDays) : 0;
-        return beginning.add(Duration(days: cycles * cycleDays));
-      case 'meses':
-        int monthDiff = (now.year - beginning.year) * 12 +
-            (now.month - beginning.month);
-        if (now.day < beginning.day) {
-          monthDiff -= 1;
-        }
-        final int cycles = monthDiff < 0 ? 0 : (monthDiff ~/ reiniciaEmQtd);
-        return DateTime(
-          beginning.year,
-          beginning.month + (cycles * reiniciaEmQtd),
-          beginning.day,
-        );
-      case 'anos':
-        int yearDiff = now.year - beginning.year;
-        final DateTime targetThisYear = DateTime(
-          now.year,
-          beginning.month,
-          beginning.day,
-        );
-        if (now.isBefore(targetThisYear)) {
-          yearDiff -= 1;
-        }
-        final int cycles = yearDiff < 0 ? 0 : (yearDiff ~/ reiniciaEmQtd);
-        return DateTime(
-          beginning.year + (cycles * reiniciaEmQtd),
-          beginning.month,
-          beginning.day,
-        );
-      default:
-        final int cycles = daysDiff > 0 ? (daysDiff ~/ reiniciaEmQtd) : 0;
-        return beginning.add(Duration(days: cycles * reiniciaEmQtd));
-    }
   }
+
 
   Future<Set<String>> _getPendingIds() async {
     final syncs = await _getPendingSyncs();

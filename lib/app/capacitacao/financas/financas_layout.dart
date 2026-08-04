@@ -20,6 +20,47 @@ class FinancasLayout extends StatefulWidget {
   State<FinancasLayout> createState() => _FinancasLayoutState();
 }
 
+class _DayHeaderDelegate extends SliverPersistentHeaderDelegate {
+  final String formattedDate;
+
+  _DayHeaderDelegate(this.formattedDate);
+
+  @override
+  Widget build(
+    BuildContext context,
+    double shrinkOffset,
+    bool overlapsContent,
+  ) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return Container(
+      height: 38.0,
+      color: isDark ? const Color(0xFF252525) : const Color(0xFFE8E8E8),
+      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+      alignment: Alignment.centerLeft,
+      child: Text(
+        formattedDate,
+        style: TextStyle(
+          fontWeight: FontWeight.bold,
+          color: Theme.of(context).colorScheme.primary,
+          fontSize: 13.5,
+        ),
+      ),
+    );
+  }
+
+  @override
+  double get maxExtent => 38.0;
+
+  @override
+  double get minExtent => 38.0;
+
+  @override
+  bool shouldRebuild(covariant _DayHeaderDelegate oldDelegate) {
+    return oldDelegate.formattedDate != formattedDate;
+  }
+}
+
+
 class _FinancasLayoutState extends State<FinancasLayout>
     with SingleTickerProviderStateMixin {
   final _key = GlobalKey<ExpandableFabState>();
@@ -121,190 +162,173 @@ class _FinancasLayoutState extends State<FinancasLayout>
     return total;
   }
 
-  Widget _buildDayGroup({
-    required BuildContext context,
-    required String dateKey,
-    required List<TransacaoModel> dayTrans,
-    required Map<String, double> saldosDiarios,
-    required String activeUser,
+  Widget _buildDayFooter({
+    required double saldoExibido,
   }) {
-    final dateParsed = DateTime.parse(dateKey);
-    final formattedDate = DateFormat(
-      "dd 'de' MMMM, yyyy",
-      'pt_BR',
-    ).format(dateParsed);
-
-    final double saldoExibido = saldosDiarios[dateKey] ?? 0.0;
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-          color: Colors.grey.withValues(alpha: 0.1),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                formattedDate,
-                style: const TextStyle(
-                  fontWeight: FontWeight.bold,
-                  color: Colors.grey,
-                ),
-              ),
-              Text(
-                'Saldo acumulado: ${saldoExibido.toCurrency()}',
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  color: saldoExibido >= 0 ? Colors.green : Colors.red,
-                ),
-              ),
-            ],
-          ),
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+      decoration: BoxDecoration(
+        color: Colors.grey.withValues(alpha: 0.05),
+        border: const Border(
+          bottom: BorderSide(color: Colors.black12, width: 1.0),
         ),
-        ...dayTrans.map((t) {
-          final double valToDisplay = _mostrarDivisoes
-              ? _calcularValorDivisao(t, activeUser)
-              : t.valor;
-
-          final Color valueColor = t.tipo == 'receita'
-              ? Colors.green
-              : (t.tipo == 'transferencia' ? Colors.blue : Colors.red);
-
-          final IconData catIcon =
-              _presetIcons[t.categoria?.icone] ?? Icons.monetization_on;
-
-          return ListTile(
-            onTap: () {
-              Routefly.pushNavigate(
-                routePaths.capacitacao.criarEditarTransacao,
-                arguments: {
-                  'lastRoute': Routefly.currentUri.path,
-                  'transacao': t,
-                },
-              );
-            },
-            leading: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Checkbox(
-                  value: _selectedTransIds.contains(t.id),
-                  onChanged: (val) {
-                    setState(() {
-                      if (val == true) {
-                        _selectedTransIds.add(t.id);
-                      } else {
-                        _selectedTransIds.remove(t.id);
-                      }
-                    });
-                  },
-                ),
-                CircleAvatar(
-                  backgroundColor:
-                      t.categoria?.cor?.withValues(alpha: 0.2) ??
-                      Colors.blue.withValues(alpha: 0.2),
-                  child: Icon(catIcon, color: t.categoria?.cor ?? Colors.blue),
-                ),
-              ],
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.end,
+        children: [
+          Text(
+            'Saldo do dia: ${saldoExibido.toCurrency()}',
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+              fontSize: 13.0,
+              color: saldoExibido >= 0 ? Colors.green : Colors.red,
             ),
-            title: Text(
-              t.descricao,
-              style: const TextStyle(fontWeight: FontWeight.bold),
-            ),
-            subtitle: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  t.tipo == 'transferencia'
-                      ? 'Transf: ${t.conta?.name ?? '?'} ➔ ${t.contaDestino?.name ?? '?'}'
-                      : 'Conta: ${t.conta?.name ?? 'Sem conta'}',
-                ),
-                if (_mostrarDivisoes)
-                  Text(
-                    'Sua parcela (Valor Total: ${t.valor.toCurrency()})',
-                    style: const TextStyle(
-                      fontStyle: FontStyle.italic,
-                      fontSize: 12,
-                    ),
-                  ),
-                const SizedBox(height: 4),
-                Wrap(
-                  spacing: 4,
-                  runSpacing: 4,
-                  children: [
-                    if (t.recorrencia != null)
-                      _buildIndicatorChip(
-                        context,
-                        icon: Icons.repeat,
-                        label: 'Recorrente',
-                        color: Colors.purple,
-                      ),
-                    if (t.devedorContato != null)
-                      _buildIndicatorChip(
-                        context,
-                        icon: Icons.arrow_downward,
-                        label: '${t.devedorContato!.nome} deve p/ você',
-                        color: Colors.teal,
-                      ),
-                    if (t.credorContato != null)
-                      _buildIndicatorChip(
-                        context,
-                        icon: Icons.arrow_upward,
-                        label: 'Você deve p/ ${t.credorContato!.nome}',
-                        color: Colors.orange,
-                      ),
-                    if (_isDivididaComOutros(t, activeUser))
-                      _buildIndicatorChip(
-                        context,
-                        icon: Icons.pie_chart_outline,
-                        label: 'Dividido (${t.divisoes.length})',
-                        color: Colors.blueGrey,
-                      ),
-                  ],
-                ),
-              ],
-            ),
-            trailing: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                Text(
-                  valToDisplay.toCurrency(),
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 16,
-                    color: valueColor,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 6,
-                    vertical: 2,
-                  ),
-                  decoration: BoxDecoration(
-                    color: t.consolidada
-                        ? Colors.green.withValues(alpha: 0.1)
-                        : Colors.amber.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(4),
-                  ),
-                  child: Text(
-                    t.consolidada ? 'Efetivada' : 'Prevista',
-                    style: TextStyle(
-                      fontSize: 10,
-                      fontWeight: FontWeight.bold,
-                      color: t.consolidada ? Colors.green : Colors.amber[800],
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          );
-        }),
-        const Divider(height: 1),
-      ],
+          ),
+        ],
+      ),
     );
   }
+
+  Widget _buildTransactionTile(TransacaoModel t, String activeUser) {
+    final double valToDisplay = _mostrarDivisoes
+        ? _calcularValorDivisao(t, activeUser)
+        : t.valor;
+
+    final Color valueColor = t.tipo == 'receita'
+        ? Colors.green
+        : (t.tipo == 'transferencia' ? Colors.blue : Colors.red);
+
+    final IconData catIcon =
+        _presetIcons[t.categoria?.icone] ?? Icons.monetization_on;
+
+    return ListTile(
+      onTap: () {
+        Routefly.pushNavigate(
+          routePaths.capacitacao.criarEditarTransacao,
+          arguments: {
+            'lastRoute': Routefly.currentUri.path,
+            'transacao': t,
+          },
+        );
+      },
+      leading: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Checkbox(
+            value: _selectedTransIds.contains(t.id),
+            onChanged: (val) {
+              setState(() {
+                if (val == true) {
+                  _selectedTransIds.add(t.id);
+                } else {
+                  _selectedTransIds.remove(t.id);
+                }
+              });
+            },
+          ),
+          CircleAvatar(
+            backgroundColor:
+                t.categoria?.cor?.withValues(alpha: 0.2) ??
+                Colors.blue.withValues(alpha: 0.2),
+            child: Icon(catIcon, color: t.categoria?.cor ?? Colors.blue),
+          ),
+        ],
+      ),
+      title: Text(
+        t.descricao,
+        style: const TextStyle(fontWeight: FontWeight.bold),
+      ),
+      subtitle: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            t.tipo == 'transferencia'
+                ? 'Transf: ${t.conta?.name ?? '?'} ➔ ${t.contaDestino?.name ?? '?'}'
+                : 'Conta: ${t.conta?.name ?? 'Sem conta'}',
+          ),
+          if (_mostrarDivisoes)
+            Text(
+              'Sua parcela (Valor Total: ${t.valor.toCurrency()})',
+              style: const TextStyle(
+                fontStyle: FontStyle.italic,
+                fontSize: 12,
+              ),
+            ),
+          const SizedBox(height: 4),
+          Wrap(
+            spacing: 4,
+            runSpacing: 4,
+            children: [
+              if (t.recorrencia != null)
+                _buildIndicatorChip(
+                  context,
+                  icon: Icons.repeat,
+                  label: 'Recorrente',
+                  color: Colors.purple,
+                ),
+              if (t.devedorContato != null)
+                _buildIndicatorChip(
+                  context,
+                  icon: Icons.arrow_downward,
+                  label: '${t.devedorContato!.nome} deve p/ você',
+                  color: Colors.teal,
+                ),
+              if (t.credorContato != null)
+                _buildIndicatorChip(
+                  context,
+                  icon: Icons.arrow_upward,
+                  label: 'Você deve p/ ${t.credorContato!.nome}',
+                  color: Colors.orange,
+                ),
+              if (_isDivididaComOutros(t, activeUser))
+                _buildIndicatorChip(
+                  context,
+                  icon: Icons.pie_chart_outline,
+                  label: 'Dividido (${t.divisoes.length})',
+                  color: Colors.blueGrey,
+                ),
+            ],
+          ),
+        ],
+      ),
+      trailing: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        crossAxisAlignment: CrossAxisAlignment.end,
+        children: [
+          Text(
+            valToDisplay.toCurrency(),
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+              fontSize: 16,
+              color: valueColor,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Container(
+            padding: const EdgeInsets.symmetric(
+              horizontal: 6,
+              vertical: 2,
+            ),
+            decoration: BoxDecoration(
+              color: t.consolidada
+                  ? Colors.green.withValues(alpha: 0.1)
+                  : Colors.amber.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(4),
+            ),
+            child: Text(
+              t.consolidada ? 'Efetivada' : 'Prevista',
+              style: TextStyle(
+                fontSize: 10,
+                fontWeight: FontWeight.bold,
+                color: t.consolidada ? Colors.green : Colors.amber[800],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
 
   void _onMonthChanged(DateTime newMonth) {
     setState(() {
@@ -623,23 +647,50 @@ class _FinancasLayoutState extends State<FinancasLayout>
                                 controller: _transacoesScrollController,
                                 thumbVisibility: true,
                                 interactive: true,
-                                child: SingleChildScrollView(
+                                child: CustomScrollView(
                                   controller: _transacoesScrollController,
-                                  padding: const EdgeInsets.only(bottom: 80.0),
-                                  child: Column(
-                                    children: [
-                                      for (final dateKey in grouped.keys)
-                                        _buildDayGroup(
-                                          context: context,
-                                          dateKey: dateKey,
-                                          dayTrans: grouped[dateKey]!,
-                                          saldosDiarios: saldosDiarios,
-                                          activeUser: activeUser,
-                                        ),
-                                    ],
-                                  ),
+                                  slivers: [
+                                    for (final dateKey in grouped.keys)
+                                      SliverMainAxisGroup(
+                                        slivers: [
+                                          SliverPersistentHeader(
+                                            pinned: true,
+                                            delegate: _DayHeaderDelegate(
+                                              DateFormat(
+                                                "dd 'de' MMMM, yyyy",
+                                                'pt_BR',
+                                              ).format(DateTime.parse(dateKey)),
+                                            ),
+                                          ),
+                                          SliverList(
+                                            delegate: SliverChildBuilderDelegate(
+                                              (context, index) {
+                                                final t =
+                                                    grouped[dateKey]![index];
+                                                return _buildTransactionTile(
+                                                  t,
+                                                  activeUser,
+                                                );
+                                              },
+                                              childCount:
+                                                  grouped[dateKey]!.length,
+                                            ),
+                                          ),
+                                          SliverToBoxAdapter(
+                                            child: _buildDayFooter(
+                                              saldoExibido:
+                                                  saldosDiarios[dateKey] ?? 0.0,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    const SliverPadding(
+                                      padding: EdgeInsets.only(bottom: 80.0),
+                                    ),
+                                  ],
                                 ),
                               ),
+
                             if (_isMonthChanging)
                               ColoredBox(
                                 color: Colors.black.withValues(alpha: 0.3),

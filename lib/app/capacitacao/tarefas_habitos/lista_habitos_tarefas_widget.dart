@@ -55,66 +55,17 @@ class ListaHabitosTarefasWidgetState extends State<ListaHabitosTarefasWidget> {
 
   Duration _getCycleRemainingDuration(TarefaHabitoQtdModel qtd) {
     final DateTime now = DateTime.now();
-    final DateTime origBeginning = qtd.createdAt.toLocal();
-    final DateTime beginning = DateTime(
-      origBeginning.year,
-      origBeginning.month,
-      origBeginning.day,
+    final DateTime startPeriod = TarefaHabitoQtdModel.calculateStartPeriod(
+      createdAt: qtd.createdAt,
+      reiniciaEmTipo: qtd.reiniciaEmTipo,
+      reiniciaEmQtd: qtd.reiniciaEmQtd,
+      referenceDate: now,
     );
-    final String reiniciaEmTipo = qtd.reiniciaEmTipo;
-    final int reiniciaEmQtd = qtd.reiniciaEmQtd;
-
-    final Duration beginningNowDiff = now.difference(beginning);
-    DateTime endPeriod = beginning;
-
-    switch (reiniciaEmTipo) {
-      case 'dias':
-        final int blocks = beginningNowDiff.inDays ~/ reiniciaEmQtd;
-        final startPeriod = beginning.add(
-          Duration(days: blocks * reiniciaEmQtd),
-        );
-        endPeriod = startPeriod.add(Duration(days: reiniciaEmQtd));
-      case 'semanas':
-        final int blocks = beginningNowDiff.inDays ~/ (7 * reiniciaEmQtd);
-        final startPeriod = beginning.add(
-          Duration(days: blocks * 7 * reiniciaEmQtd),
-        );
-        endPeriod = startPeriod.add(Duration(days: 7 * reiniciaEmQtd));
-      case 'meses':
-        final int monthDiff =
-            (now.year - beginning.year) * 12 + (now.month - beginning.month);
-        final int blocks = monthDiff ~/ reiniciaEmQtd;
-        final startPeriod = DateTime(
-          beginning.year,
-          beginning.month + (blocks * reiniciaEmQtd),
-          beginning.day,
-        );
-        endPeriod = DateTime(
-          startPeriod.year,
-          startPeriod.month + reiniciaEmQtd,
-          startPeriod.day,
-        );
-      case 'anos':
-        final int yearDiff = now.year - beginning.year;
-        final int blocks = yearDiff ~/ reiniciaEmQtd;
-        final startPeriod = DateTime(
-          beginning.year + (blocks * reiniciaEmQtd),
-          beginning.month,
-          beginning.day,
-        );
-        endPeriod = DateTime(
-          startPeriod.year + reiniciaEmQtd,
-          startPeriod.month,
-          startPeriod.day,
-        );
-      default:
-        final int blocks = beginningNowDiff.inDays ~/ reiniciaEmQtd;
-        final startPeriod = beginning.add(
-          Duration(days: blocks * reiniciaEmQtd),
-        );
-        endPeriod = startPeriod.add(Duration(days: reiniciaEmQtd));
-    }
-
+    final DateTime endPeriod = TarefaHabitoQtdModel.calculateEndPeriod(
+      startPeriod,
+      qtd.reiniciaEmTipo,
+      qtd.reiniciaEmQtd,
+    );
     return endPeriod.difference(now);
   }
 
@@ -448,60 +399,17 @@ class ListaHabitosTarefasWidgetState extends State<ListaHabitosTarefasWidget> {
 
   double _calculateCycleProgress(TarefaHabitoQtdModel qtd) {
     final DateTime now = DateTime.now();
-    final DateTime origBeginning = qtd.createdAt.toLocal();
-    final DateTime beginning = DateTime(
-      origBeginning.year,
-      origBeginning.month,
-      origBeginning.day,
+    final DateTime startPeriod = TarefaHabitoQtdModel.calculateStartPeriod(
+      createdAt: qtd.createdAt,
+      reiniciaEmTipo: qtd.reiniciaEmTipo,
+      reiniciaEmQtd: qtd.reiniciaEmQtd,
+      referenceDate: now,
     );
-    final String reiniciaEmTipo = qtd.reiniciaEmTipo;
-    final int reiniciaEmQtd = qtd.reiniciaEmQtd;
-
-    final Duration beginningNowDiff = now.difference(beginning);
-    DateTime startPeriod = beginning;
-    DateTime endPeriod = beginning;
-
-    switch (reiniciaEmTipo) {
-      case 'dias':
-        final int blocks = beginningNowDiff.inDays ~/ reiniciaEmQtd;
-        startPeriod = beginning.add(Duration(days: blocks * reiniciaEmQtd));
-        endPeriod = startPeriod.add(Duration(days: reiniciaEmQtd));
-      case 'semanas':
-        final int blocks = beginningNowDiff.inDays ~/ (7 * reiniciaEmQtd);
-        startPeriod = beginning.add(Duration(days: blocks * 7 * reiniciaEmQtd));
-        endPeriod = startPeriod.add(Duration(days: 7 * reiniciaEmQtd));
-      case 'meses':
-        final int monthDiff =
-            (now.year - beginning.year) * 12 + (now.month - beginning.month);
-        final int blocks = monthDiff ~/ reiniciaEmQtd;
-        startPeriod = DateTime(
-          beginning.year,
-          beginning.month + (blocks * reiniciaEmQtd),
-          beginning.day,
-        );
-        endPeriod = DateTime(
-          startPeriod.year,
-          startPeriod.month + reiniciaEmQtd,
-          startPeriod.day,
-        );
-      case 'anos':
-        final int yearDiff = now.year - beginning.year;
-        final int blocks = yearDiff ~/ reiniciaEmQtd;
-        startPeriod = DateTime(
-          beginning.year + (blocks * reiniciaEmQtd),
-          beginning.month,
-          beginning.day,
-        );
-        endPeriod = DateTime(
-          startPeriod.year + reiniciaEmQtd,
-          startPeriod.month,
-          startPeriod.day,
-        );
-      default:
-        final int blocks = beginningNowDiff.inDays ~/ reiniciaEmQtd;
-        startPeriod = beginning.add(Duration(days: blocks * reiniciaEmQtd));
-        endPeriod = startPeriod.add(Duration(days: reiniciaEmQtd));
-    }
+    final DateTime endPeriod = TarefaHabitoQtdModel.calculateEndPeriod(
+      startPeriod,
+      qtd.reiniciaEmTipo,
+      qtd.reiniciaEmQtd,
+    );
 
     final int totalMs = endPeriod.difference(startPeriod).inMilliseconds;
     if (totalMs <= 0) return 0.0;

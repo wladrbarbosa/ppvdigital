@@ -1075,6 +1075,17 @@ class DriftFinancasRepository implements FinancasRepository {
 
   Future<void> _applyBatchLocally(List<Map<String, dynamic>> operations) async {
     await database.transaction(() async {
+      final bool hasDivOps = operations.any(
+        (op) => op['tableId'] == Core.tableDivisaoTransacoes,
+      );
+      final Map<String, List<DivisaoTransacaoModel>> divMap = {};
+      if (hasDivOps) {
+        final allTx = await database.select(database.transacaos).get();
+        for (final tx in allTx) {
+          divMap[tx.remoteId] = List<DivisaoTransacaoModel>.from(tx.divisoes);
+        }
+      }
+
       for (final op in operations) {
         final action = op['action'] as String;
         final tableId = op['tableId'] as String;
@@ -1086,6 +1097,7 @@ class DriftFinancasRepository implements FinancasRepository {
             final deleteQuery = database.delete(database.transacaos)
               ..where((t) => t.remoteId.equals(rowId));
             await deleteQuery.go();
+            divMap.remove(rowId);
           } else if (action == 'create' && data != null) {
             final model = _parseTransacaoModelFromData(rowId, data);
             await database
@@ -1103,36 +1115,38 @@ class DriftFinancasRepository implements FinancasRepository {
         } else if (tableId == Core.tableDivisaoTransacoes) {
           if (action == 'create' && data != null) {
             final transId = data['transacao'] as String;
-            final query = database.select(database.transacaos)
-              ..where((t) => t.remoteId.equals(transId));
-            final row = await query.getSingleOrNull();
-            if (row != null) {
+            List<DivisaoTransacaoModel>? divs = divMap[transId];
+            if (divs == null) {
+              final query = database.select(database.transacaos)
+                ..where((t) => t.remoteId.equals(transId));
+              final row = await query.getSingleOrNull();
+              if (row != null) {
+                divs = List<DivisaoTransacaoModel>.from(row.divisoes);
+                divMap[transId] = divs;
+              }
+            }
+            if (divs != null) {
               final newDiv = DivisaoTransacaoModel(
                 id: rowId,
                 transacaoId: transId,
                 contatoResponsavel: data['contatoResponsavel'] as String? ?? '',
                 peso: (data['peso'] as num).toDouble(),
               );
-              final List<DivisaoTransacaoModel> updatedDivs = List.from(
-                row.divisoes,
-              )..add(newDiv);
+              divs.add(newDiv);
               final updateQuery = database.update(database.transacaos)
                 ..where((t) => t.remoteId.equals(transId));
               await updateQuery.write(
-                TransacaosCompanion(divisoes: Value(updatedDivs)),
+                TransacaosCompanion(divisoes: Value(divs)),
               );
             }
           } else if (action == 'delete') {
-            final allTx = await database.select(database.transacaos).get();
-            for (final tx in allTx) {
-              if (tx.divisoes.any((d) => d.id == rowId)) {
-                final List<DivisaoTransacaoModel> updatedDivs = List.from(
-                  tx.divisoes,
-                )..removeWhere((d) => d.id == rowId);
+            for (final entry in divMap.entries) {
+              if (entry.value.any((d) => d.id == rowId)) {
+                entry.value.removeWhere((d) => d.id == rowId);
                 final updateQuery = database.update(database.transacaos)
-                  ..where((t) => t.remoteId.equals(tx.remoteId));
+                  ..where((t) => t.remoteId.equals(entry.key));
                 await updateQuery.write(
-                  TransacaosCompanion(divisoes: Value(updatedDivs)),
+                  TransacaosCompanion(divisoes: Value(entry.value)),
                 );
                 break;
               }
@@ -1142,6 +1156,8 @@ class DriftFinancasRepository implements FinancasRepository {
       }
     });
   }
+
+
 
   String? _extractStringId(dynamic val) {
     if (val == null) return null;

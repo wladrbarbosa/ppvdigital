@@ -114,6 +114,104 @@ class TarefaHabitoQtdModel {
         other.createdAt == createdAt;
   }
 
+  static DateTime calculateStartPeriod({
+    required DateTime createdAt,
+    required String reiniciaEmTipo,
+    required int reiniciaEmQtd,
+    DateTime? referenceDate,
+  }) {
+    final DateTime ref = referenceDate ?? DateTime.now();
+    final DateTime nowToday = DateTime(ref.year, ref.month, ref.day);
+
+    switch (reiniciaEmTipo) {
+      case 'dias':
+        if (reiniciaEmQtd <= 1) {
+          return nowToday;
+        }
+        final DateTime beginning = DateTime(
+          createdAt.year,
+          createdAt.month,
+          createdAt.day,
+        );
+        if (nowToday.isBefore(beginning)) return beginning;
+        final int daysDiff = nowToday.difference(beginning).inDays;
+        final int cycles = daysDiff ~/ reiniciaEmQtd;
+        return beginning.add(Duration(days: cycles * reiniciaEmQtd));
+
+      case 'semanas':
+        final DateTime mondayOfThisWeek = DateTime(
+          nowToday.year,
+          nowToday.month,
+          nowToday.day - (nowToday.weekday - 1),
+        );
+        if (reiniciaEmQtd <= 1) {
+          return mondayOfThisWeek;
+        }
+        final DateTime beginningMonday = DateTime(
+          createdAt.year,
+          createdAt.month,
+          createdAt.day - (createdAt.weekday - 1),
+        );
+        if (nowToday.isBefore(beginningMonday)) return beginningMonday;
+        final int weeksDiff =
+            mondayOfThisWeek.difference(beginningMonday).inDays ~/ 7;
+        final int cycles = weeksDiff ~/ reiniciaEmQtd;
+        return beginningMonday.add(Duration(days: cycles * 7 * reiniciaEmQtd));
+
+      case 'meses':
+        if (reiniciaEmQtd <= 1) {
+          return DateTime(nowToday.year, nowToday.month, 1);
+        }
+        final DateTime beginningFirst = DateTime(
+          createdAt.year,
+          createdAt.month,
+          1,
+        );
+        if (nowToday.isBefore(beginningFirst)) return beginningFirst;
+        final int monthDiff = (nowToday.year - beginningFirst.year) * 12 +
+            (nowToday.month - beginningFirst.month);
+        final int cycles = monthDiff < 0 ? 0 : (monthDiff ~/ reiniciaEmQtd);
+        return DateTime(
+          beginningFirst.year,
+          beginningFirst.month + (cycles * reiniciaEmQtd),
+          1,
+        );
+
+      case 'anos':
+        if (reiniciaEmQtd <= 1) {
+          return DateTime(nowToday.year, 1, 1);
+        }
+        final DateTime beginningJan1 = DateTime(createdAt.year, 1, 1);
+        if (nowToday.isBefore(beginningJan1)) return beginningJan1;
+        final int yearDiff = nowToday.year - beginningJan1.year;
+        final int cycles = yearDiff < 0 ? 0 : (yearDiff ~/ reiniciaEmQtd);
+        return DateTime(beginningJan1.year + (cycles * reiniciaEmQtd), 1, 1);
+
+      default:
+        return nowToday;
+    }
+  }
+
+  static DateTime calculateEndPeriod(
+    DateTime startPeriod,
+    String reiniciaEmTipo,
+    int reiniciaEmQtd,
+  ) {
+    final int qtd = reiniciaEmQtd <= 0 ? 1 : reiniciaEmQtd;
+    switch (reiniciaEmTipo) {
+      case 'dias':
+        return startPeriod.add(Duration(days: qtd));
+      case 'semanas':
+        return startPeriod.add(Duration(days: 7 * qtd));
+      case 'meses':
+        return DateTime(startPeriod.year, startPeriod.month + qtd, 1);
+      case 'anos':
+        return DateTime(startPeriod.year + qtd, 1, 1);
+      default:
+        return startPeriod.add(Duration(days: qtd));
+    }
+  }
+
   @override
   int get hashCode {
     return id.hashCode ^
@@ -127,3 +225,4 @@ class TarefaHabitoQtdModel {
         createdAt.hashCode;
   }
 }
+

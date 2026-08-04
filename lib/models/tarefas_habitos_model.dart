@@ -68,7 +68,11 @@ class TarefaHabitoModel {
     if (rawMetas is List) {
       metas = rawMetas
           .where((x) => x is Map)
-          .map((x) => TarefaHabitoQtdModel.fromMap(Map<String, dynamic>.from(x as Map)))
+          .map(
+            (x) => TarefaHabitoQtdModel.fromMap(
+              Map<String, dynamic>.from(x as Map),
+            ),
+          )
           .toList();
     }
     return TarefaHabitoModel(
@@ -79,8 +83,8 @@ class TarefaHabitoModel {
       concluida: map['concluida'] is bool ? map['concluida'] as bool : false,
       agendamento: map['agendamento'] != null
           ? (map['agendamento'] is int
-              ? DateTime.fromMillisecondsSinceEpoch(map['agendamento'] as int)
-              : DateTime.tryParse(map['agendamento'].toString()))
+                ? DateTime.fromMillisecondsSinceEpoch(map['agendamento'] as int)
+                : DateTime.tryParse(map['agendamento'].toString()))
           : null,
       tarefasHabitosQtd: metas,
       duration: map['duration'] is num

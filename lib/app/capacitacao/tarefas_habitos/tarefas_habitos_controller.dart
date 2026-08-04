@@ -58,46 +58,11 @@ extension TarefasHabitosTransformList on List<dynamic>? {
               beginning.month,
               beginning.day,
             );
-            final int daysDiff = now.difference(beginning).inDays;
-            late DateTime startPeriod;
-
-            switch (reiniciaEmTipo) {
-              case 'dias':
-                final int cycles = daysDiff > 0 ? (daysDiff ~/ reiniciaEmQtd) : 0;
-                startPeriod = beginning.add(Duration(days: cycles * reiniciaEmQtd));
-              case 'semanas':
-                final int cycleDays = 7 * reiniciaEmQtd;
-                final int cycles = daysDiff > 0 ? (daysDiff ~/ cycleDays) : 0;
-                startPeriod = beginning.add(Duration(days: cycles * cycleDays));
-              case 'meses':
-                int monthDiff = (now.year - beginning.year) * 12 +
-                    (now.month - beginning.month);
-                if (now.day < beginning.day) {
-                  monthDiff -= 1;
-                }
-                final int cycles = monthDiff < 0 ? 0 : (monthDiff ~/ reiniciaEmQtd);
-                final int totalMonths = cycles * reiniciaEmQtd;
-                final int targetMonthIdx = (beginning.month - 1) + totalMonths;
-                final int startYear = beginning.year + (targetMonthIdx ~/ 12);
-                final int startMonth = (targetMonthIdx % 12) + 1;
-                startPeriod = DateTime(startYear, startMonth, beginning.day);
-              case 'anos':
-                int yearDiff = now.year - beginning.year;
-                final DateTime targetThisYear = DateTime(
-                  now.year,
-                  beginning.month,
-                  beginning.day,
-                );
-                if (now.isBefore(targetThisYear)) {
-                  yearDiff -= 1;
-                }
-                final int cycles = yearDiff < 0 ? 0 : (yearDiff ~/ reiniciaEmQtd);
-                final int startYear = beginning.year + (cycles * reiniciaEmQtd);
-                startPeriod = DateTime(startYear, beginning.month, beginning.day);
-              default:
-                final int cycles = daysDiff > 0 ? (daysDiff ~/ reiniciaEmQtd) : 0;
-                startPeriod = beginning.add(Duration(days: cycles * reiniciaEmQtd));
-            }
+            final DateTime startPeriod = TarefaHabitoQtdModel.calculateStartPeriod(
+              createdAt: beginning,
+              reiniciaEmTipo: reiniciaEmTipo,
+              reiniciaEmQtd: reiniciaEmQtd,
+            );
 
             withPeriodFilter = tarefaHabitoHistoricoList.where((el) {
               final DateTime elDate = DateTime(
@@ -391,14 +356,17 @@ class TarefasHabitosController {
           for (final element in found.tarefasHabitosQtd) {
             element.vezesPraticado += element.valor;
           }
-          temp[index] = found.copyWith(concluida: true);
+          final bool isHabit = found.tipo == 'habito';
+          temp[index] = found.copyWith(concluida: !isHabit);
           _tarefasHabitosList.clear();
           _tarefasHabitosList.addAll(temp);
-        }
 
-        final String userId = Core.loginController.currentUser?.$id ?? '';
-        repository.recordHistorico(foundId: documentId, usuarioId: userId);
-        repository.updateConcluida(documentId: documentId, concluida: true);
+          final String userId = Core.loginController.currentUser?.$id ?? '';
+          repository.recordHistorico(foundId: documentId, usuarioId: userId);
+          if (!isHabit) {
+            repository.updateConcluida(documentId: documentId, concluida: true);
+          }
+        }
       }, name: 'completeTarefa');
     } on Exception catch (e) {
       log(e.toString());

@@ -825,6 +825,12 @@ class FinancasController {
   }) async {
     try {
       final List<Map<String, dynamic>> ops = [];
+      final Map<String, double> accountDeltas = {};
+      void addAccountDelta(String? cId, double amount) {
+        if (cId != null && cId.isNotEmpty && amount != 0.0) {
+          accountDeltas[cId] = (accountDeltas[cId] ?? 0.0) + amount;
+        }
+      }
 
       // Find original transaction to check if consolidated state or amount changed
       final original = transacoesList.firstWhere((t) => t.id == id);
@@ -832,17 +838,14 @@ class FinancasController {
       // 1. Revert original balance effects if it was consolidated
       if (original.consolidada) {
         if (original.tipo == 'despesa' && original.conta != null) {
-          await updateAccountBalance(original.conta!.id, original.valor);
+          addAccountDelta(original.conta!.id, original.valor);
         } else if (original.tipo == 'receita' && original.conta != null) {
-          await updateAccountBalance(original.conta!.id, -original.valor);
+          addAccountDelta(original.conta!.id, -original.valor);
         } else if (original.tipo == 'transferencia' &&
             original.conta != null &&
             original.contaDestino != null) {
-          await updateAccountBalance(original.conta!.id, original.valor);
-          await updateAccountBalance(
-            original.contaDestino!.id,
-            -original.valor,
-          );
+          addAccountDelta(original.conta!.id, original.valor);
+          addAccountDelta(original.contaDestino!.id, -original.valor);
         }
       }
 
@@ -964,14 +967,14 @@ class FinancasController {
               // Revert balance if consolidated
               if (t.consolidada) {
                 if (t.tipo == 'despesa' && t.conta != null) {
-                  await updateAccountBalance(t.conta!.id, t.valor);
+                  addAccountDelta(t.conta!.id, t.valor);
                 } else if (t.tipo == 'receita' && t.conta != null) {
-                  await updateAccountBalance(t.conta!.id, -t.valor);
+                  addAccountDelta(t.conta!.id, -t.valor);
                 } else if (t.tipo == 'transferencia' &&
                     t.conta != null &&
                     t.contaDestino != null) {
-                  await updateAccountBalance(t.conta!.id, t.valor);
-                  await updateAccountBalance(t.contaDestino!.id, -t.valor);
+                  addAccountDelta(t.conta!.id, t.valor);
+                  addAccountDelta(t.contaDestino!.id, -t.valor);
                 }
               }
 
@@ -1012,14 +1015,14 @@ class FinancasController {
               // Apply new balance
               if (consolidada) {
                 if (tipo == 'despesa' && contaId != null) {
-                  await updateAccountBalance(contaId, -valor);
+                  addAccountDelta(contaId, -valor);
                 } else if (tipo == 'receita' && contaId != null) {
-                  await updateAccountBalance(contaId, valor);
+                  addAccountDelta(contaId, valor);
                 } else if (tipo == 'transferencia' &&
                     contaId != null &&
                     contaDestinoId != null) {
-                  await updateAccountBalance(contaId, -valor);
-                  await updateAccountBalance(contaDestinoId, valor);
+                  addAccountDelta(contaId, -valor);
+                  addAccountDelta(contaDestinoId, valor);
                 }
               }
 
@@ -1095,14 +1098,14 @@ class FinancasController {
               // Revert balance if consolidated
               if (t.consolidada) {
                 if (t.tipo == 'despesa' && t.conta != null) {
-                  await updateAccountBalance(t.conta!.id, t.valor);
+                  addAccountDelta(t.conta!.id, t.valor);
                 } else if (t.tipo == 'receita' && t.conta != null) {
-                  await updateAccountBalance(t.conta!.id, -t.valor);
+                  addAccountDelta(t.conta!.id, -t.valor);
                 } else if (t.tipo == 'transferencia' &&
                     t.conta != null &&
                     t.contaDestino != null) {
-                  await updateAccountBalance(t.conta!.id, t.valor);
-                  await updateAccountBalance(t.contaDestino!.id, -t.valor);
+                  addAccountDelta(t.conta!.id, t.valor);
+                  addAccountDelta(t.contaDestino!.id, -t.valor);
                 }
               }
 
@@ -1143,14 +1146,14 @@ class FinancasController {
               // Apply new balance
               if (consolidada) {
                 if (tipo == 'despesa' && contaId != null) {
-                  await updateAccountBalance(contaId, -valor);
+                  addAccountDelta(contaId, -valor);
                 } else if (tipo == 'receita' && contaId != null) {
-                  await updateAccountBalance(contaId, valor);
+                  addAccountDelta(contaId, valor);
                 } else if (tipo == 'transferencia' &&
                     contaId != null &&
                     contaDestinoId != null) {
-                  await updateAccountBalance(contaId, -valor);
-                  await updateAccountBalance(contaDestinoId, valor);
+                  addAccountDelta(contaId, -valor);
+                  addAccountDelta(contaDestinoId, valor);
                 }
               }
 
@@ -1207,14 +1210,14 @@ class FinancasController {
       // Apply new balance effects if consolidated
       if (consolidada) {
         if (tipo == 'despesa' && contaId != null) {
-          await updateAccountBalance(contaId, -valor);
+          addAccountDelta(contaId, -valor);
         } else if (tipo == 'receita' && contaId != null) {
-          await updateAccountBalance(contaId, valor);
+          addAccountDelta(contaId, valor);
         } else if (tipo == 'transferencia' &&
             contaId != null &&
             contaDestinoId != null) {
-          await updateAccountBalance(contaId, -valor);
-          await updateAccountBalance(contaDestinoId, valor);
+          addAccountDelta(contaId, -valor);
+          addAccountDelta(contaDestinoId, valor);
         }
       }
 
@@ -1244,9 +1247,17 @@ class FinancasController {
         });
       }
 
+      // Apply net account balance updates once
+      for (final entry in accountDeltas.entries) {
+        if (entry.value != 0.0) {
+          await updateAccountBalance(entry.key, entry.value);
+        }
+      }
+
       if (ops.isNotEmpty) {
         await repository.executeBatchOperations(ops);
       }
+
 
       await loadDocuments();
       return true;
