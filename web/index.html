@@ -61,6 +61,12 @@
     // Função global para limpar Service Workers, Caches e recarregar o app
     window.clearAppCacheAndReload = function () {
       console.log('[PWA] Limpando caches e desregistrando Service Workers...');
+      var reloadWithCacheBust = function() {
+        var url = new URL(window.location.href);
+        url.searchParams.set('_pwa_refresh', Date.now());
+        window.location.href = url.toString();
+      };
+
       var promises = [];
       if ('serviceWorker' in navigator) {
         promises.push(
@@ -78,9 +84,9 @@
       }
       Promise.all(promises).then(function () {
         console.log('[PWA] Caches limpos! Recarregando...');
-        window.location.reload(true);
+        reloadWithCacheBust();
       }).catch(function () {
-        window.location.reload(true);
+        reloadWithCacheBust();
       });
     };
 
@@ -93,24 +99,36 @@
       });
     }
 
+    // Monitor e Recuperador de Inicialização do Flutter / PWA
     (function () {
-      // Função para anexar os listeners no canvas do Flutter/Skwasm
-      function attachWebGLProtection(canvas) {
-        if (canvas._hasWebGLProtection) return;
-        canvas._hasWebGLProtection = true;
+      var flutterLoaded = false;
 
-        canvas.addEventListener('webglcontextlost', function (event) {
-          // Previne o comportamento padrão do browser para permitir tratamento customizado
-          event.preventDefault();
-          console.warn('[PWA/Flutter] WebGL Context Lost detectado. Recarregando app...');
-
-          // Recarrega a aplicação para restaurar o pipeline gráfico
-          window.location.reload();
-        }, false);
+      function isFlutterMounted() {
+        return !!(document.querySelector('flutter-view') || document.querySelector('canvas'));
       }
 
-      // 1. Escuta a criação dinâmica do elemento <canvas> pelo Flutter Engine
+      function handleBootFailure(reason) {
+        if (isFlutterMounted()) return;
+        var attempts = parseInt(sessionStorage.getItem('_pwa_recovery_attempts') || '0', 10);
+        if (attempts < 2) {
+          sessionStorage.setItem('_pwa_recovery_attempts', (attempts + 1).toString());
+          console.warn('[PWA] Recuperando automaticamente de falha de boot (' + reason + ', tentativa ' + (attempts + 1) + ')...');
+          if (window.clearAppCacheAndReload) {
+            window.clearAppCacheAndReload();
+          } else {
+            window.location.reload();
+          }
+        } else {
+          console.error('[PWA] Falha persistente ao carregar o aplicativo após atualização (' + reason + ').');
+        }
+      }
+
+      // 1. Escuta criação do canvas / view
       const observer = new MutationObserver(function (mutations) {
+        if (isFlutterMounted()) {
+          flutterLoaded = true;
+          sessionStorage.removeItem('_pwa_recovery_attempts');
+        }
         for (const mutation of mutations) {
           for (const node of mutation.addedNodes) {
             if (node.nodeName === 'CANVAS') {
@@ -123,23 +141,52 @@
         }
       });
 
-      // Inicia a observação no DOM assim que o script carregar
       document.addEventListener('DOMContentLoaded', function () {
         observer.observe(document.body, { childList: true, subtree: true });
-
-        // Procura se já existe algum canvas inserido
         document.querySelectorAll('canvas').forEach(attachWebGLProtection);
       });
 
-      // 2. Fallback por Ciclo de Vida: Checa se a página voltou do segundo plano
-      let hiddenTime = 0;
+      // 2. Trata erros não capturados durante a inicialização (ex: incompatibilidade de WASM/JS em cache)
+      window.addEventListener('unhandledrejection', function (event) {
+        if (!flutterLoaded && !isFlutterMounted()) {
+          console.error('[PWA/Boot Error] Unhandled rejection durante boot:', event.reason);
+          handleBootFailure('unhandledrejection');
+        }
+      });
 
+      window.addEventListener('error', function (event) {
+        if (!flutterLoaded && !isFlutterMounted()) {
+          console.error('[PWA/Boot Error] Erro global durante boot:', event.error || event.message);
+          handleBootFailure('global error');
+        }
+      });
+
+      // 3. Timeout de segurança: Se após 10 segundos o Flutter não tiver renderizado a tela
+      setTimeout(function () {
+        if (!flutterLoaded && !isFlutterMounted()) {
+          console.warn('[PWA] Timeout de inicialização do Flutter (10s).');
+          handleBootFailure('timeout 10s');
+        }
+      }, 10000);
+
+      // Função para anexar os listeners no canvas do Flutter/Skwasm
+      function attachWebGLProtection(canvas) {
+        if (canvas._hasWebGLProtection) return;
+        canvas._hasWebGLProtection = true;
+
+        canvas.addEventListener('webglcontextlost', function (event) {
+          event.preventDefault();
+          console.warn('[PWA/Flutter] WebGL Context Lost detectado. Recarregando app...');
+          window.location.reload();
+        }, false);
+      }
+
+      // Fallback por Ciclo de Vida: Checa se a página voltou do segundo plano
+      let hiddenTime = 0;
       document.addEventListener('visibilitychange', function () {
         if (document.visibilityState === 'hidden') {
           hiddenTime = Date.now();
         } else if (document.visibilityState === 'visible') {
-          // Se o app ficou em segundo plano por mais de 5 minutos,
-          // forçamos um reload preventivo caso o contexto tenha morrido silenciosamente
           const timeBackground = Date.now() - hiddenTime;
           if (hiddenTime > 0 && timeBackground > 300000) {
             console.warn('[PWA/Flutter] Retornando após tempo prolongado em background. Recarregando...');

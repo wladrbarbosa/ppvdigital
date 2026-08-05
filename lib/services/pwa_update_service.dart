@@ -32,10 +32,15 @@ class PwaUpdateService {
         final String serverVersion =
             '${data['version']}+${data['build_number']}';
 
-        debugPrint('[PWA] Current local version: $currentVersion');
+        // Strip leading non-numeric characters (e.g. 'b0.24.1+1' -> '0.24.1+1')
+        final String cleanCurrentVersion = currentVersion
+            .replaceAll(RegExp(r'^[^\d]+'), '')
+            .trim();
+
+        debugPrint('[PWA] Current local version: $currentVersion (cleaned: $cleanCurrentVersion)');
         debugPrint('[PWA] Server version: $serverVersion');
 
-        return serverVersion.trim() != currentVersion.trim();
+        return serverVersion.trim() != cleanCurrentVersion;
       }
     } catch (e) {
       debugPrint('[PWA] Error checking for version update: $e');
