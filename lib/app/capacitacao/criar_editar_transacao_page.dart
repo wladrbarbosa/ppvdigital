@@ -57,7 +57,7 @@ class CriarEditarTransacaoPage extends StatefulWidget {
 class _CriarEditarTransacaoPageState extends State<CriarEditarTransacaoPage> {
   final _formKey = GlobalKey<FormState>();
   final _descricaoController = TextEditingController();
-  final _valorController = TextEditingController(text: '0,00');
+  final _valorController = TextEditingController();
   final _descricaoFocusNode = FocusNode();
   final _valorFocusNode = FocusNode();
   bool _isLoading = false;
