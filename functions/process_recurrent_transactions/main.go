@@ -1,14 +1,55 @@
 package handler
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
+	"net"
+	"net/http"
 	"os"
+	"strings"
+	"sync"
 	"time"
 
 	"github.com/appwrite/sdk-for-go/v5/appwrite"
+	"github.com/appwrite/sdk-for-go/v5/query"
 	"github.com/open-runtimes/types-for-go/v4/openruntimes"
 )
+
+var (
+	dialer = &net.Dialer{
+		Timeout:   30 * time.Second,
+		KeepAlive: 30 * time.Second,
+	}
+)
+
+func init() {
+	// Globally override the DNS resolution to point to the docker bridge gateway
+	// or APPWRITE_API_ENDPOINT_OVERRIDE IP for self-hosted instances.
+	if transport, ok := http.DefaultTransport.(*http.Transport); ok {
+		transport.DialContext = func(ctx context.Context, network, addr string) (net.Conn, error) {
+			if strings.HasPrefix(addr, "appwrite.wladapps.com:") {
+				// Determine target IP
+				targetIP := os.Getenv("APPWRITE_API_ENDPOINT_OVERRIDE")
+				if targetIP == "" {
+					targetIP = getDefaultGateway()
+				}
+				if targetIP == "" {
+					targetIP = "172.18.0.1" // Fallback
+				}
+				
+				// Strip http:// or https:// if user accidentally included it in override
+				targetIP = strings.TrimPrefix(targetIP, "http://")
+				targetIP = strings.TrimPrefix(targetIP, "https://")
+				targetIP = strings.Split(targetIP, "/")[0] // Strip any path
+
+				port := strings.Split(addr, ":")[1]
+				addr = fmt.Sprintf("%s:%s", targetIP, port)
+			}
+			return dialer.DialContext(ctx, network, addr)
+		}
+	}
+}
 
 const (
 	DatabaseID     = "671f6e1600022832cba5"
@@ -19,12 +60,17 @@ const (
 
 func Main(Context openruntimes.Context) openruntimes.Response {
 	// Initialize Appwrite Client using Dynamic API Keys & Endpoint guidelines
-	appwriteEndpoint := os.Getenv("APPWRITE_FUNCTION_API_ENDPOINT")
+	appwriteEndpoint := os.Getenv("APPWRITE_ENDPOINT")
 	if appwriteEndpoint == "" {
-		appwriteEndpoint = os.Getenv("APPWRITE_ENDPOINT")
+		appwriteEndpoint = os.Getenv("APPWRITE_FUNCTION_API_ENDPOINT")
 	}
-	if appwriteEndpoint == "" {
-		appwriteEndpoint = "https://cloud.appwrite.io/v1"
+
+	// In self-hosted Appwrite Docker behind YunoHost, the external domain appwrite.wladapps.com
+	// might not be reachable from the isolated function network (hairpin NAT issues).
+	// We force the endpoint to be the public domain to preserve SNI/Host headers for YunoHost,
+	// and let our init() DNS override handle routing the traffic directly to the host IP.
+	if appwriteEndpoint == "" || strings.Contains(appwriteEndpoint, "appwrite.wladapps.com") || appwriteEndpoint == "http://appwrite/v1" {
+		appwriteEndpoint = "https://appwrite.wladapps.com/v1"
 	}
 	projectID := os.Getenv("APPWRITE_FUNCTION_PROJECT_ID")
 	
@@ -46,6 +92,7 @@ func Main(Context openruntimes.Context) openruntimes.Response {
 		appwrite.WithEndpoint(appwriteEndpoint),
 		appwrite.WithProject(projectID),
 		appwrite.WithKey(apiKey),
+		appwrite.WithSelfSigned(true),
 	)
 
 	dbService := appwrite.NewDatabases(appClient)
@@ -57,11 +104,11 @@ func Main(Context openruntimes.Context) openruntimes.Response {
 	cursor := ""
 	for {
 		queries := []string{
-			"isNull(\"totalParcelas\")",
-			"limit(100)",
+			query.IsNull("totalParcelas"),
+			query.Limit(100),
 		}
 		if cursor != "" {
-			queries = append(queries, fmt.Sprintf("cursorAfter(\"%s\")", cursor))
+			queries = append(queries, query.CursorAfter(cursor))
 		}
 
 		res, err := dbService.ListDocuments(
@@ -105,9 +152,22 @@ func Main(Context openruntimes.Context) openruntimes.Response {
 
 	createdCount := 0
 	errorCount := 0
+	now := time.Now().UTC()
+	startOfDay := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, time.UTC)
+	endOfDay := time.Date(now.Year(), now.Month(), now.Day(), 23, 59, 59, 999999999, time.UTC)
 
-	// 2. Process each recurrence rule
+	// 2. Process each recurrence rule concurrently
+	var wg sync.WaitGroup
+	semaphore := make(chan struct{}, 15) // Limit to 15 concurrent API requests
+	var mu sync.Mutex
+
 	for _, recDoc := range recurrences {
+		wg.Add(1)
+		semaphore <- struct{}{} // acquire token
+
+		go func(recDoc interface{}) {
+			defer wg.Done()
+			defer func() { <-semaphore }() // release token
 		recID := getDocumentID(recDoc)
 		tipoRecorrencia := getStringAttribute(recDoc, "tipoRecorrencia")
 		if tipoRecorrencia == "" {
@@ -118,20 +178,56 @@ func Main(Context openruntimes.Context) openruntimes.Response {
 			freq = 1
 		}
 
-		// Query the latest transaction associated with this recurrence rule
+		// Check if current date matches an installment date for this recurrence
+		todayTxRes, err := dbService.ListDocuments(
+			DatabaseID,
+			TransactionColl,
+			dbService.WithListDocumentsQueries([]string{
+				query.Equal("recorrencia", recID),
+				query.GreaterThanEqual("dataCompetencia", startOfDay.Format(time.RFC3339)),
+				query.LessThanEqual("dataCompetencia", endOfDay.Format(time.RFC3339)),
+				query.Limit(1),
+			}),
+		)
+		if err != nil {
+			Context.Error(fmt.Sprintf("Error checking today's transaction for recurrence %s: %v", recID, err))
+			mu.Lock()
+			errorCount++
+			mu.Unlock()
+			return
+		}
+
+		var todayDocuments []interface{}
+		if todayBytes, err := json.Marshal(todayTxRes); err == nil {
+			var todayMap map[string]interface{}
+			if json.Unmarshal(todayBytes, &todayMap) == nil {
+				if docsVal, ok := todayMap["documents"].([]interface{}); ok {
+					todayDocuments = docsVal
+				}
+			}
+		}
+
+		if len(todayDocuments) == 0 {
+			Context.Log(fmt.Sprintf("No installment cycle matches today (%s) for recurrence %s. Skipping.", startOfDay.Format("2006-01-02"), recID))
+			return
+		}
+
+		// Query the latest transaction associated with this recurrence rule to extend it
 		txRes, err := dbService.ListDocuments(
 			DatabaseID,
 			TransactionColl,
 			dbService.WithListDocumentsQueries([]string{
-				fmt.Sprintf("equal(\"recorrencia\", [\"%s\"])", recID),
-				"orderDesc(\"dataCompetencia\")",
-				"limit(1)",
+				query.Equal("recorrencia", recID),
+				query.OrderDesc("dataCompetencia"),
+				query.Limit(1),
 			}),
 		)
 		if err != nil {
 			Context.Error(fmt.Sprintf("Error fetching latest transaction for recurrence %s: %v", recID, err))
+			mu.Lock()
 			errorCount++
-			continue
+			mu.Unlock()
+			return
 		}
 
 		var txDocuments []interface{}
@@ -147,7 +243,7 @@ func Main(Context openruntimes.Context) openruntimes.Response {
 
 		if len(txDocuments) == 0 {
 			Context.Log(fmt.Sprintf("No transactions found for recurrence %s. Skipping.", recID))
-			continue
+			return
 		}
 
 		latestTx := txDocuments[0]
@@ -160,8 +256,10 @@ func Main(Context openruntimes.Context) openruntimes.Response {
 			latestDate, err = time.Parse("2006-01-02T15:04:05.000Z07:00", dataCompetenciaStr)
 			if err != nil {
 				Context.Error(fmt.Sprintf("Error parsing competency date '%s' for transaction %s: %v", dataCompetenciaStr, latestTxID, err))
+				mu.Lock()
 				errorCount++
-				continue
+				mu.Unlock()
+				return
 			}
 		}
 
@@ -224,8 +322,10 @@ func Main(Context openruntimes.Context) openruntimes.Response {
 		)
 		if err != nil {
 			Context.Error(fmt.Sprintf("Failed to create new transaction for recurrence %s: %v", recID, err))
+			mu.Lock()
 			errorCount++
-			continue
+			mu.Unlock()
+			return
 		}
 
 		newTxID := getDocumentID(newTx)
@@ -236,13 +336,16 @@ func Main(Context openruntimes.Context) openruntimes.Response {
 			DatabaseID,
 			DivisionsColl,
 			dbService.WithListDocumentsQueries([]string{
-				fmt.Sprintf("equal(\"transacao\", [\"%s\"])", latestTxID),
+				query.Equal("transacao", latestTxID),
+				query.Limit(100),
 			}),
 		)
 		if err != nil {
 			Context.Error(fmt.Sprintf("Error fetching divisions for transaction %s: %v", latestTxID, err))
+			mu.Lock()
 			errorCount++
-			continue
+			mu.Unlock()
+			return
 		}
 
 		var divDocuments []interface{}
@@ -280,8 +383,13 @@ func Main(Context openruntimes.Context) openruntimes.Response {
 			}
 		}
 
-		createdCount++
+		mu.Lock()
+			createdCount++
+			mu.Unlock()
+		}(recDoc)
 	}
+
+	wg.Wait()
 
 	Context.Log(fmt.Sprintf("Finished. Created: %d, Errors: %d", createdCount, errorCount))
 
@@ -392,6 +500,23 @@ func getRelationID(doc interface{}, key string) string {
 		}
 		if id, ok := mapVal["id"].(string); ok {
 			return id
+		}
+	}
+	return ""
+}
+
+// Helper to get default gateway IP from /proc/net/route for Linux containers
+func getDefaultGateway() string {
+	data, err := os.ReadFile("/proc/net/route")
+	if err != nil {
+		return ""
+	}
+	for _, line := range strings.Split(string(data), "\n") {
+		fields := strings.Fields(line)
+		if len(fields) >= 3 && fields[1] == "00000000" {
+			var a, b, c, d int
+			fmt.Sscanf(fields[2], "%02x%02x%02x%02x", &a, &b, &c, &d)
+			return fmt.Sprintf("%d.%d.%d.%d", d, c, b, a)
 		}
 	}
 	return ""

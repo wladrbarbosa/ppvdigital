@@ -884,7 +884,75 @@ class FinancasController {
 
       String newMainDesc = descricao;
 
-      if (original.recorrencia != null && optionRecorrencia != null) {
+      if (optionRecorrencia == 'new_recurrence') {
+        final String newRecId = await repository.createRecorrenciaRow(
+          tipoRecorrencia: tipoRecorrencia ?? 'mês',
+          frequencia: frequencia ?? 1,
+          totalParcelas: totalParcelas,
+          parcelaInicio: parcelaInicio ?? 1,
+          fimRecorrencia: null,
+        );
+        updatedRecId = newRecId;
+
+        final int startParcel = parcelaInicio ?? 1;
+        newMainDesc = totalParcelas == null
+            ? descricao
+            : '$descricao (Parcela $startParcel/$totalParcelas)';
+
+        final int remainingParcels =
+            totalParcelas != null ? (totalParcelas - startParcel + 1) : 1;
+        final int loopLimit = totalParcelas == null ? 24 : remainingParcels;
+
+        for (int i = 2; i <= loopLimit; i++) {
+          final DateTime nextDate = calculateRecurrentDate(
+            dataCompetencia,
+            tipoRecorrencia ?? 'mês',
+            frequencia ?? 1,
+            i - 1,
+          );
+          final int nextParcel = startParcel + i - 1;
+          final String descFinal = totalParcelas == null
+              ? descricao
+              : '$descricao (Parcela $nextParcel/$totalParcelas)';
+          final String newTxId = ID.unique();
+
+          ops.add({
+            'action': 'create',
+            'databaseId': Core.databaseId,
+            'tableId': Core.tableTransacoes,
+            'rowId': newTxId,
+            'data': {
+              'descricao': descFinal,
+              'valor': valor,
+              'tipo': tipo,
+              'dataCompetencia': nextDate.toIso8601String(),
+              'conta': contaId,
+              'contaDestino': contaDestinoId,
+              'consolidada': false,
+              'categoria': categoriaId,
+              'recorrencia': newRecId,
+              'devedorContato': devedorContatoId,
+              'credorContato': credorContatoId,
+            },
+          });
+
+          for (final divItem in divisao) {
+            final String rContato = divItem['contatoResponsavel'] as String;
+            final double rPeso = (divItem['peso'] as num).toDouble();
+            ops.add({
+              'action': 'create',
+              'databaseId': Core.databaseId,
+              'tableId': Core.tableDivisaoTransacoes,
+              'rowId': ID.unique(),
+              'data': {
+                'transacao': newTxId,
+                'contatoResponsavel': rContato,
+                'peso': rPeso,
+              },
+            });
+          }
+        }
+      } else if (original.recorrencia != null && optionRecorrencia != null) {
         if (optionRecorrencia == 'only_current') {
           // Check if ONLY consolidada status was changed
           String cleanDesc(String d) {

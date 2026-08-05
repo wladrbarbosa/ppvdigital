@@ -1,6 +1,6 @@
 module handler
 
-go 1.26
+go 1.23
 
 require (
 	github.com/appwrite/sdk-for-go/v5 v5.1.0

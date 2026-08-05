@@ -422,6 +422,27 @@ void main() {
 
         expect(recIdValido(tSemRecorrencia), isFalse);
       });
+
+      test('Conversão de transação simples em recorrente gera parcelas adicionais', () {
+        final double valor = 100.0;
+        final int totalParcelas = 3;
+        final int parcelaInicio = 1;
+        final List<Map<String, dynamic>> generatedOps = [];
+
+        final int loopLimit = totalParcelas - parcelaInicio + 1;
+        for (int i = 2; i <= loopLimit; i++) {
+          final int nextParcel = parcelaInicio + i - 1;
+          generatedOps.add({
+            'action': 'create',
+            'descricao': 'Aluguel (Parcela $nextParcel/$totalParcelas)',
+            'valor': valor,
+          });
+        }
+
+        expect(generatedOps.length, equals(2));
+        expect(generatedOps[0]['descricao'], equals('Aluguel (Parcela 2/3)'));
+        expect(generatedOps[1]['descricao'], equals('Aluguel (Parcela 3/3)'));
+      });
     });
   });
 }

@@ -319,6 +319,11 @@ class _CriarHabitoTarefaPageState extends State<CriarHabitoTarefaPage> {
               decoration: const InputDecoration(
                 labelText: 'Nome',
                 border: OutlineInputBorder(),
+                suffixIcon: Tooltip(
+                  triggerMode: TooltipTriggerMode.tap,
+                  message: 'Nome da tarefa ou hábito a ser executado.',
+                  child: Icon(Icons.info_outline, size: 20),
+                ),
               ),
               validator: (value) {
                 if (value == null || value.trim().isEmpty) {
@@ -334,6 +339,11 @@ class _CriarHabitoTarefaPageState extends State<CriarHabitoTarefaPage> {
               decoration: const InputDecoration(
                 labelText: 'Duração (em minutos, Opcional)',
                 border: OutlineInputBorder(),
+                suffixIcon: Tooltip(
+                  triggerMode: TooltipTriggerMode.tap,
+                  message: 'Tempo estimado de execução em minutos.',
+                  child: Icon(Icons.info_outline, size: 20),
+                ),
               ),
               validator: (value) {
                 if (value != null && value.trim().isNotEmpty) {

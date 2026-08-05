@@ -251,9 +251,13 @@ class _CriarEditarTransacaoPageState extends State<CriarEditarTransacaoPage> {
     if (!_formKey.currentState!.validate()) return;
 
     String? optionRecorrencia;
-    if (widget.editingItem != null && widget.editingItem!.recorrencia != null) {
-      optionRecorrencia = await _showSaveRecurrenceDialog(context);
-      if (optionRecorrencia == null) return; // Cancelled
+    if (widget.editingItem != null) {
+      if (widget.editingItem!.recorrencia != null) {
+        optionRecorrencia = await _showSaveRecurrenceDialog(context);
+        if (optionRecorrencia == null) return; // Cancelled
+      } else if (_recorrente) {
+        optionRecorrencia = 'new_recurrence';
+      }
     }
 
     setState(() {
@@ -489,6 +493,11 @@ class _CriarEditarTransacaoPageState extends State<CriarEditarTransacaoPage> {
               decoration: const InputDecoration(
                 labelText: 'Descrição',
                 border: OutlineInputBorder(),
+                suffixIcon: Tooltip(
+                  triggerMode: TooltipTriggerMode.tap,
+                  message: 'Nome ou identificação da transação.',
+                  child: Icon(Icons.info_outline, size: 20),
+                ),
               ),
               validator: (value) {
                 if (value == null || value.trim().isEmpty) {
@@ -531,6 +540,11 @@ class _CriarEditarTransacaoPageState extends State<CriarEditarTransacaoPage> {
                             fontWeight: FontWeight.bold,
                           ),
                           border: const OutlineInputBorder(),
+                          suffixIcon: const Tooltip(
+                            triggerMode: TooltipTriggerMode.tap,
+                            message: 'Valor financeiro. Aceita expressões como 10+5 ou 100/2.',
+                            child: Icon(Icons.info_outline, size: 20),
+                          ),
                         ),
                         validator: (val) {
                           if (val == null || val.trim().isEmpty) {
@@ -553,6 +567,11 @@ class _CriarEditarTransacaoPageState extends State<CriarEditarTransacaoPage> {
                     decoration: const InputDecoration(
                       labelText: 'Tipo',
                       border: OutlineInputBorder(),
+                      suffixIcon: Tooltip(
+                        triggerMode: TooltipTriggerMode.tap,
+                        message: 'Despesa (saída), Receita (entrada) ou Transferência.',
+                        child: Icon(Icons.info_outline, size: 20),
+                      ),
                     ),
                     items: const [
                       DropdownMenuItem(
@@ -638,6 +657,11 @@ class _CriarEditarTransacaoPageState extends State<CriarEditarTransacaoPage> {
                         ? 'Conta de Origem'
                         : 'Conta',
                     border: const OutlineInputBorder(),
+                    suffixIcon: const Tooltip(
+                      triggerMode: TooltipTriggerMode.tap,
+                      message: 'Conta de onde sairá ou entrará o recurso.',
+                      child: Icon(Icons.info_outline, size: 20),
+                    ),
                   ),
                   items: accounts.map((c) {
                     return DropdownMenuItem(
@@ -673,6 +697,11 @@ class _CriarEditarTransacaoPageState extends State<CriarEditarTransacaoPage> {
                     decoration: const InputDecoration(
                       labelText: 'Conta de Destino',
                       border: OutlineInputBorder(),
+                      suffixIcon: Tooltip(
+                        triggerMode: TooltipTriggerMode.tap,
+                        message: 'Conta que receberá o valor da transferência.',
+                        child: Icon(Icons.info_outline, size: 20),
+                      ),
                     ),
                     items: accounts.map((c) {
                       return DropdownMenuItem(
@@ -708,6 +737,11 @@ class _CriarEditarTransacaoPageState extends State<CriarEditarTransacaoPage> {
                   decoration: const InputDecoration(
                     labelText: 'Categoria (Opcional)',
                     border: OutlineInputBorder(),
+                    suffixIcon: Tooltip(
+                      triggerMode: TooltipTriggerMode.tap,
+                      message: 'Classificação para organização financeira e relatórios.',
+                      child: Icon(Icons.info_outline, size: 20),
+                    ),
                   ),
                   items: [
                     const DropdownMenuItem<String>(child: Text('Nenhuma')),
@@ -749,6 +783,11 @@ class _CriarEditarTransacaoPageState extends State<CriarEditarTransacaoPage> {
                   decoration: const InputDecoration(
                     labelText: 'Devedor Contato (Opcional)',
                     border: OutlineInputBorder(),
+                    suffixIcon: Tooltip(
+                      triggerMode: TooltipTriggerMode.tap,
+                      message: 'Contato que deve este valor a você.',
+                      child: Icon(Icons.info_outline, size: 20),
+                    ),
                   ),
                   items: [
                     const DropdownMenuItem<String>(child: Text('Nenhum')),
@@ -777,6 +816,11 @@ class _CriarEditarTransacaoPageState extends State<CriarEditarTransacaoPage> {
                   decoration: const InputDecoration(
                     labelText: 'Credor Contato (Opcional)',
                     border: OutlineInputBorder(),
+                    suffixIcon: Tooltip(
+                      triggerMode: TooltipTriggerMode.tap,
+                      message: 'Contato a quem você deve este valor.',
+                      child: Icon(Icons.info_outline, size: 20),
+                    ),
                   ),
                   items: [
                     const DropdownMenuItem<String>(child: Text('Nenhum')),
@@ -795,10 +839,11 @@ class _CriarEditarTransacaoPageState extends State<CriarEditarTransacaoPage> {
                 );
               },
             ),
-            if (widget.editingItem == null) ...[
+            if (widget.editingItem == null || widget.editingItem!.recorrencia == null) ...[
               const SizedBox(height: 16),
               CheckboxListTile(
                 title: const Text('Repetir esta transação (Recorrência)'),
+                subtitle: const Text('Permite transformar ou criar uma transação com parcelas.'),
                 value: _recorrente,
                 onChanged: (val) {
                   setState(() {
@@ -810,7 +855,7 @@ class _CriarEditarTransacaoPageState extends State<CriarEditarTransacaoPage> {
                 const SizedBox(height: 8),
                 _buildRecurrenceFields(),
               ],
-            ] else if (widget.editingItem!.recorrencia != null) ...[
+            ] else ...[
               const SizedBox(height: 16),
               const Padding(
                 padding: EdgeInsets.symmetric(horizontal: 16.0),
