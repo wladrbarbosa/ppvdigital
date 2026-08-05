@@ -1,5 +1,8 @@
 import 'package:fl_chart/fl_chart.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:ppvdigital/core.dart';
+import 'package:ppvdigital/services/pwa_update_service.dart';
 import 'package:routefly/routefly.dart';
 
 class HomePage extends StatefulWidget {
@@ -13,6 +16,66 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
   int touchedIndex = -1;
+  bool _updateAvailable = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkPwaUpdate();
+  }
+
+  Future<void> _checkPwaUpdate() async {
+    if (kIsWeb) {
+      final available = await PwaUpdateService.isUpdateAvailable(Core.appVersion);
+      if (mounted && available) {
+        setState(() {
+          _updateAvailable = true;
+        });
+      }
+    }
+  }
+
+  void _showUpdateDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Row(
+          children: [
+            Icon(
+              _updateAvailable ? Icons.system_update : Icons.refresh,
+              color: _updateAvailable ? Colors.green : Colors.amber,
+            ),
+            const SizedBox(width: 8),
+            Text(_updateAvailable ? 'Nova Versão Disponível!' : 'Atualizar Aplicativo'),
+          ],
+        ),
+        content: Text(
+          _updateAvailable
+              ? 'Uma nova versão do Seapruma foi implantada no servidor.\n\nDeseja recarregar o app agora para aplicar as melhorias?'
+              : 'Deseja limpar os arquivos em cache e forçar o recarregamento do aplicativo?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancelar'),
+          ),
+          ElevatedButton.icon(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: _updateAvailable ? Colors.green : Colors.amber.shade800,
+              foregroundColor: Colors.white,
+            ),
+            icon: const Icon(Icons.bolt),
+            label: const Text('Atualizar Agora'),
+            onPressed: () {
+              Navigator.pop(context);
+              PwaUpdateService.forceAppUpdate();
+            },
+          ),
+        ],
+      ),
+    );
+  }
 
   final List<Map<String, dynamic>> categories = [
     {
@@ -81,6 +144,24 @@ class _HomePageState extends State<HomePage> {
         title: const Text('Seapruma Dashboard'),
         centerTitle: true,
         elevation: 0,
+        actions: [
+          if (kIsWeb)
+            IconButton(
+              icon: Badge(
+                isLabelVisible: _updateAvailable,
+                backgroundColor: Colors.green,
+                label: const Text('NEW', style: TextStyle(fontSize: 9, fontWeight: FontWeight.bold)),
+                child: Icon(
+                  _updateAvailable ? Icons.system_update : Icons.refresh,
+                  color: _updateAvailable ? Colors.green : null,
+                ),
+              ),
+              tooltip: _updateAvailable
+                  ? 'Nova versão disponível! Clique para atualizar.'
+                  : 'Forçar Atualização / Limpar Cache',
+              onPressed: _showUpdateDialog,
+            ),
+        ],
       ),
       body: LayoutBuilder(
         builder: (context, constraints) {

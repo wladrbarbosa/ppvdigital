@@ -1,7 +1,7 @@
 {
     "name": "Seapruma",
     "short_name": "Seapruma",
-    "version": "0.23.0",
+    "version": "0.24.0",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#1a1110",

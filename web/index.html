@@ -58,6 +58,32 @@
   </style>
 
   <script>
+    // Função global para limpar Service Workers, Caches e recarregar o app
+    window.clearAppCacheAndReload = function () {
+      console.log('[PWA] Limpando caches e desregistrando Service Workers...');
+      var promises = [];
+      if ('serviceWorker' in navigator) {
+        promises.push(
+          navigator.serviceWorker.getRegistrations().then(function (registrations) {
+            return Promise.all(registrations.map(function (r) { return r.unregister(); }));
+          })
+        );
+      }
+      if ('caches' in window) {
+        promises.push(
+          caches.keys().then(function (keys) {
+            return Promise.all(keys.map(function (key) { return caches.delete(key); }));
+          })
+        );
+      }
+      Promise.all(promises).then(function () {
+        console.log('[PWA] Caches limpos! Recarregando...');
+        window.location.reload(true);
+      }).catch(function () {
+        window.location.reload(true);
+      });
+    };
+
     // Garante a desinstalação de Service Workers antigos acumulados no navegador do cliente
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.getRegistrations().then(function (registrations) {
