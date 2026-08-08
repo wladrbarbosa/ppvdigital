@@ -58,38 +58,77 @@
   </style>
 
   <script>
-    // 1. Interceptador de Fetch: Força revalidação HTTP (cache: 'no-cache') em todos os arquivos de runtime, WASM e assets do Flutter Web
     (function () {
-      var originalFetch = window.fetch;
-      if (!originalFetch) return;
+      var buildTimestamp = new Date().getTime();
 
-      window.fetch = function (resource, init) {
-        init = init || {};
-        var urlStr = '';
-        if (typeof resource === 'string') {
-          urlStr = resource;
-        } else if (resource && resource.href) {
-          urlStr = resource.href;
-        } else if (resource && resource.url) {
-          urlStr = resource.url;
-        }
-        if (
-          urlStr.indexOf('main.dart') !== -1 ||
-          urlStr.indexOf('skwasm') !== -1 ||
-          urlStr.indexOf('canvaskit') !== -1 ||
-          urlStr.indexOf('Manifest') !== -1 ||
-          urlStr.indexOf('version.json') !== -1 ||
-          urlStr.indexOf('flutter_bootstrap') !== -1 ||
-          urlStr.endsWith('.wasm') ||
-          urlStr.endsWith('.mjs')
-        ) {
-          init.cache = 'no-cache';
-        }
-        return originalFetch.call(this, resource, init);
-      };
+      // 1. Interceptador de buildConfig: Anexa query string ?v=TIMESTAMP a todos os caminhos do WASM, JS e CanvasKit
+      // Isso impede que o navegador sirva skwasm.js ou main.dart.mjs do Memory Cache (cache da memória)
+      window._flutter = window._flutter || {};
+      var originalBuildConfig = window._flutter.buildConfig;
+      Object.defineProperty(window._flutter, 'buildConfig', {
+        get: function () {
+          return originalBuildConfig;
+        },
+        set: function (config) {
+          if (config && config.builds) {
+            config.builds.forEach(function (b) {
+              if (b.mainWasmPath && b.mainWasmPath.indexOf('?v=') === -1) {
+                b.mainWasmPath += '?v=' + buildTimestamp;
+              }
+              if (b.jsSupportRuntimePath && b.jsSupportRuntimePath.indexOf('?v=') === -1) {
+                b.jsSupportRuntimePath += '?v=' + buildTimestamp;
+              }
+              if (b.mainJsPath && b.mainJsPath.indexOf('?v=') === -1) {
+                b.mainJsPath += '?v=' + buildTimestamp;
+              }
+            });
+          }
+          originalBuildConfig = config;
+        },
+        configurable: true,
+        enumerable: true
+      });
+
+      // 2. Interceptador seguro de window.fetch: Força revalidação HTTP (cache: 'no-cache') em requisições estáticas
+      var originalFetch = window.fetch;
+      if (originalFetch) {
+        window.fetch = function (resource, init) {
+          var urlStr = '';
+          if (typeof resource === 'string') {
+            urlStr = resource;
+          } else if (resource && typeof resource === 'object') {
+            urlStr = resource.url || resource.href || '';
+          }
+
+          if (
+            urlStr &&
+            (urlStr.indexOf('main.dart') !== -1 ||
+              urlStr.indexOf('skwasm') !== -1 ||
+              urlStr.indexOf('canvaskit') !== -1 ||
+              urlStr.indexOf('Manifest') !== -1 ||
+              urlStr.indexOf('version.json') !== -1 ||
+              urlStr.indexOf('flutter_bootstrap') !== -1 ||
+              urlStr.endsWith('.wasm') ||
+              urlStr.endsWith('.mjs'))
+          ) {
+            if (typeof resource === 'string') {
+              init = init || {};
+              init.cache = 'no-cache';
+            } else if (resource && typeof resource === 'object' && resource.url) {
+              try {
+                resource = new Request(resource, { cache: 'no-cache' });
+              } catch (e) {
+                init = init || {};
+                init.cache = 'no-cache';
+              }
+            }
+          }
+          return originalFetch.call(this, resource, init);
+        };
+      }
     })();
 
-    // 2. Limpeza proativa de Service Workers e Caches do navegador ao inicializar
+    // 3. Limpeza proativa de Service Workers e Caches do navegador ao inicializar
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.getRegistrations().then(function (registrations) {
         for (let registration of registrations) {
@@ -105,7 +144,7 @@
       });
     }
 
-    // 3. Função global para limpar Service Workers, Caches e recarregar o app com parâmetro de cache-bust na URL
+    // 4. Função global para limpar Service Workers, Caches e recarregar o app com parâmetro de cache-bust na URL
     window.clearAppCacheAndReload = function () {
       console.log('[PWA] Limpando caches e desregistrando Service Workers...');
       var reloadWithCacheBust = function () {
@@ -137,7 +176,7 @@
       });
     };
 
-    // 4. Monitor e Recuperador de Inicialização do Flutter / PWA
+    // 5. Monitor e Recuperador de Inicialização do Flutter / PWA
     (function () {
       var flutterLoaded = false;
 
