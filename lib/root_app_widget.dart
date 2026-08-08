@@ -62,14 +62,20 @@ class _RootAppWidgetState extends State<RootAppWidget>
       if (!TarefasPageState.fromTabClick) {
         final targetIndex = switch (routeInformation.uri.path) {
           final String url
-              when url == routePaths.capacitacao.tarefasHabitos.habitos =>
+              when url == routePaths.capacitacao.tarefasHabitos.dashboard =>
+            0,
+          final String url
+              when url == routePaths.capacitacao.tarefasHabitos.tarefas =>
             1,
           final String url
-              when url == routePaths.capacitacao.tarefasHabitos.calendario =>
+              when url == routePaths.capacitacao.tarefasHabitos.habitos =>
             2,
           final String url
-              when url == routePaths.capacitacao.tarefasHabitos.categorias =>
+              when url == routePaths.capacitacao.tarefasHabitos.calendario =>
             3,
+          final String url
+              when url == routePaths.capacitacao.tarefasHabitos.categorias =>
+            4,
           _ => 0,
         };
 
