@@ -482,7 +482,7 @@ class DashboardLogic {
     return map.values.toList();
   }
 
-  /// Legacy helper returning Map<String, double>
+  /// Legacy helper returning `Map<String, double>`
   static Map<String, double> getCompletionPercentageByCategory(
     List<TarefaHabitoModel> items,
   ) {

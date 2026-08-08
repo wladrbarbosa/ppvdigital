@@ -154,7 +154,6 @@ func Main(Context openruntimes.Context) openruntimes.Response {
 	errorCount := 0
 	now := time.Now().UTC()
 	startOfDay := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, time.UTC)
-	endOfDay := time.Date(now.Year(), now.Month(), now.Day(), 23, 59, 59, 999999999, time.UTC)
 
 	// 2. Process each recurrence rule concurrently
 	var wg sync.WaitGroup
@@ -184,8 +183,7 @@ func Main(Context openruntimes.Context) openruntimes.Response {
 			TransactionColl,
 			dbService.WithListDocumentsQueries([]string{
 				query.Equal("recorrencia", recID),
-				query.GreaterThanEqual("dataCompetencia", startOfDay.Format(time.RFC3339)),
-				query.LessThanEqual("dataCompetencia", endOfDay.Format(time.RFC3339)),
+				query.StartsWith("dataCompetencia", startOfDay.Format("2006-01-02")),
 				query.Limit(1),
 			}),
 		)
@@ -248,20 +246,7 @@ func Main(Context openruntimes.Context) openruntimes.Response {
 
 		latestTx := txDocuments[0]
 		latestTxID := getDocumentID(latestTx)
-		dataCompetenciaStr := getStringAttribute(latestTx, "dataCompetencia")
-
-		latestDate, err := time.Parse(time.RFC3339, dataCompetenciaStr)
-		if err != nil {
-			// Try without offset if standard RFC3339 fails (e.g. custom layout)
-			latestDate, err = time.Parse("2006-01-02T15:04:05.000Z07:00", dataCompetenciaStr)
-			if err != nil {
-				Context.Error(fmt.Sprintf("Error parsing competency date '%s' for transaction %s: %v", dataCompetenciaStr, latestTxID, err))
-				mu.Lock()
-				errorCount++
-				mu.Unlock()
-				return
-			}
-		}
+		latestDate := parseTransactionDate(latestTx, Context)
 
 		// Calculate the next competency date
 		var nextDate time.Time
@@ -520,4 +505,51 @@ func getDefaultGateway() string {
 		}
 	}
 	return ""
+}
+
+func parseTransactionDate(doc interface{}, Context openruntimes.Context) time.Time {
+	// Try primary dataCompetencia first, then fallback to $createdAt, then $updatedAt
+	raw := getStringAttribute(doc, "dataCompetencia")
+	txID := getDocumentID(doc)
+
+	if raw == "" {
+		raw = getStringAttribute(doc, "$createdAt")
+	}
+	if raw == "" {
+		raw = getStringAttribute(doc, "$updatedAt")
+	}
+
+	raw = strings.TrimSpace(raw)
+	if raw == "" {
+		Context.Log(fmt.Sprintf("Warning: transaction %s has no dataCompetencia, $createdAt, or $updatedAt. Fallback to current time.", txID))
+		return time.Now().UTC()
+	}
+
+	// Supported time formats
+	layouts := []string{
+		time.RFC3339,
+		"2006-01-02T15:04:05.000Z07:00",
+		"2006-01-02T15:04:05.999999999Z07:00",
+		"2006-01-02T15:04:05.000Z",
+		"2006-01-02T15:04:05.000",
+		"2006-01-02T15:04:05Z",
+		"2006-01-02T15:04:05",
+		"2006-01-02 15:04:05",
+		"2006-01-02",
+	}
+
+	for _, layout := range layouts {
+		if t, err := time.Parse(layout, raw); err == nil {
+			return t.UTC()
+		}
+	}
+
+	if len(raw) >= 10 {
+		if t, err := time.Parse("2006-01-02", raw[:10]); err == nil {
+			return t.UTC()
+		}
+	}
+
+	Context.Log(fmt.Sprintf("Warning: unable to parse date '%s' for transaction %s. Fallback to current time.", raw, txID))
+	return time.Now().UTC()
 }

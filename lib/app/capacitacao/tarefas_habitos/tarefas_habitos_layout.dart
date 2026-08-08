@@ -257,8 +257,6 @@ class TarefasPageState extends State<TarefasPage>
           child: SafeArea(
             child: TabBar(
               controller: tabController,
-              isScrollable: true,
-              tabAlignment: TabAlignment.start,
               tabs: const [
                 Tab(icon: Icon(Icons.dashboard), text: 'Dashboard'),
                 Tab(icon: Icon(Icons.task_alt), text: 'Tarefas'),
