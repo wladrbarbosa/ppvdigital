@@ -44,12 +44,6 @@ extension TarefasHabitosTransformList on List<dynamic>? {
           final String reiniciaEmTipo =
               (e2Map['reiniciaEmTipo'] as String?) ?? 'dias';
           final int reiniciaEmQtd = (e2Map['reiniciaEmQtd'] as int?) ?? 1;
-          final DateTime nowToday = DateTime.now();
-          final DateTime now = DateTime(
-            nowToday.year,
-            nowToday.month,
-            nowToday.day,
-          );
 
           if (tarefaHabitoHistoricoList != null &&
               tarefaHabitoHistoricoList.isNotEmpty) {
@@ -188,21 +182,25 @@ class TarefasHabitosController {
   );
 
   Future<void> loadConfiguredColors() async {
-    final habitSetting = await (Core.database.select(
-      Core.database.appSettings,
-    )..where((t) => t.key.equals('pref_habit_color'))).getSingleOrNull();
-    final taskSetting = await (Core.database.select(
-      Core.database.appSettings,
-    )..where((t) => t.key.equals('pref_task_color'))).getSingleOrNull();
+    try {
+      final habitSetting = await (Core.database.select(
+        Core.database.appSettings,
+      )..where((t) => t.key.equals('pref_habit_color'))).getSingleOrNull();
+      final taskSetting = await (Core.database.select(
+        Core.database.appSettings,
+      )..where((t) => t.key.equals('pref_task_color'))).getSingleOrNull();
 
-    mobx.runInAction(() {
-      if (habitSetting != null) {
-        habitColor.value = Color(int.parse(habitSetting.value, radix: 16));
-      }
-      if (taskSetting != null) {
-        taskColor.value = Color(int.parse(taskSetting.value, radix: 16));
-      }
-    });
+      mobx.runInAction(() {
+        if (habitSetting != null) {
+          habitColor.value = Color(int.parse(habitSetting.value, radix: 16));
+        }
+        if (taskSetting != null) {
+          taskColor.value = Color(int.parse(taskSetting.value, radix: 16));
+        }
+      });
+    } catch (e) {
+      debugPrint('Could not load configured colors: $e');
+    }
   }
 
   Future<void> setHabitColor(Color color) async {

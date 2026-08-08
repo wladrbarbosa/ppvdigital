@@ -3,8 +3,9 @@
 | Task | Status | Notes |
 | :--- | :--- | :--- |
 | Planning & Research | Done | Plan approved by user |
-| Update Go Recurrence Function | Done | Updated endpoint fallback & daily cycle check logic |
-| Enable Recurrence on Transaction Edit | Done | Added 'new_recurrence' option & creation logic in updateTransacao |
-| Transparent Web App Updates (PWA Cache Fix) | Done | Added no-cache meta tags & dynamic cache-buster for flutter_bootstrap.js |
-| Add Tooltips to Registration Forms | Done | Added info tooltips to forms in financas and tarefas/habitos |
-| Verification & Quality Check | Done | All 41 unit tests passed & static analysis verified |
+| Implement Habit Card Cycle Type | Done | Extract reiniciaEmQtd and reiniciaEmTipo and show on card |
+| Unit Tests for Dashboard | Done | Tests for data aggregation logic |
+| Dashboard Page and Charts | Done | Implement Dashboard with fl_chart |
+| Widget Tests for Dashboard | Done | Widget tests to prevent regression |
+| Update Tabs and Routing | Done | Include Dashboard as first tab |
+| Verification & Quality Check | Done | All 47 tests passing and clean static analysis |

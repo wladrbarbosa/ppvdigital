@@ -565,4 +565,10 @@ class AppwriteFinancasRepository implements FinancasRepository {
   }) {
     return const Stream.empty();
   }
+
+  @override
+  Future<void> saveSetting(String key, String value) async {}
+
+  @override
+  Future<String?> getSetting(String key) async => null;
 }

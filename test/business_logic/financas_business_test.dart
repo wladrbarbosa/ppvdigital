@@ -28,7 +28,7 @@ void main() {
           descricao: 'Jantar',
           valor: 300.0,
           tipo: 'despesa',
-          dataCompetencia: DateTime(2026, 7, 1),
+          dataCompetencia: DateTime(2026, 7),
           consolidada: true,
           divisoes: [
             DivisaoTransacaoModel(
@@ -56,7 +56,7 @@ void main() {
           descricao: 'Mercado',
           valor: 150.0,
           tipo: 'despesa',
-          dataCompetencia: DateTime(2026, 7, 1),
+          dataCompetencia: DateTime(2026, 7),
           consolidada: true,
           divisoes: [],
         );
@@ -70,7 +70,7 @@ void main() {
           descricao: 'Uber',
           valor: 50.0,
           tipo: 'despesa',
-          dataCompetencia: DateTime(2026, 7, 1),
+          dataCompetencia: DateTime(2026, 7),
           consolidada: true,
           divisoes: [
             DivisaoTransacaoModel(
@@ -91,7 +91,7 @@ void main() {
           descricao: 'Zero peso',
           valor: 100.0,
           tipo: 'despesa',
-          dataCompetencia: DateTime(2026, 7, 1),
+          dataCompetencia: DateTime(2026, 7),
           consolidada: true,
           divisoes: [
             DivisaoTransacaoModel(
@@ -114,7 +114,7 @@ void main() {
           descricao: 'Empréstimo A',
           valor: 100.0,
           tipo: 'despesa',
-          dataCompetencia: DateTime(2026, 7, 1),
+          dataCompetencia: DateTime(2026, 7),
           consolidada: true,
           devedorContato: contatoA,
           divisoes: [],
@@ -125,7 +125,7 @@ void main() {
           descricao: 'Jantar Dividido',
           valor: 200.0,
           tipo: 'despesa',
-          dataCompetencia: DateTime(2026, 7, 1),
+          dataCompetencia: DateTime(2026, 7),
           consolidada: true,
           divisoes: [
             DivisaoTransacaoModel(
@@ -175,11 +175,9 @@ void main() {
             case 'dia':
             case 'dias':
               date = dataCompetencia.add(Duration(days: factor * frequencia));
-              break;
             case 'semana':
             case 'semanas':
               date = dataCompetencia.add(Duration(days: factor * 7 * frequencia));
-              break;
             case 'mês':
             case 'meses':
               date = DateTime(
@@ -189,7 +187,6 @@ void main() {
                 dataCompetencia.hour,
                 dataCompetencia.minute,
               );
-              break;
             case 'ano':
             case 'anos':
               date = DateTime(
@@ -199,7 +196,6 @@ void main() {
                 dataCompetencia.hour,
                 dataCompetencia.minute,
               );
-              break;
           }
           dates.add(date);
         }
@@ -222,14 +218,14 @@ void main() {
 
       test('Recorrência semanal (2 em 2 semanas)', () {
         final dates = gerarDatasRecorrentes(
-          dataCompetencia: DateTime(2026, 7, 1),
+          dataCompetencia: DateTime(2026, 7),
           tipoRecorrencia: 'semana',
           frequencia: 2,
           totalParcelas: 3,
         );
 
         expect(dates.length, equals(3));
-        expect(dates[0], equals(DateTime(2026, 7, 1)));
+        expect(dates[0], equals(DateTime(2026, 7)));
         expect(dates[1], equals(DateTime(2026, 7, 15)));
         expect(dates[2], equals(DateTime(2026, 7, 29)));
       });
@@ -329,7 +325,7 @@ void main() {
       ];
 
       test('Cálculo do Saldo Anterior (antes de Julho 2026)', () {
-        final inicioMes = DateTime(2026, 7, 1);
+        final inicioMes = DateTime(2026, 7);
         final transacoesPassadas = transacoesMock.where(
           (t) => t.dataCompetencia.isBefore(inicioMes) && t.consolidada,
         );
@@ -344,7 +340,7 @@ void main() {
       });
 
       test('Cálculo de Receita e Despesa do Mês de Julho 2026', () {
-        final inicioMes = DateTime(2026, 7, 1);
+        final inicioMes = DateTime(2026, 7);
         final fimMes = DateTime(2026, 7, 31, 23, 59, 59);
 
         final transacoesMes = transacoesMock.where(
@@ -411,7 +407,7 @@ void main() {
           descricao: 'Sem Recorrência',
           valor: 100.0,
           tipo: 'despesa',
-          dataCompetencia: DateTime(2026, 7, 1),
+          dataCompetencia: DateTime(2026, 7),
           consolidada: false,
           divisoes: [],
         );
@@ -424,12 +420,12 @@ void main() {
       });
 
       test('Conversão de transação simples em recorrente gera parcelas adicionais', () {
-        final double valor = 100.0;
-        final int totalParcelas = 3;
-        final int parcelaInicio = 1;
+        const double valor = 100.0;
+        const int totalParcelas = 3;
+        const int parcelaInicio = 1;
         final List<Map<String, dynamic>> generatedOps = [];
 
-        final int loopLimit = totalParcelas - parcelaInicio + 1;
+        const int loopLimit = totalParcelas - parcelaInicio + 1;
         for (int i = 2; i <= loopLimit; i++) {
           final int nextParcel = parcelaInicio + i - 1;
           generatedOps.add({

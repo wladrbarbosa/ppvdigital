@@ -160,12 +160,11 @@ class TarefaHabitoQtdModel {
 
       case 'meses':
         if (reiniciaEmQtd <= 1) {
-          return DateTime(nowToday.year, nowToday.month, 1);
+          return DateTime(nowToday.year, nowToday.month);
         }
         final DateTime beginningFirst = DateTime(
           createdAt.year,
           createdAt.month,
-          1,
         );
         if (nowToday.isBefore(beginningFirst)) return beginningFirst;
         final int monthDiff = (nowToday.year - beginningFirst.year) * 12 +
@@ -174,18 +173,17 @@ class TarefaHabitoQtdModel {
         return DateTime(
           beginningFirst.year,
           beginningFirst.month + (cycles * reiniciaEmQtd),
-          1,
         );
 
       case 'anos':
         if (reiniciaEmQtd <= 1) {
-          return DateTime(nowToday.year, 1, 1);
+          return DateTime(nowToday.year);
         }
-        final DateTime beginningJan1 = DateTime(createdAt.year, 1, 1);
+        final DateTime beginningJan1 = DateTime(createdAt.year);
         if (nowToday.isBefore(beginningJan1)) return beginningJan1;
         final int yearDiff = nowToday.year - beginningJan1.year;
         final int cycles = yearDiff < 0 ? 0 : (yearDiff ~/ reiniciaEmQtd);
-        return DateTime(beginningJan1.year + (cycles * reiniciaEmQtd), 1, 1);
+        return DateTime(beginningJan1.year + (cycles * reiniciaEmQtd));
 
       default:
         return nowToday;
@@ -204,9 +202,9 @@ class TarefaHabitoQtdModel {
       case 'semanas':
         return startPeriod.add(Duration(days: 7 * qtd));
       case 'meses':
-        return DateTime(startPeriod.year, startPeriod.month + qtd, 1);
+        return DateTime(startPeriod.year, startPeriod.month + qtd);
       case 'anos':
-        return DateTime(startPeriod.year + qtd, 1, 1);
+        return DateTime(startPeriod.year + qtd);
       default:
         return startPeriod.add(Duration(days: qtd));
     }

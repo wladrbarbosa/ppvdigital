@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:developer';
 
 import 'package:appwrite/appwrite.dart';
@@ -14,6 +15,27 @@ import 'package:ppvdigital/repositories/financas_repository.dart';
 class FinancasController {
   FinancasController(this.repository);
   final FinancasRepository repository;
+
+  Future<void> saveFinancasFilters(Map<String, dynamic> filters) async {
+    try {
+      final jsonStr = json.encode(filters);
+      await repository.saveSetting('financas_filters', jsonStr);
+    } catch (e) {
+      log('Error saving financas filters: $e');
+    }
+  }
+
+  Future<Map<String, dynamic>?> loadFinancasFilters() async {
+    try {
+      final jsonStr = await repository.getSetting('financas_filters');
+      if (jsonStr != null && jsonStr.isNotEmpty) {
+        return json.decode(jsonStr) as Map<String, dynamic>;
+      }
+    } catch (e) {
+      log('Error loading financas filters: $e');
+    }
+    return null;
+  }
 
   DateTime _lastSelectedMonth = DateTime.now();
   DateTime get lastSelectedMonth => _lastSelectedMonth;
@@ -890,7 +912,6 @@ class FinancasController {
           frequencia: frequencia ?? 1,
           totalParcelas: totalParcelas,
           parcelaInicio: parcelaInicio ?? 1,
-          fimRecorrencia: null,
         );
         updatedRecId = newRecId;
 

@@ -21,7 +21,7 @@ class AppwriteRealtimeService {
 
     try {
       final realtime = Realtime(client);
-      final String db = Core.databaseId;
+      const String db = Core.databaseId;
 
       final List<String> channels = [
         'databases.$db.collections.${Core.tableTransacoes}.documents',

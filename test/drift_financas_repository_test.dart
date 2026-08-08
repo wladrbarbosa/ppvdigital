@@ -508,8 +508,8 @@ void main() {
     await driftRepository.getTransacoes(
       usuarioId: 'user1',
       contaIds: ['c1'],
-      targetMonth: DateTime(2026, 7, 1),
-      lastSyncedAt: DateTime(2026, 7, 1),
+      targetMonth: DateTime(2026, 7),
+      lastSyncedAt: DateTime(2026, 7),
     );
 
     // t_deleted should be reconciled and removed from SQLite

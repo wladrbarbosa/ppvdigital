@@ -119,7 +119,7 @@ void main() {
 
       test('Reset de hábito mensal criado no ano anterior', () {
         // Hábito mensal criado em 2025-01-01
-        final creationDate = DateTime(2025, 1, 1);
+        final creationDate = DateTime(2025);
         final rawList = [
           {
             r'$id': 'qtd_mensal',
@@ -166,7 +166,7 @@ void main() {
 
     group('2. Lógica de Matriz de Calendário de Tarefas e Hábitos', () {
       List<DateTime> gerarMatrizDiasMes(int ano, int mes) {
-        final primeiroDia = DateTime(ano, mes, 1);
+        final primeiroDia = DateTime(ano, mes);
         final ultimoDia = DateTime(ano, mes + 1, 0);
 
         final diasAntes = primeiroDia.weekday - 1; // 1 = Segunda
@@ -193,7 +193,7 @@ void main() {
         expect(diasJulho.length, equals(31));
 
         // Primeiro dia de julho 2026 foi Quarta-feira (weekday = 3)
-        expect(DateTime(2026, 7, 1).weekday, equals(3));
+        expect(DateTime(2026, 7).weekday, equals(3));
       });
 
       test('Filtragem de tarefas por data agendada', () {
@@ -206,7 +206,7 @@ void main() {
             tipo: 'tarefa',
             usuario: 'user1',
             concluida: false,
-            agendamento: DateTime(2026, 7, 22, 10, 0),
+            agendamento: DateTime(2026, 7, 22, 10),
             tarefasHabitosQtd: [],
           ),
           TarefaHabitoModel(
@@ -215,7 +215,7 @@ void main() {
             tipo: 'tarefa',
             usuario: 'user1',
             concluida: false,
-            agendamento: DateTime(2026, 7, 25, 15, 0),
+            agendamento: DateTime(2026, 7, 25, 15),
             tarefasHabitosQtd: [],
           ),
         ];

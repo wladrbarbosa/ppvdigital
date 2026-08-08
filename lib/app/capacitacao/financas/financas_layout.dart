@@ -21,9 +21,9 @@ class FinancasLayout extends StatefulWidget {
 }
 
 class _DayHeaderDelegate extends SliverPersistentHeaderDelegate {
-  final String formattedDate;
 
   _DayHeaderDelegate(this.formattedDate);
+  final String formattedDate;
 
   @override
   Widget build(
@@ -111,9 +111,61 @@ class _FinancasLayoutState extends State<FinancasLayout>
     _tabController.addListener(() {
       setState(() {});
     });
+    _loadSavedFilters();
     FinancasController.financasFuture = Core.financasController.loadDocuments(
       selectedMonth: _selectedMonth,
     );
+  }
+
+  Future<void> _loadSavedFilters() async {
+    final filters = await Core.financasController.loadFinancasFilters();
+    if (filters != null && mounted) {
+      setState(() {
+        if (filters['selectedContas'] is List) {
+          _selectedContas.clear();
+          _selectedContas.addAll((filters['selectedContas'] as List).cast<String>());
+        }
+        if (filters['selectedCategorias'] is List) {
+          _selectedCategorias.clear();
+          _selectedCategorias.addAll((filters['selectedCategorias'] as List).cast<String>());
+        }
+        if (filters['selectedTipos'] is List) {
+          _selectedTipos.clear();
+          _selectedTipos.addAll((filters['selectedTipos'] as List).cast<String>());
+        }
+        if (filters['selectedContatos'] is List) {
+          _selectedContatos.clear();
+          _selectedContatos.addAll((filters['selectedContatos'] as List).cast<String>());
+        }
+        if (filters['selectedConsolidadas'] is List) {
+          _selectedConsolidadas.clear();
+          _selectedConsolidadas.addAll((filters['selectedConsolidadas'] as List).cast<bool>());
+        }
+        if (filters['descricaoQuery'] is String) {
+          _descricaoQuery = filters['descricaoQuery'] as String;
+          _descricaoFilterController.text = _descricaoQuery;
+        }
+        if (filters['mostrarDivisoes'] is bool) {
+          _mostrarDivisoes = filters['mostrarDivisoes'] as bool;
+        }
+        if (filters['somarAcumulado'] is bool) {
+          _somarAcumulado = filters['somarAcumulado'] as bool;
+        }
+      });
+    }
+  }
+
+  void _persistFilters() {
+    Core.financasController.saveFinancasFilters({
+      'selectedContas': _selectedContas.toList(),
+      'selectedCategorias': _selectedCategorias.toList(),
+      'selectedTipos': _selectedTipos.toList(),
+      'selectedContatos': _selectedContatos.toList(),
+      'selectedConsolidadas': _selectedConsolidadas.toList(),
+      'descricaoQuery': _descricaoQuery,
+      'mostrarDivisoes': _mostrarDivisoes,
+      'somarAcumulado': _somarAcumulado,
+    });
   }
 
   @override
@@ -170,7 +222,7 @@ class _FinancasLayoutState extends State<FinancasLayout>
       decoration: BoxDecoration(
         color: Colors.grey.withValues(alpha: 0.05),
         border: const Border(
-          bottom: BorderSide(color: Colors.black12, width: 1.0),
+          bottom: BorderSide(color: Colors.black12),
         ),
       ),
       child: Row(
@@ -611,6 +663,7 @@ class _FinancasLayoutState extends State<FinancasLayout>
                                     setState(() {
                                       _descricaoQuery = val;
                                     });
+                                    _persistFilters();
                                   },
                                 ),
                               ),
@@ -1441,6 +1494,7 @@ class _FinancasLayoutState extends State<FinancasLayout>
     void update(VoidCallback fn) {
       setState(fn);
       setStateSheet?.call(fn);
+      _persistFilters();
     }
 
     return SafeArea(

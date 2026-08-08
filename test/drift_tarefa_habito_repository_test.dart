@@ -124,7 +124,7 @@ void main() {
     // Incremental sync
     await driftRepository.getTarefasEHabitos(
       usuarioId: 'user1',
-      lastSyncedAt: DateTime(2026, 7, 1),
+      lastSyncedAt: DateTime(2026, 7),
     );
 
     // th_deleted should be reconciled and removed from SQLite

@@ -115,4 +115,8 @@ abstract class FinancasRepository {
     required List<String> contaIds,
     DateTime? targetMonth,
   });
+
+  Future<void> saveSetting(String key, String value);
+
+  Future<String?> getSetting(String key);
 }

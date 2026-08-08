@@ -1419,4 +1419,22 @@ class DriftFinancasRepository implements FinancasRepository {
       await database.into(database.contatos).insert(toContatoCompanion(model));
     }
   }
+
+  @override
+  Future<void> saveSetting(String key, String value) async {
+    await database.into(database.appSettings).insertOnConflictUpdate(
+          AppSettingsCompanion.insert(
+            key: key,
+            value: value,
+          ),
+        );
+  }
+
+  @override
+  Future<String?> getSetting(String key) async {
+    final query = database.select(database.appSettings)
+      ..where((tbl) => tbl.key.equals(key));
+    final row = await query.getSingleOrNull();
+    return row?.value;
+  }
 }

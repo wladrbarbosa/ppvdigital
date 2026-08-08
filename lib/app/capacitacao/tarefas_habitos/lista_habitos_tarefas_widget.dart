@@ -430,6 +430,20 @@ class ListaHabitosTarefasWidgetState extends State<ListaHabitosTarefasWidget> {
     return '$completedCount / ${item.tarefasHabitosQtd.length} metas';
   }
 
+  String _getCycleText(TarefaHabitoModel item) {
+    if (item.tarefasHabitosQtd.isEmpty) return '';
+    final qtd = item.tarefasHabitosQtd.first;
+    final tipo = qtd.reiniciaEmTipo;
+    final vezes = qtd.reiniciaEmQtd;
+    if (vezes <= 1) {
+      if (tipo == 'dias') return 'Diário';
+      if (tipo == 'semanas') return 'Semanal';
+      if (tipo == 'meses') return 'Mensal';
+      if (tipo == 'anos') return 'Anual';
+    }
+    return 'A cada $vezes $tipo';
+  }
+
   String _formatDuration(int? minutes) {
     if (minutes == null || minutes <= 0) return '';
     final int hours = minutes ~/ 60;
@@ -701,7 +715,6 @@ class ListaHabitosTarefasWidgetState extends State<ListaHabitosTarefasWidget> {
                                             shape: RoundedRectangleBorder(
                                               borderRadius:
                                                   BorderRadius.circular(22),
-                                              side: BorderSide.none,
                                             ),
                                             color: Colors.transparent,
                                             child: InkWell(
@@ -917,7 +930,7 @@ class ListaHabitosTarefasWidgetState extends State<ListaHabitosTarefasWidget> {
                                                             height: 2.0,
                                                           ),
                                                           if (item.tipo ==
-                                                              'habito')
+                                                              'habito') ...[
                                                             Text(
                                                               _getProgressText(
                                                                 item,
@@ -931,6 +944,18 @@ class ListaHabitosTarefasWidgetState extends State<ListaHabitosTarefasWidget> {
                                                                     .white70,
                                                               ),
                                                             ),
+                                                            const SizedBox(
+                                                              height: 2.0,
+                                                            ),
+                                                            Text(
+                                                              _getCycleText(item),
+                                                              style: const TextStyle(
+                                                                fontSize: 10.0,
+                                                                color: Colors
+                                                                    .white54,
+                                                              ),
+                                                            ),
+                                                          ],
                                                         ],
                                                       ),
                                                     ),
