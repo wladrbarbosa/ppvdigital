@@ -40,32 +40,41 @@ const path = require("path");
 const buildWebDir = path.join(__dirname, "build/web");
 const assetsDir = path.join(buildWebDir, "assets");
 
-if (fs.existsSync(assetsDir)) {
-  const files = fs.readdirSync(assetsDir);
-  files.forEach(file => {
-    if (file.startsWith("AssetManifest") || file.startsWith("FontManifest")) {
-      fs.copyFileSync(path.join(assetsDir, file), path.join(buildWebDir, file));
-    }
-  });
+if (!fs.existsSync(assetsDir)) {
+  fs.mkdirSync(assetsDir, { recursive: true });
+}
 
-  const binJsonPath = path.join(assetsDir, "AssetManifest.bin.json");
-  if (fs.existsSync(binJsonPath)) {
-    try {
-      const raw = fs.readFileSync(binJsonPath, "utf8");
-      const base64Str = JSON.parse(raw);
-      const buf = Buffer.from(base64Str, "base64");
-      const str = buf.toString("utf8");
-      const assetMatches = str.match(/(assets\/[^\x00-\x1F]+|packages\/[^\x00-\x1F]+)/g) || [];
-      const manifest = {};
-      assetMatches.forEach(a => {
-        manifest[a] = [a];
-      });
-      const jsonStr = JSON.stringify(manifest, null, 2);
-      fs.writeFileSync(path.join(assetsDir, "AssetManifest.json"), jsonStr);
-      fs.writeFileSync(path.join(buildWebDir, "AssetManifest.json"), jsonStr);
-    } catch (e) {
-      console.error("Erro ao gerar AssetManifest.json:", e);
-    }
+const syncManifests = (srcDir, dstDir) => {
+  if (fs.existsSync(srcDir)) {
+    const files = fs.readdirSync(srcDir);
+    files.forEach(file => {
+      if (file.startsWith("AssetManifest") || file.startsWith("FontManifest")) {
+        fs.copyFileSync(path.join(srcDir, file), path.join(dstDir, file));
+      }
+    });
+  }
+};
+
+syncManifests(assetsDir, buildWebDir);
+syncManifests(buildWebDir, assetsDir);
+
+const binJsonPath = path.join(assetsDir, "AssetManifest.bin.json");
+if (fs.existsSync(binJsonPath)) {
+  try {
+    const raw = fs.readFileSync(binJsonPath, "utf8");
+    const base64Str = JSON.parse(raw);
+    const buf = Buffer.from(base64Str, "base64");
+    const str = buf.toString("utf8");
+    const assetMatches = str.match(/(assets\/[^\x00-\x1F]+|packages\/[^\x00-\x1F]+)/g) || [];
+    const manifest = {};
+    assetMatches.forEach(a => {
+      manifest[a] = [a];
+    });
+    const jsonStr = JSON.stringify(manifest, null, 2);
+    fs.writeFileSync(path.join(assetsDir, "AssetManifest.json"), jsonStr);
+    fs.writeFileSync(path.join(buildWebDir, "AssetManifest.json"), jsonStr);
+  } catch (e) {
+    console.error("Erro ao gerar AssetManifest.json:", e);
   }
 }
 '

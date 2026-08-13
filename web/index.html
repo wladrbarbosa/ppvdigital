@@ -89,7 +89,7 @@
         enumerable: true
       });
 
-      // 2. Interceptador seguro de window.fetch: Força revalidação HTTP (cache: 'no-cache') em requisições estáticas
+      // 2. Interceptador seguro de window.fetch: Força revalidação HTTP (cache: 'no-cache') e resolve 404 de Manifests
       var originalFetch = window.fetch;
       if (originalFetch) {
         window.fetch = function (resource, init) {
@@ -100,17 +100,50 @@
             urlStr = resource.url || resource.href || '';
           }
 
-          if (
-            urlStr &&
-            (urlStr.indexOf('main.dart') !== -1 ||
-              urlStr.indexOf('skwasm') !== -1 ||
-              urlStr.indexOf('canvaskit') !== -1 ||
-              urlStr.indexOf('Manifest') !== -1 ||
-              urlStr.indexOf('version.json') !== -1 ||
-              urlStr.indexOf('flutter_bootstrap') !== -1 ||
-              urlStr.endsWith('.wasm') ||
-              urlStr.endsWith('.mjs'))
-          ) {
+          var isManifest = urlStr && (urlStr.indexOf('FontManifest') !== -1 || urlStr.indexOf('AssetManifest') !== -1);
+          var isStaticAsset = urlStr && (
+            urlStr.indexOf('main.dart') !== -1 ||
+            urlStr.indexOf('skwasm') !== -1 ||
+            urlStr.indexOf('canvaskit') !== -1 ||
+            urlStr.indexOf('version.json') !== -1 ||
+            urlStr.indexOf('flutter_bootstrap') !== -1 ||
+            urlStr.endsWith('.wasm') ||
+            urlStr.endsWith('.mjs')
+          );
+
+          if (isManifest) {
+            var manifestFile = urlStr.split('/').pop().split('?')[0];
+            var baseUri = document.baseURI || (window.location.origin + '/');
+            if (!baseUri.endsWith('/')) {
+              baseUri += '/';
+            }
+            var primaryUrl = baseUri + 'assets/' + manifestFile;
+            var secondaryUrl = baseUri + manifestFile;
+
+            var fetchOptions = Object.assign({}, init || {}, { cache: 'no-cache' });
+
+            return originalFetch.call(this, primaryUrl, fetchOptions).then(function (response) {
+              if (response.ok) return response;
+              return originalFetch.call(this, secondaryUrl, fetchOptions).then(function (resp2) {
+                if (resp2.ok) return resp2;
+                var fallbackBody = manifestFile.indexOf('FontManifest') !== -1 ? '[]' : '{}';
+                return new Response(fallbackBody, {
+                  status: 200,
+                  headers: { 'Content-Type': 'application/json' }
+                });
+              });
+            }).catch(function () {
+              return originalFetch.call(this, secondaryUrl, fetchOptions).catch(function () {
+                var fallbackBody = manifestFile.indexOf('FontManifest') !== -1 ? '[]' : '{}';
+                return new Response(fallbackBody, {
+                  status: 200,
+                  headers: { 'Content-Type': 'application/json' }
+                });
+              });
+            });
+          }
+
+          if (isStaticAsset) {
             if (typeof resource === 'string') {
               init = init || {};
               init.cache = 'no-cache';
