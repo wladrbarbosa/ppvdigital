@@ -144,5 +144,5 @@ class Core {
   }
 
   static GlobalKey<TarefasPageState> globalKey = GlobalKey<TarefasPageState>();
-  static const String appVersion = 'b0.25.2+1';
+  static const String appVersion = 'b0.26.0+1';
 }
