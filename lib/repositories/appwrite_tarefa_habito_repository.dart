@@ -279,4 +279,11 @@ class AppwriteTarefaHabitoRepository implements TarefaHabitoRepository {
   }) {
     return const Stream.empty();
   }
+
+  @override
+  Stream<List<HistoricoItemModel>> watchHistorico({
+    required String usuarioId,
+  }) {
+    return const Stream.empty();
+  }
 }

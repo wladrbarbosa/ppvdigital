@@ -37,7 +37,7 @@ func init() {
 				if targetIP == "" {
 					targetIP = "172.18.0.1" // Fallback
 				}
-				
+
 				// Strip http:// or https:// if user accidentally included it in override
 				targetIP = strings.TrimPrefix(targetIP, "http://")
 				targetIP = strings.TrimPrefix(targetIP, "https://")
@@ -52,7 +52,7 @@ func init() {
 }
 
 const (
-	DatabaseID     = "671f6e1600022832cba5"
+	DatabaseID      = "671f6e1600022832cba5"
 	TransactionColl = "671f7a6f000cb3ab17b9"
 	RecurrenceColl  = "transacao_recorrencia"
 	DivisionsColl   = "divisao_transacoes"
@@ -73,7 +73,7 @@ func Main(Context openruntimes.Context) openruntimes.Response {
 		appwriteEndpoint = "https://appwrite.wladapps.com/v1"
 	}
 	projectID := os.Getenv("APPWRITE_FUNCTION_PROJECT_ID")
-	
+
 	// Get API key from environment or from request headers if using Dynamic Keys
 	apiKey := os.Getenv("APPWRITE_API_KEY")
 	if apiKey == "" {
@@ -167,208 +167,208 @@ func Main(Context openruntimes.Context) openruntimes.Response {
 		go func(recDoc interface{}) {
 			defer wg.Done()
 			defer func() { <-semaphore }() // release token
-		recID := getDocumentID(recDoc)
-		tipoRecorrencia := getStringAttribute(recDoc, "tipoRecorrencia")
-		if tipoRecorrencia == "" {
-			tipoRecorrencia = "mês" // Default to month
-		}
-		freq := getIntAttribute(recDoc, "frequencia")
-		if freq <= 0 {
-			freq = 1
-		}
-
-		// Check if current date matches an installment date for this recurrence
-		todayTxRes, err := dbService.ListDocuments(
-			DatabaseID,
-			TransactionColl,
-			dbService.WithListDocumentsQueries([]string{
-				query.Equal("recorrencia", recID),
-				query.StartsWith("dataCompetencia", startOfDay.Format("2006-01-02")),
-				query.Limit(1),
-			}),
-		)
-		if err != nil {
-			Context.Error(fmt.Sprintf("Error checking today's transaction for recurrence %s: %v", recID, err))
-			mu.Lock()
-			errorCount++
-			mu.Unlock()
-			return
-		}
-
-		var todayDocuments []interface{}
-		if todayBytes, err := json.Marshal(todayTxRes); err == nil {
-			var todayMap map[string]interface{}
-			if json.Unmarshal(todayBytes, &todayMap) == nil {
-				if docsVal, ok := todayMap["documents"].([]interface{}); ok {
-					todayDocuments = docsVal
-				}
+			recID := getDocumentID(recDoc)
+			tipoRecorrencia := getStringAttribute(recDoc, "tipoRecorrencia")
+			if tipoRecorrencia == "" {
+				tipoRecorrencia = "mês" // Default to month
 			}
-		}
-
-		if len(todayDocuments) == 0 {
-			Context.Log(fmt.Sprintf("No installment cycle matches today (%s) for recurrence %s. Skipping.", startOfDay.Format("2006-01-02"), recID))
-			return
-		}
-
-		// Query the latest transaction associated with this recurrence rule to extend it
-		txRes, err := dbService.ListDocuments(
-			DatabaseID,
-			TransactionColl,
-			dbService.WithListDocumentsQueries([]string{
-				query.Equal("recorrencia", recID),
-				query.OrderDesc("dataCompetencia"),
-				query.Limit(1),
-			}),
-		)
-		if err != nil {
-			Context.Error(fmt.Sprintf("Error fetching latest transaction for recurrence %s: %v", recID, err))
-			mu.Lock()
-			errorCount++
-			mu.Unlock()
-			return
-		}
-
-		var txDocuments []interface{}
-		txResBytes, marshalErr := json.Marshal(txRes)
-		if marshalErr == nil {
-			var txResMap map[string]interface{}
-			if json.Unmarshal(txResBytes, &txResMap) == nil {
-				if docsVal, ok := txResMap["documents"].([]interface{}); ok {
-					txDocuments = docsVal
-				}
-			}
-		}
-
-		if len(txDocuments) == 0 {
-			Context.Log(fmt.Sprintf("No transactions found for recurrence %s. Skipping.", recID))
-			return
-		}
-
-		latestTx := txDocuments[0]
-		latestTxID := getDocumentID(latestTx)
-		latestDate := parseTransactionDate(latestTx, Context)
-
-		// Calculate the next competency date
-		var nextDate time.Time
-		switch tipoRecorrencia {
-		case "dia":
-			nextDate = latestDate.AddDate(0, 0, freq)
-		case "semana":
-			nextDate = latestDate.AddDate(0, 0, 7*freq)
-		case "mês":
-			nextDate = latestDate.AddDate(0, freq, 0)
-		case "ano":
-			nextDate = latestDate.AddDate(freq, 0, 0)
-		default:
-			nextDate = latestDate.AddDate(0, freq, 0)
-		}
-
-		// Extract fields to clone from the latest transaction
-		descricao := getStringAttribute(latestTx, "descricao")
-		valor := getFloatAttribute(latestTx, "valor")
-		tipo := getStringAttribute(latestTx, "tipo")
-		conta := getRelationID(latestTx, "conta")
-		contaDestino := getRelationID(latestTx, "contaDestino")
-		categoria := getRelationID(latestTx, "categoria")
-		devedorContato := getRelationID(latestTx, "devedorContato")
-		credorContato := getRelationID(latestTx, "credorContato")
-
-		// Prepare new transaction data map
-		newTxData := map[string]interface{}{
-			"descricao":       descricao,
-			"valor":           valor,
-			"tipo":            tipo,
-			"dataCompetencia": nextDate.Format(time.RFC3339),
-			"consolidada":     false, // Future transactions are not consolidated by default
-			"recorrencia":     recID,
-		}
-		if conta != "" {
-			newTxData["conta"] = conta
-		}
-		if contaDestino != "" {
-			newTxData["contaDestino"] = contaDestino
-		}
-		if categoria != "" {
-			newTxData["categoria"] = categoria
-		}
-		if devedorContato != "" {
-			newTxData["devedorContato"] = devedorContato
-		}
-		if credorContato != "" {
-			newTxData["credorContato"] = credorContato
-		}
-
-		// Create the new cloned transaction
-		newTx, err := dbService.CreateDocument(
-			DatabaseID,
-			TransactionColl,
-			"unique()",
-			newTxData,
-		)
-		if err != nil {
-			Context.Error(fmt.Sprintf("Failed to create new transaction for recurrence %s: %v", recID, err))
-			mu.Lock()
-			errorCount++
-			mu.Unlock()
-			return
-		}
-
-		newTxID := getDocumentID(newTx)
-		Context.Log(fmt.Sprintf("Cloned transaction %s to %s with competency date %s", latestTxID, newTxID, nextDate.Format("2006-01-02")))
-
-		// 3. Clone division of transactions if any exist for the latest transaction
-		divRes, err := dbService.ListDocuments(
-			DatabaseID,
-			DivisionsColl,
-			dbService.WithListDocumentsQueries([]string{
-				query.Equal("transacao", latestTxID),
-				query.Limit(100),
-			}),
-		)
-		if err != nil {
-			Context.Error(fmt.Sprintf("Error fetching divisions for transaction %s: %v", latestTxID, err))
-			mu.Lock()
-			errorCount++
-			mu.Unlock()
-			return
-		}
-
-		var divDocuments []interface{}
-		divResBytes, marshalErr := json.Marshal(divRes)
-		if marshalErr == nil {
-			var divResMap map[string]interface{}
-			if json.Unmarshal(divResBytes, &divResMap) == nil {
-				if docsVal, ok := divResMap["documents"].([]interface{}); ok {
-					divDocuments = docsVal
-				}
-			}
-		}
-
-		for _, divDoc := range divDocuments {
-			contatoResponsavel := getRelationID(divDoc, "contatoResponsavel")
-			peso := getFloatAttribute(divDoc, "peso")
-
-			newDivData := map[string]interface{}{
-				"transacao":          newTxID,
-				"contatoResponsavel": contatoResponsavel,
-				"peso":               peso,
+			freq := getIntAttribute(recDoc, "frequencia")
+			if freq <= 0 {
+				freq = 1
 			}
 
-			_, err = dbService.CreateDocument(
+			// Check if current date matches an installment date for this recurrence
+			todayTxRes, err := dbService.ListDocuments(
 				DatabaseID,
-				DivisionsColl,
-				"unique()",
-				newDivData,
+				TransactionColl,
+				dbService.WithListDocumentsQueries([]string{
+					query.Equal("recorrencia", recID),
+					query.StartsWith("dataCompetencia", startOfDay.Format("2006-01-02")),
+					query.Limit(1),
+				}),
 			)
 			if err != nil {
-				Context.Error(fmt.Sprintf("Failed to clone division %s for new transaction %s: %v", getDocumentID(divDoc), newTxID, err))
+				Context.Error(fmt.Sprintf("Error checking today's transaction for recurrence %s: %v", recID, err))
+				mu.Lock()
 				errorCount++
-			} else {
-				Context.Log(fmt.Sprintf("Cloned division for new transaction %s (contact: %s, weight: %.2f)", newTxID, contatoResponsavel, peso))
+				mu.Unlock()
+				return
 			}
-		}
 
-		mu.Lock()
+			var todayDocuments []interface{}
+			if todayBytes, err := json.Marshal(todayTxRes); err == nil {
+				var todayMap map[string]interface{}
+				if json.Unmarshal(todayBytes, &todayMap) == nil {
+					if docsVal, ok := todayMap["documents"].([]interface{}); ok {
+						todayDocuments = docsVal
+					}
+				}
+			}
+
+			if len(todayDocuments) == 0 {
+				Context.Log(fmt.Sprintf("No installment cycle matches today (%s) for recurrence %s. Skipping.", startOfDay.Format("2006-01-02"), recID))
+				return
+			}
+
+			// Query the latest transaction associated with this recurrence rule to extend it
+			txRes, err := dbService.ListDocuments(
+				DatabaseID,
+				TransactionColl,
+				dbService.WithListDocumentsQueries([]string{
+					query.Equal("recorrencia", recID),
+					query.OrderDesc("dataCompetencia"),
+					query.Limit(1),
+				}),
+			)
+			if err != nil {
+				Context.Error(fmt.Sprintf("Error fetching latest transaction for recurrence %s: %v", recID, err))
+				mu.Lock()
+				errorCount++
+				mu.Unlock()
+				return
+			}
+
+			var txDocuments []interface{}
+			txResBytes, marshalErr := json.Marshal(txRes)
+			if marshalErr == nil {
+				var txResMap map[string]interface{}
+				if json.Unmarshal(txResBytes, &txResMap) == nil {
+					if docsVal, ok := txResMap["documents"].([]interface{}); ok {
+						txDocuments = docsVal
+					}
+				}
+			}
+
+			if len(txDocuments) == 0 {
+				Context.Log(fmt.Sprintf("No transactions found for recurrence %s. Skipping.", recID))
+				return
+			}
+
+			latestTx := txDocuments[0]
+			latestTxID := getDocumentID(latestTx)
+			latestDate := parseTransactionDate(latestTx, Context)
+
+			// Calculate the next competency date
+			var nextDate time.Time
+			switch tipoRecorrencia {
+			case "dia":
+				nextDate = latestDate.AddDate(0, 0, freq)
+			case "semana":
+				nextDate = latestDate.AddDate(0, 0, 7*freq)
+			case "mês":
+				nextDate = latestDate.AddDate(0, freq, 0)
+			case "ano":
+				nextDate = latestDate.AddDate(freq, 0, 0)
+			default:
+				nextDate = latestDate.AddDate(0, freq, 0)
+			}
+
+			// Extract fields to clone from the latest transaction
+			descricao := getStringAttribute(latestTx, "descricao")
+			valor := getFloatAttribute(latestTx, "valor")
+			tipo := getStringAttribute(latestTx, "tipo")
+			conta := getRelationID(latestTx, "conta")
+			contaDestino := getRelationID(latestTx, "contaDestino")
+			categoria := getRelationID(latestTx, "categoria")
+			devedorContato := getRelationID(latestTx, "devedorContato")
+			credorContato := getRelationID(latestTx, "credorContato")
+
+			// Prepare new transaction data map
+			newTxData := map[string]interface{}{
+				"descricao":       descricao,
+				"valor":           valor,
+				"tipo":            tipo,
+				"dataCompetencia": nextDate.Format(time.RFC3339),
+				"consolidada":     false, // Future transactions are not consolidated by default
+				"recorrencia":     recID,
+			}
+			if conta != "" {
+				newTxData["conta"] = conta
+			}
+			if contaDestino != "" {
+				newTxData["contaDestino"] = contaDestino
+			}
+			if categoria != "" {
+				newTxData["categoria"] = categoria
+			}
+			if devedorContato != "" {
+				newTxData["devedorContato"] = devedorContato
+			}
+			if credorContato != "" {
+				newTxData["credorContato"] = credorContato
+			}
+
+			// Create the new cloned transaction
+			newTx, err := dbService.CreateDocument(
+				DatabaseID,
+				TransactionColl,
+				"unique()",
+				newTxData,
+			)
+			if err != nil {
+				Context.Error(fmt.Sprintf("Failed to create new transaction for recurrence %s: %v", recID, err))
+				mu.Lock()
+				errorCount++
+				mu.Unlock()
+				return
+			}
+
+			newTxID := getDocumentID(newTx)
+			Context.Log(fmt.Sprintf("Cloned transaction %s to %s with competency date %s", latestTxID, newTxID, nextDate.Format("2006-01-02")))
+
+			// 3. Clone division of transactions if any exist for the latest transaction
+			divRes, err := dbService.ListDocuments(
+				DatabaseID,
+				DivisionsColl,
+				dbService.WithListDocumentsQueries([]string{
+					query.Equal("transacao", latestTxID),
+					query.Limit(100),
+				}),
+			)
+			if err != nil {
+				Context.Error(fmt.Sprintf("Error fetching divisions for transaction %s: %v", latestTxID, err))
+				mu.Lock()
+				errorCount++
+				mu.Unlock()
+				return
+			}
+
+			var divDocuments []interface{}
+			divResBytes, marshalErr := json.Marshal(divRes)
+			if marshalErr == nil {
+				var divResMap map[string]interface{}
+				if json.Unmarshal(divResBytes, &divResMap) == nil {
+					if docsVal, ok := divResMap["documents"].([]interface{}); ok {
+						divDocuments = docsVal
+					}
+				}
+			}
+
+			for _, divDoc := range divDocuments {
+				contatoResponsavel := getRelationID(divDoc, "contatoResponsavel")
+				peso := getFloatAttribute(divDoc, "peso")
+
+				newDivData := map[string]interface{}{
+					"transacao":          newTxID,
+					"contatoResponsavel": contatoResponsavel,
+					"peso":               peso,
+				}
+
+				_, err = dbService.CreateDocument(
+					DatabaseID,
+					DivisionsColl,
+					"unique()",
+					newDivData,
+				)
+				if err != nil {
+					Context.Error(fmt.Sprintf("Failed to clone division %s for new transaction %s: %v", getDocumentID(divDoc), newTxID, err))
+					errorCount++
+				} else {
+					Context.Log(fmt.Sprintf("Cloned division for new transaction %s (contact: %s, weight: %.2f)", newTxID, contatoResponsavel, peso))
+				}
+			}
+
+			mu.Lock()
 			createdCount++
 			mu.Unlock()
 		}(recDoc)

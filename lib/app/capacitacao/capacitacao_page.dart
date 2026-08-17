@@ -26,8 +26,31 @@ class _CapacitacaoPageState extends State<CapacitacaoPage> {
             icon: const Icon(Icons.logout, color: Colors.red),
             tooltip: 'Sair',
             onPressed: () async {
-              await Core.loginController.signOut();
-              Routefly.navigate(routePaths.login);
+              final confirm = await showDialog<bool>(
+                context: context,
+                builder: (context) => AlertDialog(
+                  title: const Text('Confirmar Saída'),
+                  content: const Text('Deseja realmente sair da sua conta?'),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.of(context).pop(false),
+                      child: const Text('Cancelar'),
+                    ),
+                    FilledButton(
+                      style: FilledButton.styleFrom(
+                        backgroundColor: Colors.red,
+                      ),
+                      onPressed: () => Navigator.of(context).pop(true),
+                      child: const Text('Sair'),
+                    ),
+                  ],
+                ),
+              );
+
+              if (confirm == true) {
+                await Core.loginController.signOut();
+                Routefly.navigate(routePaths.login);
+              }
             },
           ),
         ],

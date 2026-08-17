@@ -54,4 +54,8 @@ abstract class TarefaHabitoRepository {
   Stream<List<TarefaHabitoModel>> watchTarefasEHabitos({
     required String usuarioId,
   });
+
+  Stream<List<HistoricoItemModel>> watchHistorico({
+    required String usuarioId,
+  });
 }

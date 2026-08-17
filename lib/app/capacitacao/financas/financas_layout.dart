@@ -21,7 +21,6 @@ class FinancasLayout extends StatefulWidget {
 }
 
 class _DayHeaderDelegate extends SliverPersistentHeaderDelegate {
-
   _DayHeaderDelegate(this.formattedDate);
   final String formattedDate;
 
@@ -60,7 +59,6 @@ class _DayHeaderDelegate extends SliverPersistentHeaderDelegate {
   }
 }
 
-
 class _FinancasLayoutState extends State<FinancasLayout>
     with SingleTickerProviderStateMixin {
   final _key = GlobalKey<ExpandableFabState>();
@@ -88,6 +86,7 @@ class _FinancasLayoutState extends State<FinancasLayout>
   final Set<String> _selectedContatos = {};
   final Set<bool> _selectedConsolidadas = {};
   bool _filterOpen = false;
+  bool _filtersLoaded = false;
   late final TabController _tabController;
   final ScrollController _transacoesScrollController = ScrollController();
 
@@ -107,9 +106,24 @@ class _FinancasLayoutState extends State<FinancasLayout>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 4, vsync: this);
+    final cached = Core.financasController.cachedFilters;
+    final int initialTab = (cached != null && cached['tabIndex'] is int)
+        ? (cached['tabIndex'] as int).clamp(0, 3)
+        : 0;
+    _tabController = TabController(
+      initialIndex: initialTab,
+      length: 4,
+      vsync: this,
+    );
+    if (cached != null) {
+      _applyFiltersMap(cached);
+      _filtersLoaded = true;
+    }
     _tabController.addListener(() {
       setState(() {});
+      if (!_tabController.indexIsChanging) {
+        _persistFilters();
+      }
     });
     _loadSavedFilters();
     FinancasController.financasFuture = Core.financasController.loadDocuments(
@@ -117,45 +131,82 @@ class _FinancasLayoutState extends State<FinancasLayout>
     );
   }
 
+  void _applyFiltersMap(Map<String, dynamic> filters) {
+    if (filters['selectedMonth'] is String) {
+      final dt = DateTime.tryParse(filters['selectedMonth'] as String);
+      if (dt != null) {
+        _selectedMonth = dt;
+        _appliedMonth = dt;
+      }
+    }
+    if (filters['selectedContas'] is List) {
+      _selectedContas.clear();
+      _selectedContas.addAll(
+        (filters['selectedContas'] as List).cast<String>(),
+      );
+    }
+    if (filters['selectedCategorias'] is List) {
+      _selectedCategorias.clear();
+      _selectedCategorias.addAll(
+        (filters['selectedCategorias'] as List).cast<String>(),
+      );
+    }
+    if (filters['selectedTipos'] is List) {
+      _selectedTipos.clear();
+      _selectedTipos.addAll((filters['selectedTipos'] as List).cast<String>());
+    }
+    if (filters['selectedContatos'] is List) {
+      _selectedContatos.clear();
+      _selectedContatos.addAll(
+        (filters['selectedContatos'] as List).cast<String>(),
+      );
+    }
+    if (filters['selectedConsolidadas'] is List) {
+      _selectedConsolidadas.clear();
+      _selectedConsolidadas.addAll(
+        (filters['selectedConsolidadas'] as List).cast<bool>(),
+      );
+    }
+    if (filters['descricaoQuery'] is String) {
+      _descricaoQuery = filters['descricaoQuery'] as String;
+      _descricaoFilterController.text = _descricaoQuery;
+    }
+    if (filters['mostrarDivisoes'] is bool) {
+      _mostrarDivisoes = filters['mostrarDivisoes'] as bool;
+    }
+    if (filters['somarAcumulado'] is bool) {
+      _somarAcumulado = filters['somarAcumulado'] as bool;
+    }
+    if (filters['filterOpen'] is bool) {
+      _filterOpen = filters['filterOpen'] as bool;
+    }
+    if (filters['tabIndex'] is int) {
+      final int savedTab = filters['tabIndex'] as int;
+      if (savedTab >= 0 && savedTab < _tabController.length) {
+        _tabController.index = savedTab;
+      }
+    }
+  }
+
   Future<void> _loadSavedFilters() async {
     final filters = await Core.financasController.loadFinancasFilters();
-    if (filters != null && mounted) {
+    if (mounted) {
       setState(() {
-        if (filters['selectedContas'] is List) {
-          _selectedContas.clear();
-          _selectedContas.addAll((filters['selectedContas'] as List).cast<String>());
+        if (filters != null) {
+          final previousMonth = _selectedMonth;
+          _applyFiltersMap(filters);
+          if (_selectedMonth != previousMonth) {
+            FinancasController.financasFuture = Core.financasController
+                .loadDocuments(selectedMonth: _selectedMonth);
+          }
         }
-        if (filters['selectedCategorias'] is List) {
-          _selectedCategorias.clear();
-          _selectedCategorias.addAll((filters['selectedCategorias'] as List).cast<String>());
-        }
-        if (filters['selectedTipos'] is List) {
-          _selectedTipos.clear();
-          _selectedTipos.addAll((filters['selectedTipos'] as List).cast<String>());
-        }
-        if (filters['selectedContatos'] is List) {
-          _selectedContatos.clear();
-          _selectedContatos.addAll((filters['selectedContatos'] as List).cast<String>());
-        }
-        if (filters['selectedConsolidadas'] is List) {
-          _selectedConsolidadas.clear();
-          _selectedConsolidadas.addAll((filters['selectedConsolidadas'] as List).cast<bool>());
-        }
-        if (filters['descricaoQuery'] is String) {
-          _descricaoQuery = filters['descricaoQuery'] as String;
-          _descricaoFilterController.text = _descricaoQuery;
-        }
-        if (filters['mostrarDivisoes'] is bool) {
-          _mostrarDivisoes = filters['mostrarDivisoes'] as bool;
-        }
-        if (filters['somarAcumulado'] is bool) {
-          _somarAcumulado = filters['somarAcumulado'] as bool;
-        }
+        _filtersLoaded = true;
       });
     }
   }
 
   void _persistFilters() {
+    if (!_filtersLoaded) return;
     Core.financasController.saveFinancasFilters({
       'selectedContas': _selectedContas.toList(),
       'selectedCategorias': _selectedCategorias.toList(),
@@ -165,6 +216,9 @@ class _FinancasLayoutState extends State<FinancasLayout>
       'descricaoQuery': _descricaoQuery,
       'mostrarDivisoes': _mostrarDivisoes,
       'somarAcumulado': _somarAcumulado,
+      'filterOpen': _filterOpen,
+      'tabIndex': _tabController.index,
+      'selectedMonth': _selectedMonth.toIso8601String(),
     });
   }
 
@@ -214,16 +268,12 @@ class _FinancasLayoutState extends State<FinancasLayout>
     return total;
   }
 
-  Widget _buildDayFooter({
-    required double saldoExibido,
-  }) {
+  Widget _buildDayFooter({required double saldoExibido}) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
       decoration: BoxDecoration(
         color: Colors.grey.withValues(alpha: 0.05),
-        border: const Border(
-          bottom: BorderSide(color: Colors.black12),
-        ),
+        border: const Border(bottom: BorderSide(color: Colors.black12)),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.end,
@@ -257,10 +307,7 @@ class _FinancasLayoutState extends State<FinancasLayout>
       onTap: () {
         Routefly.pushNavigate(
           routePaths.capacitacao.criarEditarTransacao,
-          arguments: {
-            'lastRoute': Routefly.currentUri.path,
-            'transacao': t,
-          },
+          arguments: {'lastRoute': Routefly.currentUri.path, 'transacao': t},
         );
       },
       leading: Row(
@@ -301,10 +348,7 @@ class _FinancasLayoutState extends State<FinancasLayout>
           if (_mostrarDivisoes)
             Text(
               'Sua parcela (Valor Total: ${t.valor.toCurrency()})',
-              style: const TextStyle(
-                fontStyle: FontStyle.italic,
-                fontSize: 12,
-              ),
+              style: const TextStyle(fontStyle: FontStyle.italic, fontSize: 12),
             ),
           const SizedBox(height: 4),
           Wrap(
@@ -357,10 +401,7 @@ class _FinancasLayoutState extends State<FinancasLayout>
           ),
           const SizedBox(height: 4),
           Container(
-            padding: const EdgeInsets.symmetric(
-              horizontal: 6,
-              vertical: 2,
-            ),
+            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
             decoration: BoxDecoration(
               color: t.consolidada
                   ? Colors.green.withValues(alpha: 0.1)
@@ -381,12 +422,12 @@ class _FinancasLayoutState extends State<FinancasLayout>
     );
   }
 
-
   void _onMonthChanged(DateTime newMonth) {
     setState(() {
       _selectedMonth = newMonth;
       _isMonthChanging = true;
     });
+    _persistFilters();
 
     _monthChangeTimer?.cancel();
     _monthChangeTimer = Timer(const Duration(seconds: 2), () {
@@ -468,6 +509,7 @@ class _FinancasLayoutState extends State<FinancasLayout>
                   setState(() {
                     _filterOpen = !_filterOpen;
                   });
+                  _persistFilters();
                 }
               },
             ),
@@ -682,20 +724,17 @@ class _FinancasLayoutState extends State<FinancasLayout>
                       Expanded(
                         child: Stack(
                           children: [
-                            if (filteredTransList.isEmpty)
-                              snapshot.connectionState ==
-                                          ConnectionState.waiting ||
-                                      _isMonthChanging ||
-                                      isSyncing
-                                  ? const Center(
-                                      child: CircularProgressIndicator(),
-                                    )
-                                  : const Center(
-                                      child: Text(
-                                        'Nenhuma transação encontrada.',
-                                      ),
-                                    )
-                            else
+                            if (filteredTransList.isEmpty) ...[
+                              if (snapshot.connectionState ==
+                                      ConnectionState.waiting ||
+                                  _isMonthChanging ||
+                                  isSyncing)
+                                const Center(child: CircularProgressIndicator())
+                              else
+                                const Center(
+                                  child: Text('Nenhuma transação encontrada.'),
+                                ),
+                            ] else
                               Scrollbar(
                                 controller: _transacoesScrollController,
                                 thumbVisibility: true,
@@ -994,9 +1033,10 @@ class _FinancasLayoutState extends State<FinancasLayout>
                         ),
                         child: ListTile(
                           leading: CircleAvatar(
-                            backgroundColor: Theme.of(
-                              context,
-                            ).colorScheme.primary.withValues(alpha: 0.1),
+                            backgroundColor: Theme.of(context)
+                                .colorScheme
+                                .primary
+                                .withValues(alpha: 0.1),
                             child: Text(
                               c.nome.isNotEmpty
                                   ? c.nome.substring(0, 1).toUpperCase()
@@ -1245,9 +1285,8 @@ class _FinancasLayoutState extends State<FinancasLayout>
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(16),
           side: BorderSide(
-            color: Theme.of(
-              context,
-            ).colorScheme.secondary.withValues(alpha: 0.5),
+            color: Theme.of(context).colorScheme.secondary
+                .withValues(alpha: 0.5),
             width: 1.5,
           ),
         ),
@@ -1265,9 +1304,8 @@ class _FinancasLayoutState extends State<FinancasLayout>
                       vertical: 6,
                     ),
                     decoration: BoxDecoration(
-                      color: Theme.of(
-                        context,
-                      ).colorScheme.secondary.withValues(alpha: 0.2),
+                      color: Theme.of(context).colorScheme.secondary
+                          .withValues(alpha: 0.2),
                       borderRadius: BorderRadius.circular(20),
                     ),
                     child: Text(
@@ -1467,9 +1505,7 @@ class _FinancasLayoutState extends State<FinancasLayout>
                 final conta = accounts[index];
                 return ListTile(
                   title: Text(conta.name),
-                  subtitle: Text(
-                    'Saldo: ${conta.saldoAtual.toCurrency()}',
-                  ),
+                  subtitle: Text('Saldo: ${conta.saldoAtual.toCurrency()}'),
                   onTap: () {
                     Navigator.of(context).pop(conta.id);
                   },

@@ -5,7 +5,7 @@
 ![MobX](https://img.shields.io/badge/State-MobX-orange)
 ![Drift](https://img.shields.io/badge/Database-Drift%20SQLite-lightgrey)
 ![Appwrite](https://img.shields.io/badge/Backend-Appwrite-FD366E?logo=appwrite)
-![Tests](https://img.shields.io/badge/Tests-35%2F35%20Passed-brightgreen)
+![Tests](https://img.shields.io/badge/Tests-68%2F68%20Passed-brightgreen)
 
 O **PPVDigital** é uma plataforma completa desenvolvida em Flutter (Web/Mobile) para planejamento pessoal, acompanhamento de hábitos, gestão de tarefas e controle financeiro pessoal e compartilhado. O projeto traz para o formato digital o conceito do **Projeto Pessoal de Vida (PPV)**, com foco em capacitação, acompanhamento de métricas e funcionamento offline transparente.
 
@@ -21,8 +21,9 @@ A aplicação adota uma arquitetura reativa, offline-first e modularizada por co
 
 - **Framework**: [Flutter](https://flutter.dev) (gerenciado via **FVM** - Flutter Version Manager).
 - **Gerenciamento de Estado**: [MobX](https://pub.dev/packages/mobx) e `flutter_mobx` utilizando reatividade com instanciações manuais (`mobx.Observable`) e mutações seguras via `mobx.runInAction()`.
-- **Banco de Dados Local & Cache Offline**: [Drift](https://drift.simonbinder.eu/) (SQLite reativo), permitindo navegação rápida sem dependência imediata de rede.
+- **Banco de Dados Local & Cache Offline**: [Drift](https://drift.simonbinder.eu/) (SQLite reativo), permitindo navegação rápida sem dependência imediata de rede e isolamento atômico de dados por usuário (`clearAllUserData()`).
 - **Backend & Backend-as-a-Service (BaaS)**: [Appwrite SDK](https://appwrite.io), gerenciando autenticação, sessões, persistência remota e **Appwrite Realtime (WebSockets)** escopado por usuário para sincronização instantânea inter-dispositivos.
+- **Serverless Functions**: Função Go 1.26 (`functions/process_recurrent_transactions`) para processamento automatizado de transações recorrentes indeterminadas.
 - **Arquitetura Híbrida de Sincronização**: Combinação de mutações REST API, canal Realtime Pub/Sub WebSocket para atualizações ativas, e **Delta Sync com Reconciliação de Exclusões** ao retomar o foco da aplicação (`AppLifecycleState.resumed`).
 - **Roteamento Baseado em Arquivos**: [Routefly](https://github.com/wladrbarbosa/routefly) para navegação declarativa baseada na estrutura do sistema de arquivos.
 - **Visualização de Dados**: `fl_chart`, `timeline_tile`, `flutter_animation_progress_bar` e `syncfusion_flutter_calendar`.
@@ -76,12 +77,28 @@ Acompanhamento do desenvolvimento pessoal através da criação e monitoramento 
 - Histórico imutável de execuções (`HistoricoItemModel`) registrado no banco local e sincronizado remotamente.
 - **Cache-First, Delta Sync & Realtime WebSockets**: Renderização instantânea dos hábitos e tarefas diretamente do Drift SQLite, com atualização em tempo real via WebSockets (`AppwriteRealtimeService`), reconciliação de itens excluídos remotamente e sincronização incremental em segundo plano filtrando registros alterados via `$updatedAt` e timestamps salvos em `AppSettings`.
 
+#### Métricas e Gráficos do Dashboard (`DashboardLogic`)
+- **Tempo Comprometido vs Disponível**:
+  - **Tempo Disponível**: Capacidade total em minutos por ciclo:
+    - **Dia**: $24\text{h} = 1.440\text{ min}$
+    - **Semana**: $7 \times 24\text{h} = 10.080\text{ min}$
+    - **Mês**: $\text{diasNoMês} \times 1.440\text{ min}$ (dinâmico: 28, 29, 30 ou 31 dias)
+    - **Ano**: $\text{diasNoAno} \times 1.440\text{ min}$ ($525.600\text{ min}$ ou $527.040\text{ min}$ em anos bissextos)
+  - **Tempo Previsto (Comprometido)**: Calculado exclusivamente sobre **hábitos** (`item.tipo == 'habito'`) com duração válida:
+    $$\text{Minutos Base} = \frac{\text{duration} \times \text{metaVezes}}{\text{reiniciaEmQtd}}$$
+    Convertido proporcionalmente para os 4 ciclos (Dia, Semana, Mês e Ano) de acordo com a frequência base do hábito.
+  - **Tempo Executado**: Soma os minutos registrados em `HistoricoItemModel` dentro dos limites exatos do ciclo corrente (`startOfDay..endOfDay`, `startOfWeek..endOfWeek`, `startOfMonth..endOfMonth`, `startOfYear..endOfYear`).
+- **% Meta por Categoria**:
+  - **Metas**: Calculadas estritamente a partir de hábitos (tarefas não entram na meta).
+  - **Executado**: Contabiliza execuções de hábitos e tarefas concluídas na categoria durante o ciclo.
+
 ---
 
-### 🔑 3. Módulo de Autenticação
+### 🔑 3. Módulo de Autenticação e Isolamento de Sessão
 
 - Gerenciamento de sessão via `LoginController` integrado ao Appwrite `Account`.
 - Persistência e restauração offline do perfil do usuário em `Drift SQLite` (`AppSettings`) para acesso sem conexão à internet.
+- **Isolamento de Cache e Reset Multi-Usuário**: Ao efetuar logout (`signOut`) ou ao autenticar um usuário com `userId` diferente do anterior no mesmo dispositivo, o app executa a limpeza atômica de todas as tabelas locais do Drift (`clearAllUserData()`), reseta os timestamps de sincronização (`last_..._sync_time`) e zera o estado em memória dos controllers. Isso garante que o novo usuário realize uma sincronização inicial completa a partir do Appwrite, evitando vazamento de dados locais ou listas vazias por filtros de delta sync obsoletos.
 - Validação estrita de e-mail e requisitos mínimos de senha.
 
 ---
@@ -132,6 +149,7 @@ fvm flutter test
 - `test/business_logic/drift_cache_sync_test.dart`: Teste automatizado que varre a codebase para garantir que nenhuma consulta viole a regra do `Query.select()` do Appwrite, e teste de preservação do cache local Drift.
 - `test/drift_financas_repository_test.dart`: Testes de integração das operações de finanças e realtime no banco SQLite local.
 - `test/drift_tarefa_habito_repository_test.dart`: Testes de integração das operações de tarefas/hábitos e realtime no banco SQLite local.
+- `test/unit/user_switch_cache_test.dart`: Testes unitários de isolamento multi-usuário, limpeza atômica do SQLite e reset completo de controllers MobX.
 - `test/widget_test.dart`: Teste de fumaça de instanciação de widgets.
 
 ---

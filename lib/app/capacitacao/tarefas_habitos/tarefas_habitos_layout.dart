@@ -267,7 +267,19 @@ class TarefasPageState extends State<TarefasPage>
             ),
           ),
         ),
-        body: const RouterOutlet(defaultWidget: DashboardPage()),
+        body: Column(
+          children: [
+            Observer(
+              builder: (_) {
+                if (Core.tarefasHabitosController.isSyncing) {
+                  return const LinearProgressIndicator(minHeight: 2);
+                }
+                return const SizedBox.shrink();
+              },
+            ),
+            const Expanded(child: RouterOutlet(defaultWidget: DashboardPage())),
+          ],
+        ),
         floatingActionButtonLocation: ExpandableFab.location,
         floatingActionButton: ExpandableFab(
           key: _key,

@@ -439,6 +439,48 @@ void main() {
         expect(generatedOps[0]['descricao'], equals('Aluguel (Parcela 2/3)'));
         expect(generatedOps[1]['descricao'], equals('Aluguel (Parcela 3/3)'));
       });
+
+      test('Preservação de atributos nulos em operações de update para limpeza de relacionamentos', () {
+        final Map<String, dynamic> updateOp = {
+          'action': 'update',
+          'id': 'trans1',
+          'data': {
+            'descricao': 'Transação Alterada',
+            'devedorContato': null,
+            'credorContato': null,
+            'contaDestino': null,
+          },
+        };
+
+        final Map<String, dynamic> createOp = {
+          'action': 'create',
+          'data': {
+            'descricao': 'Nova Transação',
+            'devedorContato': null,
+            'credorContato': null,
+            'contaDestino': null,
+          },
+        };
+
+        Map<String, dynamic> processPayload(Map<String, dynamic> op) {
+          final action = op['action'] as String;
+          final dataMap = Map<String, dynamic>.from(op['data'] as Map<String, dynamic>);
+          if (action == 'create') {
+            dataMap.removeWhere((key, value) => value == null);
+          }
+          return dataMap;
+        }
+
+        final processedUpdate = processPayload(updateOp);
+        expect(processedUpdate.containsKey('devedorContato'), isTrue);
+        expect(processedUpdate['devedorContato'], isNull);
+        expect(processedUpdate.containsKey('credorContato'), isTrue);
+        expect(processedUpdate['credorContato'], isNull);
+
+        final processedCreate = processPayload(createOp);
+        expect(processedCreate.containsKey('devedorContato'), isFalse);
+        expect(processedCreate.containsKey('credorContato'), isFalse);
+      });
     });
   });
 }

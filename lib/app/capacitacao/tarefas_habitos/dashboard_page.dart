@@ -1,3 +1,6 @@
+import 'dart:async';
+import 'dart:convert';
+
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
@@ -16,7 +19,9 @@ class DashboardPage extends StatefulWidget {
 
 class _DashboardPageState extends State<DashboardPage> {
   List<HistoricoItemModel> _historico = [];
+  StreamSubscription<List<HistoricoItemModel>>? _historicoSub;
   bool _isLoading = true;
+  bool _filtersLoaded = false;
 
   // Legend Toggles
   bool _showPlanned = true;
@@ -30,7 +35,79 @@ class _DashboardPageState extends State<DashboardPage> {
   @override
   void initState() {
     super.initState();
+    _loadSavedFilters();
     _initData();
+  }
+
+  @override
+  void dispose() {
+    _historicoSub?.cancel();
+    super.dispose();
+  }
+
+  Future<void> _loadSavedFilters() async {
+    try {
+      final jsonStr = await Core.database.getSetting('dashboard_filters');
+      if (jsonStr != null && jsonStr.isNotEmpty) {
+        final data = json.decode(jsonStr) as Map<String, dynamic>;
+        if (mounted) {
+          setState(() {
+            if (data['showPlanned'] is bool) {
+              _showPlanned = data['showPlanned'] as bool;
+            }
+            if (data['showExecuted'] is bool) {
+              _showExecuted = data['showExecuted'] as bool;
+            }
+            if (data['showCompletionRate'] is bool) {
+              _showCompletionRate = data['showCompletionRate'] as bool;
+            }
+            if (data['hiddenGoalCycles'] is List) {
+              _hiddenGoalCycles.clear();
+              _hiddenGoalCycles.addAll(
+                (data['hiddenGoalCycles'] as List).cast<String>(),
+              );
+            }
+            if (data['hiddenGoalCategories'] is List) {
+              _hiddenGoalCategories.clear();
+              _hiddenGoalCategories.addAll(
+                (data['hiddenGoalCategories'] as List).cast<String>(),
+              );
+            }
+            if (data['hiddenAttentionCategories'] is List) {
+              _hiddenAttentionCategories.clear();
+              _hiddenAttentionCategories.addAll(
+                (data['hiddenAttentionCategories'] as List).cast<String>(),
+              );
+            }
+          });
+        }
+      }
+    } catch (e) {
+      debugPrint('Error loading dashboard filters: $e');
+    } finally {
+      if (mounted) {
+        setState(() {
+          _filtersLoaded = true;
+        });
+      }
+    }
+  }
+
+  void _persistFilters() {
+    if (!_filtersLoaded) return;
+    try {
+      final map = {
+        'showPlanned': _showPlanned,
+        'showExecuted': _showExecuted,
+        'showCompletionRate': _showCompletionRate,
+        'hiddenGoalCycles': _hiddenGoalCycles.toList(),
+        'hiddenGoalCategories': _hiddenGoalCategories.toList(),
+        'hiddenAttentionCategories': _hiddenAttentionCategories.toList(),
+      };
+      Core.database.setSetting('dashboard_filters', json.encode(map));
+    } catch (e) {
+      debugPrint('Error saving dashboard filters: $e');
+    }
   }
 
   Future<void> _initData() async {
@@ -41,10 +118,29 @@ class _DashboardPageState extends State<DashboardPage> {
       }
       final userId = Core.loginController.currentUser?.$id ?? '';
       if (userId.isNotEmpty) {
-        _historico = await Core.tarefaHabitoRepository.getHistorico(
+        _historicoSub?.cancel();
+        final stream = Core.tarefaHabitoRepository.watchHistorico(
           usuarioId: userId,
-          forceLocal: true,
         );
+        try {
+          final initialData = await Core.tarefaHabitoRepository.getHistorico(
+            usuarioId: userId,
+            forceLocal: true,
+          );
+          if (mounted) {
+            setState(() {
+              _historico = initialData;
+            });
+          }
+        } catch (_) {}
+
+        _historicoSub = stream.listen((data) {
+          if (mounted) {
+            setState(() {
+              _historico = data;
+            });
+          }
+        });
       }
     } catch (e) {
       debugPrint('Error loading data for dashboard: $e');
@@ -62,11 +158,12 @@ class _DashboardPageState extends State<DashboardPage> {
     return Scaffold(
       body: Observer(
         builder: (context) {
-          if (_isLoading) {
+          final isSyncing = Core.tarefasHabitosController.isSyncing;
+          final items = Core.tarefasHabitosController.tarefasHabitosList;
+
+          if (_isLoading || (items.isEmpty && isSyncing)) {
             return const Center(child: CircularProgressIndicator());
           }
-
-          final items = Core.tarefasHabitosController.tarefasHabitosList;
 
           if (items.isEmpty) {
             return const Center(child: Text('Nenhum dado para mostrar no momento.'));
@@ -131,6 +228,7 @@ class _DashboardPageState extends State<DashboardPage> {
                     setState(() {
                       _showPlanned = !_showPlanned;
                     });
+                    _persistFilters();
                   },
                   child: Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
@@ -161,6 +259,7 @@ class _DashboardPageState extends State<DashboardPage> {
                     setState(() {
                       _showExecuted = !_showExecuted;
                     });
+                    _persistFilters();
                   },
                   child: Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
@@ -342,6 +441,7 @@ class _DashboardPageState extends State<DashboardPage> {
                         _hiddenGoalCycles.add(key);
                       }
                     });
+                    _persistFilters();
                   },
                   showCheckmark: false,
                 );
@@ -370,6 +470,7 @@ class _DashboardPageState extends State<DashboardPage> {
                             _hiddenGoalCategories.add(cat.name);
                           }
                         });
+                        _persistFilters();
                       },
                       child: Padding(
                         padding: const EdgeInsets.symmetric(vertical: 4),
@@ -409,6 +510,9 @@ class _DashboardPageState extends State<DashboardPage> {
                           final executedStr = cycle.totalExecuted % 1 == 0
                               ? cycle.totalExecuted.toInt().toString()
                               : cycle.totalExecuted.toStringAsFixed(1);
+                          final goalStr = cycle.totalGoal % 1 == 0
+                              ? cycle.totalGoal.toInt().toString()
+                              : cycle.totalGoal.toStringAsFixed(1);
 
                           return Padding(
                             padding: const EdgeInsets.only(bottom: 8.0),
@@ -440,7 +544,7 @@ class _DashboardPageState extends State<DashboardPage> {
                                 SizedBox(
                                   width: 85,
                                   child: Text(
-                                    '$percentageText ($executedStr/${cycle.totalGoal})',
+                                    '$percentageText ($executedStr/$goalStr)',
                                     textAlign: TextAlign.end,
                                     style: TextStyle(
                                       fontWeight: FontWeight.bold,
@@ -686,6 +790,7 @@ class _DashboardPageState extends State<DashboardPage> {
                         _hiddenAttentionCategories.add(cat.name);
                       }
                     });
+                    _persistFilters();
                   },
                   child: Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),

@@ -1,5 +1,6 @@
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:ppvdigital/app/capacitacao/financas/financas_controller.dart';
 import 'package:ppvdigital/models/local/app_database.dart';
 import 'package:ppvdigital/models/transacao_model.dart';
 import 'package:ppvdigital/models/transacao_recorrencia_model.dart';
@@ -516,5 +517,30 @@ void main() {
     localRows = await database.select(database.transacaos).get();
     expect(localRows.length, equals(1));
     expect(localRows.first.remoteId, equals('t_active'));
+  });
+
+  test('FinancasController saves and loads filters using repository and cache', () async {
+    final controller = FinancasController(driftRepository);
+    final filters = {
+      'tabIndex': 2,
+      'selectedMonth': '2026-08-01',
+      'mostrarDivisoes': true,
+      'somarAcumulado': true,
+      'filterOpen': true,
+      'selectedContas': ['c1', 'c2'],
+      'selectedTipos': ['despesa'],
+    };
+
+    await controller.saveFinancasFilters(filters);
+    expect(controller.cachedFilters, isNotNull);
+    expect(controller.cachedFilters!['tabIndex'], equals(2));
+
+    // Loading from fresh controller reading from driftRepository
+    final newController = FinancasController(driftRepository);
+    final loaded = await newController.loadFinancasFilters();
+    expect(loaded, isNotNull);
+    expect(loaded!['tabIndex'], equals(2));
+    expect(loaded['mostrarDivisoes'], equals(true));
+    expect(loaded['selectedContas'], equals(['c1', 'c2']));
   });
 }

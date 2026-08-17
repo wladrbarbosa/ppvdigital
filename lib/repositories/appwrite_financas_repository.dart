@@ -476,11 +476,15 @@ class AppwriteFinancasRepository implements FinancasRepository {
     final TablesDB tablesDB = TablesDB(databases.client);
     final List<Map<String, dynamic>> cleanedOperations = operations.map((op) {
       final cleanedOp = Map<String, dynamic>.from(op);
+      final action = cleanedOp['action'] as String?;
       if (cleanedOp['data'] is Map<String, dynamic>) {
         final dataMap = Map<String, dynamic>.from(
           cleanedOp['data'] as Map<String, dynamic>,
         );
-        dataMap.removeWhere((key, value) => value == null);
+        // Only strip nulls on create to prevent 400s; on update, null is required to disassociate relationships/attributes.
+        if (action == 'create') {
+          dataMap.removeWhere((key, value) => value == null);
+        }
         cleanedOp['data'] = dataMap;
       }
       return cleanedOp;

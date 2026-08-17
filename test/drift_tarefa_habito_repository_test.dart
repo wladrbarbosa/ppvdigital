@@ -1,5 +1,6 @@
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:ppvdigital/models/historico_item_model.dart';
 import 'package:ppvdigital/models/local/app_database.dart';
 import 'package:ppvdigital/models/tarefas_habitos_model.dart';
 import 'package:ppvdigital/models/tarefas_habitos_qtd_model.dart';
@@ -191,5 +192,48 @@ void main() {
       forceLocal: true,
     );
     expect(habits.first.tarefasHabitosQtd.first.vezesPraticado, equals(1));
+  });
+
+  test('watchHistorico stream emits reactive updates when new history is recorded', () async {
+    final stream = driftRepository.watchHistorico(usuarioId: 'user1');
+
+    final emissions = <List<HistoricoItemModel>>[];
+    final sub = stream.listen(emissions.add);
+
+    // Give stream time to emit initial empty list
+    await pumpEventQueue();
+    expect(emissions.length, equals(1));
+    expect(emissions.first, isEmpty);
+
+    // Insert a habit
+    final habit = TarefaHabitoModel(
+      id: 'h1',
+      nome: 'Ler Livro',
+      tipo: 'habito',
+      usuario: 'user1',
+      concluida: false,
+      agendamento: null,
+      tarefasHabitosQtd: [],
+    );
+    await database.into(database.tarefaHabitos).insert(driftRepository.toCompanion(habit));
+
+    // Insert history item
+    await database.into(database.historicoTarefasHabitos).insert(
+      HistoricoTarefasHabitosCompanion.insert(
+        remoteId: 'hist1',
+        usuario: 'user1',
+        tarefaHabitoId: 'h1',
+        createdAt: DateTime.now(),
+      ),
+    );
+
+    await pumpEventQueue();
+    expect(emissions.length, greaterThanOrEqualTo(2));
+    final lastEmission = emissions.last;
+    expect(lastEmission.length, equals(1));
+    expect(lastEmission.first.id, equals('hist1'));
+    expect(lastEmission.first.tarefasEHabitos.nome, equals('Ler Livro'));
+
+    await sub.cancel();
   });
 }

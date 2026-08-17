@@ -53,14 +53,35 @@ class LoginController {
     account = Account(Core.client);
   }
 
+  Future<void> _handleUserAuthenticated(User user) async {
+    final cachedJson = await Core.database.getSetting('cached_user_json');
+    String? previousUserId;
+    if (cachedJson != null) {
+      try {
+        final prevUser = User.fromMap(
+          json.decode(cachedJson) as Map<String, dynamic>,
+        );
+        previousUserId = prevUser.$id;
+      } catch (_) {}
+    }
+
+    // If switching to a different user, clear all previous user data and reset controllers
+    if (previousUserId != null && previousUserId != user.$id) {
+      Core.resetAllControllers();
+      await Core.database.clearAllUserData();
+    }
+
+    await Core.database.setSetting('cached_user_json', json.encode(user.toMap()));
+    mobx.runInAction(() {
+      _currentUser.value = user;
+      _statusStreamController.add(AuthStatus.authenticated);
+    });
+  }
+
   Future<void> loadUser() async {
     try {
       final user = await account.get();
-      await Core.database.setSetting('cached_user_json', json.encode(user.toMap()));
-      mobx.runInAction(() {
-        _currentUser.value = user;
-        _statusStreamController.add(AuthStatus.authenticated);
-      });
+      await _handleUserAuthenticated(user);
     } catch (e) {
       final cachedJson = await Core.database.getSetting('cached_user_json');
       if (cachedJson != null) {
@@ -102,11 +123,7 @@ class LoginController {
         password: password,
       );
       final user = await account.get();
-      await Core.database.setSetting('cached_user_json', json.encode(user.toMap()));
-      mobx.runInAction(() {
-        _currentUser.value = user;
-        _statusStreamController.add(AuthStatus.authenticated);
-      });
+      await _handleUserAuthenticated(user);
       return session;
     } on AppwriteException catch (e) {
       if (e.type == 'user_session_already_exists') {
@@ -118,11 +135,7 @@ class LoginController {
           password: password,
         );
         final user = await account.get();
-        await Core.database.setSetting('cached_user_json', json.encode(user.toMap()));
-        mobx.runInAction(() {
-          _currentUser.value = user;
-          _statusStreamController.add(AuthStatus.authenticated);
-        });
+        await _handleUserAuthenticated(user);
         return session;
       }
       rethrow;
@@ -134,20 +147,16 @@ class LoginController {
       provider: provider,
     );
     final user = await account.get();
-    await Core.database.setSetting('cached_user_json', json.encode(user.toMap()));
-    mobx.runInAction(() {
-      _currentUser.value = user;
-      _statusStreamController.add(AuthStatus.authenticated);
-    });
+    await _handleUserAuthenticated(user);
     return session;
   }
 
   Future<void> signOut() async {
-    await Core.database.deleteSetting('cached_user_json');
     try {
       await account.deleteSession(sessionId: 'current');
     } catch (_) {}
     Core.resetAllControllers();
+    await Core.database.clearAllUserData();
     mobx.runInAction(() {
       _currentUser.value = null;
       _statusStreamController.add(AuthStatus.unauthenticated);

@@ -257,6 +257,18 @@ class AppDatabase extends _$AppDatabase {
     await query.go();
   }
 
+  Future<void> clearAllUserData() async {
+    await transaction(() async {
+      await delete(transacaos).go();
+      await delete(contas).go();
+      await delete(contatos).go();
+      await delete(categoriaTransacoes).go();
+      await delete(tarefaHabitos).go();
+      await delete(historicoTarefasHabitos).go();
+      await delete(appSettings).go();
+    });
+  }
+
   static QueryExecutor _openConnection() {
     return driftDatabase(
       name: 'ppv_digital_db',

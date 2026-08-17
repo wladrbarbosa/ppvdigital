@@ -111,6 +111,8 @@ class CalendarioController {
     databases = Databases(Core.client);
   }
 
+  StreamSubscription? _historicoSub;
+
   Future<bool> loadDocuments() async {
     return await mobx.runInAction(() async {
       try {
@@ -123,11 +125,24 @@ class CalendarioController {
         }
 
         final String userId = Core.loginController.currentUser?.$id ?? '';
-        final List<HistoricoItemModel> historicoItems =
-            await Core.tarefaHabitoRepository.getHistorico(usuarioId: userId);
 
-        _historicoList.clear();
-        _historicoList.addAll(historicoItems);
+        _historicoSub?.cancel();
+        final stream = Core.tarefaHabitoRepository.watchHistorico(usuarioId: userId);
+        try {
+          final firstData = await stream.first;
+          mobx.runInAction(() {
+            _historicoList.clear();
+            _historicoList.addAll(firstData);
+          });
+        } catch (_) {}
+
+        _historicoSub = stream.listen((data) {
+          mobx.runInAction(() {
+            _historicoList.clear();
+            _historicoList.addAll(data);
+          });
+        });
+
         return true;
       } on Exception catch (e) {
         log(e.toString());
@@ -137,6 +152,9 @@ class CalendarioController {
   }
 
   void reset() {
+    _historicoSub?.cancel();
+    _historicoSub = null;
+    historicoFuture = null;
     mobx.runInAction(() {
       _historicoList.clear();
     });

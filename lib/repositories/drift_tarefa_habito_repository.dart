@@ -510,9 +510,35 @@ class DriftTarefaHabitoRepository implements TarefaHabitoRepository {
     int? duration,
     required String usuarioId,
   }) async {
+    final existingRow = await (database.select(database.tarefaHabitos)
+          ..where((t) => t.remoteId.equals(id)))
+        .getSingleOrNull();
+
+    final Map<String, TarefaHabitoQtdModel> existingMetasMap = {
+      if (existingRow != null)
+        for (final m in existingRow.metas) m.id: m,
+    };
+
     final List<TarefaHabitoQtdModel> metaModels = metas.map((m) {
+      final String metaId = m['id'] as String? ?? ID.unique();
+      final existingMeta = existingMetasMap[metaId];
+
+      DateTime metaCreatedAt = DateTime.now();
+      if (m['createdAt'] is DateTime) {
+        metaCreatedAt = m['createdAt'] as DateTime;
+      } else if (m['createdAt'] is String) {
+        metaCreatedAt =
+            DateTime.tryParse(m['createdAt'] as String) ?? metaCreatedAt;
+      } else if (existingMeta != null) {
+        metaCreatedAt = existingMeta.createdAt;
+      }
+
+      final int vezesPraticado = (m['vezesPraticado'] as num?)?.toInt() ??
+          existingMeta?.vezesPraticado.toInt() ??
+          0;
+
       return TarefaHabitoQtdModel(
-        id: m['id'] as String? ?? ID.unique(),
+        id: metaId,
         metaVezes: m['metaVezes'] as int,
         usuario: usuarioId,
         categoriasTarefasHabitos: m['categoriaId'] != null
@@ -526,8 +552,8 @@ class DriftTarefaHabitoRepository implements TarefaHabitoRepository {
         valor: (m['valor'] as num).toInt(),
         reiniciaEmQtd: m['reiniciaEmQtd'] as int,
         reiniciaEmTipo: m['reiniciaEmTipo'] as String,
-        vezesPraticado: m['vezesPraticado'] as int? ?? 0,
-        createdAt: DateTime.now(),
+        vezesPraticado: vezesPraticado,
+        createdAt: metaCreatedAt,
       );
     }).toList();
 
@@ -627,6 +653,21 @@ class DriftTarefaHabitoRepository implements TarefaHabitoRepository {
         .watch()
         .asyncMap(
           (_) => getTarefasEHabitos(usuarioId: usuarioId, forceLocal: true),
+        );
+  }
+
+  @override
+  Stream<List<HistoricoItemModel>> watchHistorico({
+    required String usuarioId,
+  }) {
+    return database
+        .customSelect(
+          'SELECT 1',
+          readsFrom: {database.historicoTarefasHabitos, database.tarefaHabitos},
+        )
+        .watch()
+        .asyncMap(
+          (_) => getHistorico(usuarioId: usuarioId, forceLocal: true),
         );
   }
 

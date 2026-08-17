@@ -12,7 +12,7 @@ class CycleProgressData {
 
   final String cycleName;
   final String cycleKey;
-  final int totalGoal;
+  final num totalGoal;
   final num totalExecuted;
 
   double get percentage =>
@@ -30,9 +30,9 @@ class CategoryProgressData {
   final Color color;
   final Map<String, CycleProgressData> cycles;
 
-  int get totalGoal => cycles.values.fold(0, (sum, c) => sum + c.totalGoal);
+  num get totalGoal => cycles.values.fold(0.0, (sum, c) => sum + c.totalGoal);
   num get totalExecuted =>
-      cycles.values.fold(0, (sum, c) => sum + c.totalExecuted);
+      cycles.values.fold(0.0, (sum, c) => sum + c.totalExecuted);
   double get percentage =>
       totalGoal > 0 ? (totalExecuted / totalGoal).clamp(0.0, 1.0) : 0.0;
 }
@@ -81,6 +81,10 @@ class DashboardLogic {
 
     final DateTime now = DateTime.now();
     final int daysInMonth = DateTime(now.year, now.month + 1, 0).day;
+    final int daysInYear =
+        ((now.year % 4 == 0 && now.year % 100 != 0) || now.year % 400 == 0)
+            ? 366
+            : 365;
 
     for (final item in items) {
       if (item.tipo != 'habito' ||
@@ -91,32 +95,41 @@ class DashboardLogic {
       if (item.tarefasHabitosQtd.isEmpty) continue;
 
       for (final qtd in item.tarefasHabitosQtd) {
-        final int baseMinutes = item.duration! * qtd.metaVezes;
+        final int reiniciaQtd = qtd.reiniciaEmQtd > 0 ? qtd.reiniciaEmQtd : 1;
+        final double baseMinutes =
+            (item.duration! * qtd.metaVezes) / reiniciaQtd;
         final String cycle = qtd.reiniciaEmTipo;
 
         switch (cycle) {
           case 'dias':
-            planned['dias'] = planned['dias']! + baseMinutes;
-            planned['semanas'] = planned['semanas']! + (baseMinutes * 7);
-            planned['meses'] = planned['meses']! + (baseMinutes * daysInMonth);
-            planned['anos'] = planned['anos']! + (baseMinutes * 365);
+            planned['dias'] = planned['dias']! + baseMinutes.round();
+            planned['semanas'] =
+                planned['semanas']! + (baseMinutes * 7).round();
+            planned['meses'] =
+                planned['meses']! + (baseMinutes * daysInMonth).round();
+            planned['anos'] = planned['anos']! + (baseMinutes * daysInYear).round();
 
           case 'semanas':
             planned['dias'] = planned['dias']! + (baseMinutes / 7).round();
-            planned['semanas'] = planned['semanas']! + baseMinutes;
-            planned['meses'] = planned['meses']! + (baseMinutes * 4);
-            planned['anos'] = planned['anos']! + (baseMinutes * 52);
+            planned['semanas'] = planned['semanas']! + baseMinutes.round();
+            planned['meses'] = planned['meses']! + (baseMinutes * 4).round();
+            planned['anos'] = planned['anos']! + (baseMinutes * 52).round();
 
           case 'meses':
             planned['dias'] =
                 planned['dias']! + (baseMinutes / daysInMonth).round();
             planned['semanas'] =
                 planned['semanas']! + (baseMinutes / 4).round();
-            planned['meses'] = planned['meses']! + baseMinutes;
-            planned['anos'] = planned['anos']! + (baseMinutes * 12);
+            planned['meses'] = planned['meses']! + baseMinutes.round();
+            planned['anos'] = planned['anos']! + (baseMinutes * 12).round();
 
           case 'anos':
-            planned['anos'] = planned['anos']! + baseMinutes;
+            planned['dias'] = planned['dias']! + (baseMinutes / daysInYear).round();
+            planned['semanas'] =
+                planned['semanas']! + (baseMinutes / 52).round();
+            planned['meses'] =
+                planned['meses']! + (baseMinutes / 12).round();
+            planned['anos'] = planned['anos']! + baseMinutes.round();
         }
       }
     }
@@ -245,7 +258,7 @@ class DashboardLogic {
     final DateTime startOfYear = DateTime(now.year);
     final DateTime endOfYear = DateTime(now.year + 1);
 
-    final Map<String, Map<String, int>> baseGoals = {};
+    final Map<String, Map<String, double>> baseGoals = {};
     final Map<String, Color> categoryColors = {};
 
     for (final item in items) {
@@ -261,17 +274,42 @@ class DashboardLogic {
           if (!categoryColors.containsKey(catName)) {
             categoryColors[catName] = catColor;
             baseGoals[catName] = {
-              'dias': 0,
-              'semanas': 0,
-              'meses': 0,
-              'anos': 0,
+              'dias': 0.0,
+              'semanas': 0.0,
+              'meses': 0.0,
+              'anos': 0.0,
             };
             colorIdx++;
           }
 
-          final String cycleKey = qtd.reiniciaEmTipo;
+          final String cycleKey =
+              ['dias', 'semanas', 'meses', 'anos'].contains(qtd.reiniciaEmTipo)
+                  ? qtd.reiniciaEmTipo
+                  : 'dias';
+          final double itemVal = qtd.valor > 0 ? qtd.valor.toDouble() : 1.0;
+          final int reiniciaQtd = qtd.reiniciaEmQtd > 0 ? qtd.reiniciaEmQtd : 1;
+          final double goalAmount = (qtd.metaVezes * itemVal) / reiniciaQtd;
+
           baseGoals[catName]![cycleKey] =
-              (baseGoals[catName]![cycleKey] ?? 0) + qtd.metaVezes;
+              (baseGoals[catName]![cycleKey] ?? 0.0) + goalAmount;
+        }
+      } else if (item.tipo == 'tarefa') {
+        // Tarefas não entram na meta, mas garantem que suas categorias apareçam para exibir o executado
+        for (final qtd in item.tarefasHabitosQtd) {
+          final cat = qtd.categoriasTarefasHabitos;
+          final catName = cat?.nome ?? 'Sem Categoria';
+          final catColor =
+              cat?.cor ?? defaultColors[colorIdx % defaultColors.length];
+          if (!categoryColors.containsKey(catName)) {
+            categoryColors[catName] = catColor;
+            baseGoals[catName] = {
+              'dias': 0.0,
+              'semanas': 0.0,
+              'meses': 0.0,
+              'anos': 0.0,
+            };
+            colorIdx++;
+          }
         }
       }
     }
@@ -335,23 +373,16 @@ class DashboardLogic {
       final Color catColor = categoryColors[catName]!;
       final bg = baseGoals[catName]!;
 
-      final int baseDias = bg['dias']!;
-      final int baseSemanas = bg['semanas']!;
-      final int baseMeses = bg['meses']!;
-      final int baseAnos = bg['anos']!;
+      final double baseDias = bg['dias']!;
+      final double baseSemanas = bg['semanas']!;
+      final double baseMeses = bg['meses']!;
+      final double baseAnos = bg['anos']!;
 
-      final int goalDias =
-          baseDias +
-          (baseSemanas / 7).round() +
-          (baseMeses / daysInMonth).round();
-      final int goalSemanas =
-          (baseDias * 7) + baseSemanas + (baseMeses / 4).round();
-      final int goalMeses =
-          (baseDias * daysInMonth) +
-          (baseSemanas * 4) +
-          baseMeses +
-          (baseAnos / 12).round();
-      final int goalAnos =
+      final double goalDias = baseDias;
+      final double goalSemanas = (baseDias * 7) + baseSemanas;
+      final double goalMeses =
+          (baseDias * daysInMonth) + (baseSemanas * 4) + baseMeses;
+      final double goalAnos =
           (baseDias * 365) + (baseSemanas * 52) + (baseMeses * 12) + baseAnos;
 
       final num execDias = getExecutedForCategoryAndRange(

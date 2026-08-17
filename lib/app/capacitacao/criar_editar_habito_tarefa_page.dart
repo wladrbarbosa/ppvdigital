@@ -8,6 +8,7 @@ import 'package:routefly/routefly.dart';
 class MetaItem {
   MetaItem({
     this.id,
+    this.createdAt,
     required String metaVezes,
     required String valor,
     required String reiniciaEmQtd,
@@ -17,6 +18,7 @@ class MetaItem {
        valorController = TextEditingController(text: valor),
        reiniciaEmQtdController = TextEditingController(text: reiniciaEmQtd);
   String? id;
+  DateTime? createdAt;
   final TextEditingController metaVezesController;
   final TextEditingController valorController;
   final TextEditingController reiniciaEmQtdController;
@@ -101,6 +103,7 @@ class _CriarHabitoTarefaPageState extends State<CriarHabitoTarefaPage> {
         _metas.add(
           MetaItem(
             id: qtd.id,
+            createdAt: qtd.createdAt,
             metaVezes: _tipo == 'tarefa' ? '1' : qtd.metaVezes.toString(),
             valor: qtd.valor.toPtBr(compactIfInteger: true),
             reiniciaEmQtd: _tipo == 'tarefa'
@@ -173,6 +176,7 @@ class _CriarHabitoTarefaPageState extends State<CriarHabitoTarefaPage> {
           evaluateMathExpression(meta.valorController.text);
       return {
         'id': meta.id,
+        'createdAt': meta.createdAt?.toIso8601String(),
         'metaVezes': int.parse(meta.metaVezesController.text),
         'valor': evalVal ??
             (double.tryParse(meta.valorController.text

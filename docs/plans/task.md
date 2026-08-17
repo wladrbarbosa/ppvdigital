@@ -1,11 +1,5 @@
-# Task Progress Tracker
-
-| Task | Status | Notes |
-| :--- | :--- | :--- |
-| Investigate Root Cause for 404 Manifest Errors | Done | Identified route-relative fetching and missing root manifest copies in Flutter Web |
-| Update `web/index.html` Fetch Interceptor | Done | Intercept manifest requests, normalize route paths, and add automatic 404 fallback |
-| Update `deploy_web.sh` & `deploy_web.ps1` | Done | Ensure all manifest files (Font & Asset) are copied to both root and assets/ |
-| Add Fallback Manifest Files in `web/` | Done | Added static manifest fallbacks to web/ source directory |
-| Run Verification & Tests | Done | Analyzed static code and verified test suite execution |
-
-
+| Task | Status | Description |
+|---|---|---|
+| 1. Confirmação de Logout | DONE | Adicionar diálogo de confirmação ao botão de logout em `CapacitacaoPage` |
+| 2. Confirmação de Senha no Cadastro | DONE | Adicionar campo e validação de confirmação de senha em `LoginPage` |
+| 3. Testes Automatizados e Análise Estática | DONE | Criar testes para diálogo de logout e validação de cadastro, validando com `fvm flutter test` e `fvm flutter analyze` |

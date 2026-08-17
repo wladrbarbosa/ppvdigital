@@ -167,7 +167,8 @@ class TarefaHabitoQtdModel {
           createdAt.month,
         );
         if (nowToday.isBefore(beginningFirst)) return beginningFirst;
-        final int monthDiff = (nowToday.year - beginningFirst.year) * 12 +
+        final int monthDiff =
+            (nowToday.year - beginningFirst.year) * 12 +
             (nowToday.month - beginningFirst.month);
         final int cycles = monthDiff < 0 ? 0 : (monthDiff ~/ reiniciaEmQtd);
         return DateTime(

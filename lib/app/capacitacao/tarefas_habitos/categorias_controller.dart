@@ -150,6 +150,7 @@ class CategoriasController {
   }
 
   void reset() {
+    categoriasFuture = null;
     mobx.runInAction(() {
       _categoriasList.clear();
     });

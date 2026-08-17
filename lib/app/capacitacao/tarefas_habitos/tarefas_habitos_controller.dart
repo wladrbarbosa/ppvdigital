@@ -172,6 +172,12 @@ class TarefasHabitosController {
   List<TarefaHabitoModel> get tarefasHabitosList =>
       _tarefasHabitosList.toList();
 
+  final mobx.Observable<bool> _isSyncing = mobx.Observable<bool>(
+    false,
+    name: 'isSyncing',
+  );
+  bool get isSyncing => _isSyncing.value;
+
   final mobx.Observable<Color> habitColor = mobx.Observable<Color>(
     Colors.tealAccent,
     name: 'habitColor',
@@ -291,6 +297,9 @@ class TarefasHabitosController {
       return;
     }
     try {
+      mobx.runInAction(() {
+        _isSyncing.value = true;
+      });
       final String? lastSyncStr = await Core.database.getSetting('last_tarefas_habitos_sync_time');
       final DateTime? lastSyncedAt = lastSyncStr != null ? DateTime.tryParse(lastSyncStr) : null;
 
@@ -307,12 +316,21 @@ class TarefasHabitosController {
       await Core.database.setSetting('last_tarefas_habitos_sync_time', now.toIso8601String());
     } catch (e) {
       log('Background sync of habits failed: $e');
+    } finally {
+      mobx.runInAction(() {
+        _isSyncing.value = false;
+      });
     }
   }
 
   void reset() {
     _tarefasHabitosSub?.cancel();
+    _tarefasHabitosSub = null;
+    _lastSyncTime = null;
+    tarefasHabitosFuture = null;
+    tarefasHabitosQtdCollectionId = null;
     mobx.runInAction(() {
+      _isSyncing.value = false;
       _tarefasHabitosList.clear();
     });
   }

@@ -16,7 +16,11 @@ class FinancasController {
   FinancasController(this.repository);
   final FinancasRepository repository;
 
+  Map<String, dynamic>? _cachedFilters;
+  Map<String, dynamic>? get cachedFilters => _cachedFilters;
+
   Future<void> saveFinancasFilters(Map<String, dynamic> filters) async {
+    _cachedFilters = Map<String, dynamic>.from(filters);
     try {
       final jsonStr = json.encode(filters);
       await repository.saveSetting('financas_filters', jsonStr);
@@ -29,12 +33,12 @@ class FinancasController {
     try {
       final jsonStr = await repository.getSetting('financas_filters');
       if (jsonStr != null && jsonStr.isNotEmpty) {
-        return json.decode(jsonStr) as Map<String, dynamic>;
+        return _cachedFilters = json.decode(jsonStr) as Map<String, dynamic>;
       }
     } catch (e) {
       log('Error loading financas filters: $e');
     }
-    return null;
+    return _cachedFilters;
   }
 
   DateTime _lastSelectedMonth = DateTime.now();
@@ -345,6 +349,19 @@ class FinancasController {
     _contasSub?.cancel();
     _categoriasSub?.cancel();
     _transacoesSub?.cancel();
+    _contatosSub = null;
+    _contasSub = null;
+    _categoriasSub = null;
+    _transacoesSub = null;
+
+    _lastSyncTime = null;
+    _lastSyncMonth = null;
+    _syncedMonths.clear();
+    _cachedFilters = null;
+    _subscribedMonth = null;
+    _lastSelectedMonth = DateTime.now();
+    financasFuture = null;
+    defaultDataCompetencia = null;
 
     mobx.runInAction(() {
       _contasList.clear();

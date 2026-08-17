@@ -777,22 +777,44 @@ class _CriarEditarTransacaoPageState extends State<CriarEditarTransacaoPage> {
             Observer(
               builder: (context) {
                 final contatos = Core.financasController.contatosList;
-                return DropdownButtonFormField<String>(
+                final bool hasDevedor = _selectedDevedorContatoId != null;
+                return DropdownButtonFormField<String?>(
+                  key: ValueKey('devedor_$_selectedDevedorContatoId'),
                   isExpanded: true,
                   initialValue: _selectedDevedorContatoId,
-                  decoration: const InputDecoration(
+                  decoration: InputDecoration(
                     labelText: 'Devedor Contato (Opcional)',
-                    border: OutlineInputBorder(),
-                    suffixIcon: Tooltip(
-                      triggerMode: TooltipTriggerMode.tap,
-                      message: 'Contato que deve este valor a você.',
-                      child: Icon(Icons.info_outline, size: 20),
+                    border: const OutlineInputBorder(),
+                    suffixIcon: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        if (hasDevedor)
+                          IconButton(
+                            icon: const Icon(Icons.clear, size: 18),
+                            tooltip: 'Remover devedor',
+                            onPressed: () {
+                              setState(() {
+                                _selectedDevedorContatoId = null;
+                              });
+                            },
+                          ),
+                        const Tooltip(
+                          triggerMode: TooltipTriggerMode.tap,
+                          message: 'Contato que deve este valor a você.',
+                          child: Padding(
+                            padding: EdgeInsets.only(right: 8.0),
+                            child: Icon(Icons.info_outline, size: 20),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                   items: [
-                    const DropdownMenuItem<String>(child: Text('Nenhum')),
+                    const DropdownMenuItem<String?>(
+                      child: Text('Nenhum'),
+                    ),
                     ...contatos.map((c) {
-                      return DropdownMenuItem(
+                      return DropdownMenuItem<String?>(
                         value: c.id,
                         child: Text(c.nome, overflow: TextOverflow.ellipsis),
                       );
@@ -810,22 +832,44 @@ class _CriarEditarTransacaoPageState extends State<CriarEditarTransacaoPage> {
             Observer(
               builder: (context) {
                 final contatos = Core.financasController.contatosList;
-                return DropdownButtonFormField<String>(
+                final bool hasCredor = _selectedCredorContatoId != null;
+                return DropdownButtonFormField<String?>(
+                  key: ValueKey('credor_$_selectedCredorContatoId'),
                   isExpanded: true,
                   initialValue: _selectedCredorContatoId,
-                  decoration: const InputDecoration(
+                  decoration: InputDecoration(
                     labelText: 'Credor Contato (Opcional)',
-                    border: OutlineInputBorder(),
-                    suffixIcon: Tooltip(
-                      triggerMode: TooltipTriggerMode.tap,
-                      message: 'Contato a quem você deve este valor.',
-                      child: Icon(Icons.info_outline, size: 20),
+                    border: const OutlineInputBorder(),
+                    suffixIcon: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        if (hasCredor)
+                          IconButton(
+                            icon: const Icon(Icons.clear, size: 18),
+                            tooltip: 'Remover credor',
+                            onPressed: () {
+                              setState(() {
+                                _selectedCredorContatoId = null;
+                              });
+                            },
+                          ),
+                        const Tooltip(
+                          triggerMode: TooltipTriggerMode.tap,
+                          message: 'Contato a quem você deve este valor.',
+                          child: Padding(
+                            padding: EdgeInsets.only(right: 8.0),
+                            child: Icon(Icons.info_outline, size: 20),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                   items: [
-                    const DropdownMenuItem<String>(child: Text('Nenhum')),
+                    const DropdownMenuItem<String?>(
+                      child: Text('Nenhum'),
+                    ),
                     ...contatos.map((c) {
-                      return DropdownMenuItem(
+                      return DropdownMenuItem<String?>(
                         value: c.id,
                         child: Text(c.nome, overflow: TextOverflow.ellipsis),
                       );
