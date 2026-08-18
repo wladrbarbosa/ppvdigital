@@ -26,6 +26,7 @@ class AppwriteTarefaHabitoRepository implements TarefaHabitoRepository {
         'tipo',
         'usuario',
         'concluida',
+        'arquivado',
         'agendamento',
         'duration',
         'tarefasHabitosQtds.*',
@@ -101,11 +102,13 @@ class AppwriteTarefaHabitoRepository implements TarefaHabitoRepository {
 
   @override
   Future<bool> createTarefaHabito({
+    String? id,
     required String nome,
     required String tipo,
     required List<Map<String, dynamic>> metas,
     DateTime? agendamento,
     int? duration,
+    bool arquivado = false,
     required String usuarioId,
   }) async {
     final TablesDB tablesDB = TablesDB(databases.client);
@@ -114,18 +117,24 @@ class AppwriteTarefaHabitoRepository implements TarefaHabitoRepository {
     final List<String> qtdRowIds = [];
 
     for (final meta in metas) {
+      final String? metaId = meta['id'] as String?;
+      final Map<String, dynamic> qtdData = {
+        'metaVezes': meta['metaVezes'],
+        'usuario': usuarioId,
+        'valor': meta['valor'],
+        'reiniciaEmQtd': meta['reiniciaEmQtd'],
+        'reiniciaEmTipo': meta['reiniciaEmTipo'],
+      };
+      final dynamic catId = meta['categoriaId'];
+      if (catId != null && catId is String && catId.isNotEmpty) {
+        qtdData['categoriasTarefasHabitos'] = catId;
+      }
+
       final Row qtdRow = await tablesDB.createRow(
         databaseId: Core.databaseId,
         tableId: qtdCollectionId,
-        rowId: ID.unique(),
-        data: {
-          'metaVezes': meta['metaVezes'],
-          'usuario': usuarioId,
-          'categoriasTarefasHabitos': meta['categoriaId'],
-          'valor': meta['valor'],
-          'reiniciaEmQtd': meta['reiniciaEmQtd'],
-          'reiniciaEmTipo': meta['reiniciaEmTipo'],
-        },
+        rowId: (metaId != null && metaId.isNotEmpty) ? metaId : ID.unique(),
+        data: qtdData,
       );
       qtdRowIds.add(qtdRow.$id);
     }
@@ -133,12 +142,13 @@ class AppwriteTarefaHabitoRepository implements TarefaHabitoRepository {
     await tablesDB.createRow(
       databaseId: Core.databaseId,
       tableId: Core.tableTarefasEHabitos,
-      rowId: ID.unique(),
+      rowId: id ?? ID.unique(),
       data: {
         'nome': nome,
         'tipo': tipo,
         'usuario': usuarioId,
         'concluida': false,
+        'arquivado': arquivado,
         'agendamento': agendamento?.toIso8601String(),
         'tarefasHabitosQtds': qtdRowIds,
         'duration': duration,
@@ -157,6 +167,7 @@ class AppwriteTarefaHabitoRepository implements TarefaHabitoRepository {
     required List<String> allExistingQtdRowIds,
     DateTime? agendamento,
     int? duration,
+    bool? arquivado,
     required String usuarioId,
   }) async {
     final TablesDB tablesDB = TablesDB(databases.client);
@@ -167,19 +178,24 @@ class AppwriteTarefaHabitoRepository implements TarefaHabitoRepository {
 
     for (final meta in metas) {
       final String? metaId = meta['id'] as String?;
-      if (metaId == null) {
+      final Map<String, dynamic> qtdData = {
+        'metaVezes': meta['metaVezes'],
+        'usuario': usuarioId,
+        'valor': meta['valor'],
+        'reiniciaEmQtd': meta['reiniciaEmQtd'],
+        'reiniciaEmTipo': meta['reiniciaEmTipo'],
+      };
+      final dynamic catId = meta['categoriaId'];
+      if (catId != null && catId is String && catId.isNotEmpty) {
+        qtdData['categoriasTarefasHabitos'] = catId;
+      }
+
+      if (metaId == null || metaId.isEmpty) {
         final Row qtdRow = await tablesDB.createRow(
           databaseId: Core.databaseId,
           tableId: qtdCollectionId,
           rowId: ID.unique(),
-          data: {
-            'metaVezes': meta['metaVezes'],
-            'usuario': usuarioId,
-            'categoriasTarefasHabitos': meta['categoriaId'],
-            'valor': meta['valor'],
-            'reiniciaEmQtd': meta['reiniciaEmQtd'],
-            'reiniciaEmTipo': meta['reiniciaEmTipo'],
-          },
+          data: qtdData,
         );
         savedQtdRowIds.add(qtdRow.$id);
         finalQtdRowIds.add(qtdRow.$id);
@@ -188,32 +204,30 @@ class AppwriteTarefaHabitoRepository implements TarefaHabitoRepository {
           databaseId: Core.databaseId,
           tableId: qtdCollectionId,
           rowId: metaId,
-          data: {
-            'metaVezes': meta['metaVezes'],
-            'usuario': usuarioId,
-            'categoriasTarefasHabitos': meta['categoriaId'],
-            'valor': meta['valor'],
-            'reiniciaEmQtd': meta['reiniciaEmQtd'],
-            'reiniciaEmTipo': meta['reiniciaEmTipo'],
-          },
+          data: qtdData,
         );
         savedQtdRowIds.add(metaId);
         finalQtdRowIds.add(metaId);
       }
     }
 
+    final updateData = <String, dynamic>{
+      'nome': nome,
+      'tipo': tipo,
+      'usuario': usuarioId,
+      'agendamento': agendamento?.toIso8601String(),
+      'tarefasHabitosQtds': finalQtdRowIds,
+      'duration': duration,
+    };
+    if (arquivado != null) {
+      updateData['arquivado'] = arquivado;
+    }
+
     await tablesDB.updateRow(
       databaseId: Core.databaseId,
       tableId: Core.tableTarefasEHabitos,
       rowId: id,
-      data: {
-        'nome': nome,
-        'tipo': tipo,
-        'usuario': usuarioId,
-        'agendamento': agendamento?.toIso8601String(),
-        'tarefasHabitosQtds': finalQtdRowIds,
-        'duration': duration,
-      },
+      data: updateData,
     );
 
     for (final existingId in allExistingQtdRowIds) {

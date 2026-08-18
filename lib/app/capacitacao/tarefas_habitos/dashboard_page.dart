@@ -159,7 +159,9 @@ class _DashboardPageState extends State<DashboardPage> {
       body: Observer(
         builder: (context) {
           final isSyncing = Core.tarefasHabitosController.isSyncing;
-          final items = Core.tarefasHabitosController.tarefasHabitosList;
+          final items = Core.tarefasHabitosController.tarefasHabitosList
+              .where((i) => !i.arquivado)
+              .toList();
 
           if (_isLoading || (items.isEmpty && isSyncing)) {
             return const Center(child: CircularProgressIndicator());
@@ -751,7 +753,7 @@ class _DashboardPageState extends State<DashboardPage> {
             const SizedBox(height: 16),
             SizedBox(
               height: 200,
-              child: activeList.isEmpty
+              child: (activeList.isEmpty || activeTotalVal <= 0)
                   ? const Center(child: Text('Nenhuma categoria visível'))
                   : PieChart(
                       PieChartData(

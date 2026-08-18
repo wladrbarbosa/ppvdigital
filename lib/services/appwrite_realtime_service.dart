@@ -29,6 +29,8 @@ class AppwriteRealtimeService {
         'databases.$db.collections.${Core.tableCategoriasTransacoes}.documents',
         'databases.$db.collections.${Core.tableContatos}.documents',
         'databases.$db.collections.${Core.tableDivisaoTransacoes}.documents',
+        'databases.$db.collections.${Core.tableTarefasEHabitos}.documents',
+        'databases.$db.collections.${Core.tableHistoricoTarefasHabitos}.documents',
       ];
 
       log('Starting Appwrite Realtime subscription for user: $userId');

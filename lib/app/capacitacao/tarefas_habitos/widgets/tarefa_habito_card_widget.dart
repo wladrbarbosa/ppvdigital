@@ -48,6 +48,11 @@ class TarefaHabitoCardWidget extends StatelessWidget {
   Widget build(BuildContext context) {
     final categoria =
         item.tarefasHabitosQtd.firstOrNull?.categoriasTarefasHabitos;
+    final bool isNegativeHabit =
+        item.tipo == 'habito' && item.tarefasHabitosQtd.any((q) => q.valor < 0);
+
+    final Color effectiveHabitColor =
+        isNegativeHabit ? Colors.redAccent : habitColor;
 
     return Observer(
       builder: (context) {
@@ -58,7 +63,7 @@ class TarefaHabitoCardWidget extends StatelessWidget {
             borderRadius: BorderRadius.circular(22),
             side: BorderSide(
               color: item.tipo == 'habito'
-                  ? habitColor.withValues(alpha: 0.4)
+                  ? effectiveHabitColor.withValues(alpha: 0.4)
                   : taskColor.withValues(alpha: 0.4),
               width: 1.5,
             ),
@@ -82,17 +87,55 @@ class TarefaHabitoCardWidget extends StatelessWidget {
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
                             Expanded(
-                              child: Text(
-                                item.nome,
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 13.0,
-                                ),
-                                maxLines: 2,
-                                overflow: TextOverflow.ellipsis,
+                              child: Row(
+                                children: [
+                                  if (item.arquivado) ...[
+                                    const Icon(
+                                      Icons.archive_outlined,
+                                      size: 13.0,
+                                      color: Colors.amber,
+                                    ),
+                                    const SizedBox(width: 4.0),
+                                  ],
+                                  Expanded(
+                                    child: Text(
+                                      item.nome,
+                                      style: const TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 13.0,
+                                      ),
+                                      maxLines: 2,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ),
+                                ],
                               ),
                             ),
                             const SizedBox(width: 4.0),
+                            if (isNegativeHabit) ...[
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 6.0,
+                                  vertical: 2.0,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: Colors.redAccent.withValues(alpha: 0.15),
+                                  borderRadius: BorderRadius.circular(8.0),
+                                  border: Border.all(
+                                    color: Colors.redAccent.withValues(alpha: 0.4),
+                                  ),
+                                ),
+                                child: const Text(
+                                  'Negativo',
+                                  style: TextStyle(
+                                    fontSize: 9.0,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.redAccent,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 4.0),
+                            ],
                             if (item.duration != null &&
                                 item.duration! > 0) ...[
                               Container(
@@ -102,12 +145,12 @@ class TarefaHabitoCardWidget extends StatelessWidget {
                                 ),
                                 decoration: BoxDecoration(
                                   color: item.tipo == 'habito'
-                                      ? habitColor.withValues(alpha: 0.15)
+                                      ? effectiveHabitColor.withValues(alpha: 0.15)
                                       : taskColor.withValues(alpha: 0.15),
                                   borderRadius: BorderRadius.circular(8.0),
                                   border: Border.all(
                                     color: item.tipo == 'habito'
-                                        ? habitColor.withValues(alpha: 0.4)
+                                        ? effectiveHabitColor.withValues(alpha: 0.4)
                                         : taskColor.withValues(alpha: 0.4),
                                   ),
                                 ),
@@ -118,7 +161,7 @@ class TarefaHabitoCardWidget extends StatelessWidget {
                                       Icons.access_time_rounded,
                                       size: 10.0,
                                       color: item.tipo == 'habito'
-                                          ? habitColor
+                                          ? effectiveHabitColor
                                           : taskColor,
                                     ),
                                     const SizedBox(width: 3.0),
@@ -128,7 +171,7 @@ class TarefaHabitoCardWidget extends StatelessWidget {
                                         fontSize: 9.0,
                                         fontWeight: FontWeight.bold,
                                         color: item.tipo == 'habito'
-                                            ? habitColor
+                                            ? effectiveHabitColor
                                             : taskColor,
                                       ),
                                     ),
@@ -208,9 +251,13 @@ class TarefaHabitoCardWidget extends StatelessWidget {
                     icon: Icon(
                       item.tipo == 'tarefa'
                           ? Icons.check_circle_outline
-                          : Icons.add_circle,
+                          : (isNegativeHabit
+                              ? Icons.remove_circle_outline
+                              : Icons.add_circle),
                       size: 32.0,
-                      color: item.tipo == 'habito' ? habitColor : taskColor,
+                      color: item.tipo == 'habito'
+                          ? effectiveHabitColor
+                          : taskColor,
                     ),
                   ),
                 ],

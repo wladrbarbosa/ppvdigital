@@ -87,17 +87,18 @@ class DashboardLogic {
             : 365;
 
     for (final item in items) {
-      if (item.tipo != 'habito' ||
-          item.duration == null ||
-          item.duration! <= 0) {
+      if (item.tipo != 'habito') {
         continue;
       }
       if (item.tarefasHabitosQtd.isEmpty) continue;
 
+      final int duration =
+          (item.duration != null && item.duration! > 0) ? item.duration! : 30;
+
       for (final qtd in item.tarefasHabitosQtd) {
         final int reiniciaQtd = qtd.reiniciaEmQtd > 0 ? qtd.reiniciaEmQtd : 1;
         final double baseMinutes =
-            (item.duration! * qtd.metaVezes) / reiniciaQtd;
+            (duration * qtd.metaVezes) / reiniciaQtd;
         final String cycle = qtd.reiniciaEmTipo;
 
         switch (cycle) {
@@ -161,13 +162,14 @@ class DashboardLogic {
     final DateTime endOfYear = DateTime(now.year + 1);
 
     int getExecutedForRange(DateTime start, DateTime end) {
-      if (historico != null && historico.isNotEmpty) {
+      if (historico != null) {
         int total = 0;
         final DateTime minStart = start.subtract(
           const Duration(milliseconds: 1),
         );
         for (final h in historico) {
-          if (h.createdAt.isAfter(minStart) && h.createdAt.isBefore(end)) {
+          final DateTime hDate = h.createdAt.toLocal();
+          if (hDate.isAfter(minStart) && hDate.isBefore(end)) {
             total += h.tarefasEHabitos.duration ?? 30;
           }
         }
@@ -286,7 +288,7 @@ class DashboardLogic {
               ['dias', 'semanas', 'meses', 'anos'].contains(qtd.reiniciaEmTipo)
                   ? qtd.reiniciaEmTipo
                   : 'dias';
-          final double itemVal = qtd.valor > 0 ? qtd.valor.toDouble() : 1.0;
+          final double itemVal = qtd.valor > 0 ? qtd.valor.toDouble() : 0.0;
           final int reiniciaQtd = qtd.reiniciaEmQtd > 0 ? qtd.reiniciaEmQtd : 1;
           final double goalAmount = (qtd.metaVezes * itemVal) / reiniciaQtd;
 
@@ -322,15 +324,16 @@ class DashboardLogic {
       num executed = 0;
       final DateTime minStart = start.subtract(const Duration(milliseconds: 1));
 
-      if (historico != null && historico.isNotEmpty) {
+      if (historico != null) {
         for (final h in historico) {
-          if (h.createdAt.isAfter(minStart) && h.createdAt.isBefore(end)) {
+          final DateTime hDate = h.createdAt.toLocal();
+          if (hDate.isAfter(minStart) && hDate.isBefore(end)) {
             final habit = h.tarefasEHabitos;
             for (final qtd in habit.tarefasHabitosQtd) {
               final catName =
                   qtd.categoriasTarefasHabitos?.nome ?? 'Sem Categoria';
               if (catName == categoryName) {
-                executed += (qtd.valor > 0 ? qtd.valor : 1.0);
+                executed += (qtd.valor != 0 ? qtd.valor : 1.0);
               }
             }
             if (habit.tarefasHabitosQtd.isEmpty &&
@@ -347,7 +350,7 @@ class DashboardLogic {
                   qtd.categoriasTarefasHabitos?.nome ?? 'Sem Categoria';
               if (catName == categoryName) {
                 executed +=
-                    qtd.vezesPraticado * (qtd.valor > 0 ? qtd.valor : 1.0);
+                    qtd.vezesPraticado * (qtd.valor != 0 ? qtd.valor : 1.0);
               }
             }
           } else if (item.tipo == 'tarefa' && item.concluida) {
@@ -359,7 +362,7 @@ class DashboardLogic {
                 final catName =
                     qtd.categoriasTarefasHabitos?.nome ?? 'Sem Categoria';
                 if (catName == categoryName) {
-                  executed += (qtd.valor > 0 ? qtd.valor : 1.0);
+                  executed += (qtd.valor != 0 ? qtd.valor : 1.0);
                 }
               }
             }
@@ -490,7 +493,8 @@ class DashboardLogic {
         final catColor =
             cat?.cor ?? defaultColors[colorIdx % defaultColors.length];
 
-        final double itemVal = (qtd.valor > 0 ? qtd.valor : 1.0).toDouble();
+        final double itemVal =
+            (qtd.valor != 0 ? qtd.valor.abs() : 1.0).toDouble();
 
         if (!map.containsKey(catName)) {
           map[catName] = CategoryAttentionData(
@@ -544,12 +548,15 @@ class DashboardLogic {
         if (item.tipo == 'habito' && item.tarefasHabitosQtd.isNotEmpty) {
           totalHabits++;
           final bool wasCompletedOnDate = historico.any(
-            (h) =>
-                h.tarefasEHabitos.id == item.id &&
-                h.createdAt.year == date.year &&
-                h.createdAt.month == date.month &&
-                h.createdAt.day == date.day,
+            (h) {
+              final hDate = h.createdAt.toLocal();
+              return h.tarefasEHabitos.id == item.id &&
+                  hDate.year == date.year &&
+                  hDate.month == date.month &&
+                  hDate.day == date.day;
+            },
           );
+
           if (wasCompletedOnDate) {
             completedOnDate++;
           }

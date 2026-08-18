@@ -11,6 +11,7 @@ class TarefaHabitoModel {
   final String tipo;
   final String usuario;
   final bool concluida;
+  final bool arquivado;
   final DateTime? agendamento;
   final List<TarefaHabitoQtdModel> tarefasHabitosQtd;
   final int? duration;
@@ -21,6 +22,7 @@ class TarefaHabitoModel {
     required this.tipo,
     required this.usuario,
     required this.concluida,
+    this.arquivado = false,
     required this.agendamento,
     required this.tarefasHabitosQtd,
     this.duration,
@@ -32,6 +34,7 @@ class TarefaHabitoModel {
     String? tipo,
     String? usuario,
     bool? concluida,
+    bool? arquivado,
     DateTime? agendamento,
     List<TarefaHabitoQtdModel>? tarefaHabitoQtd,
     int? duration,
@@ -42,6 +45,7 @@ class TarefaHabitoModel {
       tipo: tipo ?? this.tipo,
       usuario: usuario ?? this.usuario,
       concluida: concluida ?? this.concluida,
+      arquivado: arquivado ?? this.arquivado,
       agendamento: agendamento ?? this.agendamento,
       tarefasHabitosQtd: tarefaHabitoQtd ?? tarefasHabitosQtd,
       duration: duration ?? this.duration,
@@ -55,6 +59,7 @@ class TarefaHabitoModel {
       'tipo': tipo,
       'usuario': usuario,
       'concluida': concluida,
+      'arquivado': arquivado,
       'agendamento': agendamento?.millisecondsSinceEpoch,
       'tarefaHabitoQtd': tarefasHabitosQtd.map((x) => x.toMap()).toList(),
       'duration': duration,
@@ -63,7 +68,10 @@ class TarefaHabitoModel {
 
   factory TarefaHabitoModel.fromMap(Map<String, dynamic> map) {
     final String docId = (map[r'$id'] ?? map['id'] ?? '') as String;
-    final dynamic rawMetas = map['metas'] ?? map['tarefaHabitoQtd'];
+    final dynamic rawMetas = map['metas'] ??
+        map['tarefaHabitoQtd'] ??
+        map['tarefasHabitosQtds'] ??
+        map['tarefasHabitosQtd'];
     List<TarefaHabitoQtdModel> metas = [];
     if (rawMetas is List) {
       metas = rawMetas
@@ -79,6 +87,7 @@ class TarefaHabitoModel {
       tipo: (map['tipo'] ?? 'tarefa') as String,
       usuario: (map['usuario'] ?? '') as String,
       concluida: map['concluida'] is bool && map['concluida'] as bool,
+      arquivado: map['arquivado'] is bool && map['arquivado'] as bool,
       agendamento: map['agendamento'] != null
           ? (map['agendamento'] is int
                 ? DateTime.fromMillisecondsSinceEpoch(map['agendamento'] as int)
@@ -98,7 +107,7 @@ class TarefaHabitoModel {
 
   @override
   String toString() {
-    return 'TarefaHabitoModel(id: $id, nome: $nome, tipo: $tipo, usuario: $usuario, concluida: $concluida, agendamento: $agendamento, tarefaHabitoQtd: $tarefasHabitosQtd, duration: $duration)';
+    return 'TarefaHabitoModel(id: $id, nome: $nome, tipo: $tipo, usuario: $usuario, concluida: $concluida, arquivado: $arquivado, agendamento: $agendamento, tarefaHabitoQtd: $tarefasHabitosQtd, duration: $duration)';
   }
 
   @override
@@ -110,6 +119,7 @@ class TarefaHabitoModel {
         other.tipo == tipo &&
         other.usuario == usuario &&
         other.concluida == concluida &&
+        other.arquivado == arquivado &&
         other.agendamento == agendamento &&
         listEquals(other.tarefasHabitosQtd, tarefasHabitosQtd) &&
         other.duration == duration;
@@ -122,6 +132,7 @@ class TarefaHabitoModel {
         tipo.hashCode ^
         usuario.hashCode ^
         concluida.hashCode ^
+        arquivado.hashCode ^
         agendamento.hashCode ^
         tarefasHabitosQtd.hashCode ^
         duration.hashCode;

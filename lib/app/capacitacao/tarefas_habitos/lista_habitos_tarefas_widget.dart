@@ -37,6 +37,7 @@ enum TarefaHabitoSortField {
   progresso,
   proximidadeFimCiclo,
   duracao,
+  tipoHabito,
 }
 
 class ListaHabitosTarefasWidget extends StatefulWidget {
@@ -52,6 +53,7 @@ class ListaHabitosTarefasWidget extends StatefulWidget {
 class ListaHabitosTarefasWidgetState extends State<ListaHabitosTarefasWidget> {
   TarefaHabitoSortField _sortField = TarefaHabitoSortField.nome;
   bool _sortAscending = true;
+  bool _verArquivados = false;
 
   Duration _getCycleRemainingDuration(TarefaHabitoQtdModel qtd) {
     final DateTime now = DateTime.now();
@@ -119,6 +121,10 @@ class ListaHabitosTarefasWidgetState extends State<ListaHabitosTarefasWidget> {
           final aDur = a.duration ?? 0;
           final bDur = b.duration ?? 0;
           cmp = aDur.compareTo(bDur);
+        case TarefaHabitoSortField.tipoHabito:
+          final aIsNeg = a.tarefasHabitosQtd.any((q) => q.valor < 0);
+          final bIsNeg = b.tarefasHabitosQtd.any((q) => q.valor < 0);
+          cmp = (aIsNeg ? 1 : 0).compareTo(bIsNeg ? 1 : 0);
       }
       return _sortAscending ? cmp : -cmp;
     });
@@ -144,6 +150,23 @@ class ListaHabitosTarefasWidgetState extends State<ListaHabitosTarefasWidget> {
         fieldLabel = 'Fim do Ciclo';
       case TarefaHabitoSortField.duracao:
         fieldLabel = 'Duração';
+      case TarefaHabitoSortField.tipoHabito:
+        fieldLabel = 'Positivos / Negativos';
+    }
+
+    String title;
+    if (_verArquivados) {
+      title = widget.onlyTipo == 'tarefa'
+          ? 'Tarefas Arquivadas'
+          : widget.onlyTipo == 'habito'
+              ? 'Hábitos Arquivados'
+              : 'Arquivados';
+    } else {
+      title = widget.onlyTipo == 'tarefa'
+          ? 'Minhas Tarefas'
+          : widget.onlyTipo == 'habito'
+              ? 'Meus Hábitos'
+              : 'Tarefas e Hábitos';
     }
 
     return Padding(
@@ -151,17 +174,36 @@ class ListaHabitosTarefasWidgetState extends State<ListaHabitosTarefasWidget> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(
-            widget.onlyTipo == 'tarefa'
-                ? 'Minhas Tarefas'
-                : widget.onlyTipo == 'habito'
-                ? 'Meus Hábitos'
-                : 'Tarefas e Hábitos',
-            style: TextStyle(
-              fontSize: 15,
-              fontWeight: FontWeight.bold,
-              color: isDark ? Colors.white70 : Colors.black54,
-            ),
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                title,
+                style: TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.bold,
+                  color: isDark ? Colors.white70 : Colors.black54,
+                ),
+              ),
+              const SizedBox(width: 8.0),
+              IconButton(
+                icon: Icon(
+                  _verArquivados ? Icons.inventory_2 : Icons.archive_outlined,
+                  size: 20,
+                  color: _verArquivados
+                      ? Colors.amber
+                      : (isDark ? Colors.white70 : Colors.black54),
+                ),
+                tooltip: _verArquivados
+                    ? 'Ver Itens Ativos'
+                    : 'Ver Itens Arquivados',
+                onPressed: () {
+                  setState(() {
+                    _verArquivados = !_verArquivados;
+                  });
+                },
+              ),
+            ],
           ),
           Row(
             mainAxisSize: MainAxisSize.min,
@@ -214,6 +256,10 @@ class ListaHabitosTarefasWidgetState extends State<ListaHabitosTarefasWidget> {
                   const PopupMenuItem(
                     value: TarefaHabitoSortField.duracao,
                     child: Text('Duração'),
+                  ),
+                  const PopupMenuItem(
+                    value: TarefaHabitoSortField.tipoHabito,
+                    child: Text('Positivos / Negativos'),
                   ),
                 ],
               ),
@@ -418,8 +464,51 @@ class ListaHabitosTarefasWidgetState extends State<ListaHabitosTarefasWidget> {
     return progress;
   }
 
+  void _showRelapseDialog(BuildContext context, TarefaHabitoModel item) {
+    showDialog(
+      context: context,
+      builder: (ctx) {
+        return AlertDialog(
+          title: const Row(
+            children: [
+              Icon(Icons.warning_amber_rounded, color: Colors.deepOrange),
+              SizedBox(width: 8),
+              Text('Registrar Recaída?'),
+            ],
+          ),
+          content: Text(
+            'Você praticou o hábito indesejado "${item.nome}" hoje?\n\nIsso reiniciará a sua contagem de dias sem praticar para 0.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(),
+              child: const Text('Cancelar'),
+            ),
+            FilledButton(
+              style: FilledButton.styleFrom(
+                backgroundColor: Colors.deepOrange,
+              ),
+              onPressed: () {
+                Navigator.of(ctx).pop();
+                Core.tarefasHabitosController.incrementQtdHabito(item.id);
+              },
+              child: const Text('Confirmar Recaída'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   String _getProgressText(TarefaHabitoModel item) {
     if (item.tarefasHabitosQtd.isEmpty) return 'Sem metas';
+    final bool isNegativo = item.tarefasHabitosQtd.any((q) => q.valor < 0);
+    if (isNegativo) {
+      final qtd = item.tarefasHabitosQtd.first;
+      final int dias = qtd.vezesPraticado.toInt();
+      final int metaDias = qtd.metaVezes;
+      return '$dias de $metaDias dias sem praticar';
+    }
     if (item.tarefasHabitosQtd.length == 1) {
       final qtd = item.tarefasHabitosQtd.first;
       return '${qtd.vezesPraticado.toPtBr(compactIfInteger: true)} / ${qtd.metaVezes} vezes';
@@ -433,6 +522,9 @@ class ListaHabitosTarefasWidgetState extends State<ListaHabitosTarefasWidget> {
   String _getCycleText(TarefaHabitoModel item) {
     if (item.tarefasHabitosQtd.isEmpty) return '';
     final qtd = item.tarefasHabitosQtd.first;
+    if (qtd.valor < 0) {
+      return 'Meta de abstinência: ${qtd.metaVezes} dias';
+    }
     final tipo = qtd.reiniciaEmTipo;
     final vezes = qtd.reiniciaEmQtd;
     if (vezes <= 1) {
@@ -463,15 +555,23 @@ class ListaHabitosTarefasWidgetState extends State<ListaHabitosTarefasWidget> {
     return FutureBuilder(
       future: TarefasHabitosController.tarefasHabitosFuture,
       builder: (context, snapshot) {
-        if (snapshot.hasData &&
-            snapshot.connectionState == ConnectionState.done) {
-          return Observer(
-            builder: (context) {
-              final rawList = Core.tarefasHabitosController.tarefasHabitosList;
+        if (snapshot.connectionState == ConnectionState.waiting &&
+            Core.tarefasHabitosController.tarefasHabitosList.isEmpty) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        return Observer(
+          builder: (context) {
+            final rawList = Core.tarefasHabitosController.tarefasHabitosList;
 
               // Filter list based on onlyTipo parameter
               final list = rawList.where((item) {
                 if (widget.onlyTipo != null && item.tipo != widget.onlyTipo) {
+                  return false;
+                }
+                if (_verArquivados) {
+                  return item.arquivado;
+                }
+                if (item.arquivado) {
                   return false;
                 }
                 if (item.tipo == 'tarefa') {
@@ -489,11 +589,13 @@ class ListaHabitosTarefasWidgetState extends State<ListaHabitosTarefasWidget> {
                     Expanded(
                       child: Center(
                         child: Text(
-                          widget.onlyTipo == 'tarefa'
-                              ? 'Nenhuma tarefa pendente.'
-                              : widget.onlyTipo == 'habito'
-                              ? 'Nenhum hábito cadastrado.'
-                              : 'Nenhuma tarefa ou hábito cadastrado.',
+                          _verArquivados
+                              ? 'Nenhum item arquivado.'
+                              : (widget.onlyTipo == 'tarefa'
+                                  ? 'Nenhuma tarefa pendente.'
+                                  : widget.onlyTipo == 'habito'
+                                  ? 'Nenhum hábito cadastrado.'
+                                  : 'Nenhuma tarefa ou hábito cadastrado.'),
                           style: const TextStyle(
                             fontSize: 16,
                             color: Colors.grey,
@@ -531,6 +633,8 @@ class ListaHabitosTarefasWidgetState extends State<ListaHabitosTarefasWidget> {
                         itemBuilder: (itemContext, index) {
                           final item = list[index];
                           final qtd = item.tarefasHabitosQtd.firstOrNull;
+                          final bool isHabitoNegativo =
+                              item.tarefasHabitosQtd.any((q) => q.valor < 0);
                           final double progress = qtd != null
                               ? _calculateCycleProgress(qtd)
                               : 0.0;
@@ -538,12 +642,13 @@ class ListaHabitosTarefasWidgetState extends State<ListaHabitosTarefasWidget> {
                               .clamp(300, 3000)
                               .toInt();
 
-                          final bool metaBatida =
-                              item.tarefasHabitosQtd.isNotEmpty &&
-                              item.tarefasHabitosQtd.every(
-                                (el) => el.vezesPraticado >= el.metaVezes,
-                              );
-                          final bool showAnimation =
+                          final bool metaBatida = isHabitoNegativo
+                              ? (qtd != null && qtd.vezesPraticado >= qtd.metaVezes)
+                              : (item.tarefasHabitosQtd.isNotEmpty &&
+                                  item.tarefasHabitosQtd.every(
+                                    (el) => el.vezesPraticado >= el.metaVezes,
+                                  ));
+                          final bool showAnimation = !isHabitoNegativo &&
                               progress >= 0.25 &&
                               !metaBatida &&
                               item.tipo == 'habito';
@@ -561,10 +666,12 @@ class ListaHabitosTarefasWidgetState extends State<ListaHabitosTarefasWidget> {
                                     name: 'tarefas_habitos',
                                     builder: (observerContext) {
                                       final List<Widget> children = [];
-                                      final Color habitColor = Core
-                                          .tarefasHabitosController
-                                          .habitColor
-                                          .value;
+                                      final Color habitColor = isHabitoNegativo
+                                          ? Colors.deepOrange
+                                          : Core
+                                              .tarefasHabitosController
+                                              .habitColor
+                                              .value;
                                       final Color taskColor = Core
                                           .tarefasHabitosController
                                           .taskColor
@@ -593,25 +700,36 @@ class ListaHabitosTarefasWidgetState extends State<ListaHabitosTarefasWidget> {
                                                   ? el.metaVezes
                                                   : previousValue,
                                             );
-                                        final Color? liquidColor =
-                                            item.tarefasHabitosQtd.isNotEmpty
-                                            ? item
-                                                  .tarefasHabitosQtd[i]
-                                                  .categoriasTarefasHabitos
-                                                  ?.cor
-                                            : null;
+                                        final Color? liquidColor = isHabitoNegativo
+                                            ? (item
+                                                    .tarefasHabitosQtd[i]
+                                                    .categoriasTarefasHabitos
+                                                    ?.cor ??
+                                                Colors.deepOrange)
+                                            : item
+                                                .tarefasHabitosQtd[i]
+                                                .categoriasTarefasHabitos
+                                                ?.cor;
 
                                         // Para tarefas, não preencher com cor (manter progresso em 0.0)
                                         if (item.tipo == 'habito') {
+                                          final double liquidValue = isHabitoNegativo
+                                              ? (item
+                                                      .tarefasHabitosQtd[i]
+                                                      .vezesPraticado /
+                                                  (item.tarefasHabitosQtd[i].metaVezes > 0
+                                                      ? item.tarefasHabitosQtd[i].metaVezes
+                                                      : 1)).clamp(0.0, 1.0)
+                                              : (item
+                                                      .tarefasHabitosQtd[i]
+                                                      .vezesPraticado *
+                                                  1.05 /
+                                                  (greaterMeta > 0 ? greaterMeta : 1));
+
                                           children.add(
                                             Expanded(
                                               child: LiquidCustomProgressIndicator(
-                                                value:
-                                                    item
-                                                        .tarefasHabitosQtd[i]
-                                                        .vezesPraticado *
-                                                    1.05 /
-                                                    greaterMeta,
+                                                value: liquidValue,
                                                 backgroundColor:
                                                     indicatorBgColor,
                                                 valueColor: liquidColor != null
@@ -964,11 +1082,19 @@ class ListaHabitosTarefasWidgetState extends State<ListaHabitosTarefasWidget> {
                                                       padding: EdgeInsets.zero,
                                                       constraints:
                                                           const BoxConstraints(),
+                                                      tooltip: isHabitoNegativo
+                                                          ? 'Registrar recaída'
+                                                          : null,
                                                       onPressed: () {
                                                         if (item.tipo ==
                                                             'tarefa') {
                                                           _completeTask(
                                                             item.id,
+                                                          );
+                                                        } else if (isHabitoNegativo) {
+                                                          _showRelapseDialog(
+                                                            context,
+                                                            item,
                                                           );
                                                         } else {
                                                           Core.tarefasHabitosController
@@ -981,7 +1107,9 @@ class ListaHabitosTarefasWidgetState extends State<ListaHabitosTarefasWidget> {
                                                         item.tipo == 'tarefa'
                                                             ? Icons
                                                                   .check_circle_outline
-                                                            : Icons.add_circle,
+                                                            : isHabitoNegativo
+                                                                ? Icons.warning_amber_rounded
+                                                                : Icons.add_circle,
                                                         size: 32.0,
                                                         color:
                                                             item.tipo ==
@@ -1021,9 +1149,6 @@ class ListaHabitosTarefasWidgetState extends State<ListaHabitosTarefasWidget> {
               );
             },
           );
-        } else {
-          return const Center(child: CircularProgressIndicator());
-        }
       },
     );
   }

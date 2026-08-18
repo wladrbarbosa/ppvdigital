@@ -3,13 +3,11 @@ import 'dart:developer';
 
 import 'package:appwrite/appwrite.dart';
 import 'package:appwrite/models.dart';
-import 'package:drift/drift.dart' hide Column, Query;
 import 'package:flutter/material.dart' hide Row;
 import 'package:mobx/mobx.dart' as mobx;
 import 'package:ppvdigital/core.dart';
 import 'package:ppvdigital/models/categorias_tarefas_habitos_model.dart';
 import 'package:ppvdigital/models/historico_item_model.dart';
-import 'package:ppvdigital/models/local/app_database.dart';
 import 'package:ppvdigital/models/tarefas_habitos_model.dart';
 import 'package:ppvdigital/models/tarefas_habitos_qtd_model.dart';
 import 'package:ppvdigital/repositories/tarefa_habito_repository.dart';
@@ -36,27 +34,23 @@ extension TarefasHabitosTransformList on List<dynamic>? {
               rawCreatedAt,
             ).toLocal();
           }
-          DateTime beginning = DateTime(
+          final DateTime beginning = DateTime(
             parsedBeginning.year,
             parsedBeginning.month,
             parsedBeginning.day,
           );
           final String reiniciaEmTipo =
               (e2Map['reiniciaEmTipo'] as String?) ?? 'dias';
-          final int reiniciaEmQtd = (e2Map['reiniciaEmQtd'] as int?) ?? 1;
+          final int reiniciaEmQtd = (e2Map['reiniciaEmQtd'] as num?)?.toInt() ?? 1;
 
           if (tarefaHabitoHistoricoList != null &&
               tarefaHabitoHistoricoList.isNotEmpty) {
-            beginning = DateTime(
-              beginning.year,
-              beginning.month,
-              beginning.day,
-            );
-            final DateTime startPeriod = TarefaHabitoQtdModel.calculateStartPeriod(
-              createdAt: beginning,
-              reiniciaEmTipo: reiniciaEmTipo,
-              reiniciaEmQtd: reiniciaEmQtd,
-            );
+            final DateTime startPeriod =
+                TarefaHabitoQtdModel.calculateStartPeriod(
+                  createdAt: beginning,
+                  reiniciaEmTipo: reiniciaEmTipo,
+                  reiniciaEmQtd: reiniciaEmQtd,
+                );
 
             withPeriodFilter = tarefaHabitoHistoricoList.where((el) {
               final DateTime elDate = DateTime(
@@ -77,24 +71,46 @@ extension TarefasHabitosTransformList on List<dynamic>? {
 
           final Map<String, dynamic>? rawCategoryMap =
               e2Map['categoriasTarefasHabitos'] is Map
-              ? Map<String, dynamic>.from(
-                  e2Map['categoriasTarefasHabitos'] as Map,
-                )
-              : null;
+                  ? Map<String, dynamic>.from(
+                      e2Map['categoriasTarefasHabitos'] as Map,
+                    )
+                  : null;
+
+          final num valor = (e2Map['valor'] as num?) ?? 1.0;
+          num calculatedVezes = 0;
+          if (valor < 0) {
+            final DateTime now = DateTime.now();
+            final DateTime today = DateTime(now.year, now.month, now.day);
+            final DateTime lastDate;
+            if (tarefaHabitoHistoricoList != null &&
+                tarefaHabitoHistoricoList.isNotEmpty) {
+              final sortedHist = List<HistoricoItemModel>.from(
+                tarefaHabitoHistoricoList,
+              )..sort((a, b) => a.createdAt.compareTo(b.createdAt));
+              lastDate = sortedHist.last.createdAt.toLocal();
+            } else {
+              lastDate = beginning;
+            }
+            final DateTime lastDay =
+                DateTime(lastDate.year, lastDate.month, lastDate.day);
+            calculatedVezes =
+                today.difference(lastDay).inDays.clamp(0, 999999);
+          } else {
+            calculatedVezes =
+                withPeriodFilter.length * valor;
+          }
 
           return TarefaHabitoQtdModel(
             id: (e2Map[r'$id'] ?? e2Map['id'] ?? '') as String,
             usuario: (e2Map['usuario'] as String?) ?? '',
-            metaVezes: (e2Map['metaVezes'] as int?) ?? 1,
+            metaVezes: (e2Map['metaVezes'] as num?)?.toInt() ?? 1,
             categoriasTarefasHabitos:
-                TarefasHabitosTransformDocumentList.toCategoriasTarefasHabitosModelList(
-                  rawCategoryMap,
-                ),
-            valor: (e2Map['valor'] as num?) ?? 1.0,
+                TarefasHabitosTransformDocumentList
+                    .toCategoriasTarefasHabitosModelList(rawCategoryMap),
+            valor: valor,
             reiniciaEmQtd: reiniciaEmQtd,
             reiniciaEmTipo: reiniciaEmTipo,
-            vezesPraticado:
-                withPeriodFilter.length * ((e2Map['valor'] as num?) ?? 1.0),
+            vezesPraticado: calculatedVezes,
             createdAt: beginning,
           );
         }).toList() ??
@@ -130,6 +146,7 @@ extension TarefasHabitosTransformDocumentList on List<Row> {
             (e1.data['agendamento'] as String?) ?? '',
           ),
           concluida: (e1.data['concluida'] as bool?) ?? false,
+          arquivado: (e1.data['arquivado'] as bool?) ?? false,
           tarefasHabitosQtd: (e1.data['tarefasHabitosQtds'] as List<dynamic>?)
               .toTarefaHabitoQtdModelList(tarefaHabitoQtdList),
           duration: e1.data['duration'] is num
@@ -148,29 +165,90 @@ extension TarefasHabitosTransformDocumentList on List<Row> {
     return map != null
         ? CategoriasTarefasHabitosModel(
             id: (map[r'$id'] ?? map['id'] ?? '') as String,
-            usuario: (map['usuario'] as String?) ?? '',
-            nome: (map['nome'] as String?) ?? '',
-            cor: HexColor.fromHex((map['cor'] as String?) ?? '#000000'),
-            pai: map['pai'] as String?,
+            nome: (map['nome'] ?? '') as String,
+            cor: HexColor.fromHex((map['cor'] ?? '#ffffff') as String),
+            usuario: (map['usuario'] ?? '') as String,
           )
         : null;
   }
 }
 
 class TarefasHabitosController {
-  // Constructor
-  TarefasHabitosController(this.repository) {
-    loadConfiguredColors();
-  }
+  TarefasHabitosController(this.repository);
+
   final TarefaHabitoRepository repository;
 
-  static String? tarefasHabitosQtdCollectionId;
-  static Future<void>? tarefasHabitosFuture;
+  static String tarefasHabitosQtdCollectionId = '';
+
+  static Future<dynamic>? tarefasHabitosFuture;
+
+  final mobx.Observable<Color> _habitColor = mobx.Observable<Color>(
+    Colors.deepPurpleAccent,
+    name: 'habitColor',
+  );
+  mobx.Observable<Color> get habitColor => _habitColor;
+
+  final mobx.Observable<Color> _taskColor = mobx.Observable<Color>(
+    Colors.teal,
+    name: 'taskColor',
+  );
+  mobx.Observable<Color> get taskColor => _taskColor;
+
+  static const String _habitColorKey = 'habit_custom_color';
+  static const String _taskColorKey = 'task_custom_color';
+
+  Future<void> loadCustomColors() async {
+    try {
+      final habitColorStr = await Core.database.getSetting(_habitColorKey);
+      if (habitColorStr != null) {
+        final val = int.tryParse(habitColorStr);
+        if (val != null) {
+          mobx.runInAction(() {
+            _habitColor.value = Color(val);
+          });
+        }
+      }
+
+      final taskColorStr = await Core.database.getSetting(_taskColorKey);
+      if (taskColorStr != null) {
+        final val = int.tryParse(taskColorStr);
+        if (val != null) {
+          mobx.runInAction(() {
+            _taskColor.value = Color(val);
+          });
+        }
+      }
+    } catch (e) {
+      log('Could not load configured colors: $e');
+    }
+  }
+
+  Future<void> setHabitColor(Color color) async {
+    mobx.runInAction(() {
+      _habitColor.value = color;
+    });
+    try {
+      await Core.database.setSetting(_habitColorKey, color.toARGB32().toString());
+    } catch (e) {
+      log('Could not save habit color: $e');
+    }
+  }
+
+  Future<void> setTaskColor(Color color) async {
+    mobx.runInAction(() {
+      _taskColor.value = color;
+    });
+    try {
+      await Core.database.setSetting(_taskColorKey, color.toARGB32().toString());
+    } catch (e) {
+      log('Could not save task color: $e');
+    }
+  }
 
   final mobx.ObservableList<TarefaHabitoModel> _tarefasHabitosList =
-      mobx.ObservableList<TarefaHabitoModel>(name: 'tarefasHabitosList');
-  List<TarefaHabitoModel> get tarefasHabitosList =>
-      _tarefasHabitosList.toList();
+      mobx.ObservableList<TarefaHabitoModel>();
+
+  List<TarefaHabitoModel> get tarefasHabitosList => _tarefasHabitosList;
 
   final mobx.Observable<bool> _isSyncing = mobx.Observable<bool>(
     false,
@@ -178,144 +256,93 @@ class TarefasHabitosController {
   );
   bool get isSyncing => _isSyncing.value;
 
-  final mobx.Observable<Color> habitColor = mobx.Observable<Color>(
-    Colors.tealAccent,
-    name: 'habitColor',
-  );
-  final mobx.Observable<Color> taskColor = mobx.Observable<Color>(
-    Colors.blueAccent,
-    name: 'taskColor',
-  );
+  DateTime? _lastSyncTime;
+  StreamSubscription<List<TarefaHabitoModel>>? _tarefasHabitosSub;
 
-  Future<void> loadConfiguredColors() async {
-    try {
-      final habitSetting = await (Core.database.select(
-        Core.database.appSettings,
-      )..where((t) => t.key.equals('pref_habit_color'))).getSingleOrNull();
-      final taskSetting = await (Core.database.select(
-        Core.database.appSettings,
-      )..where((t) => t.key.equals('pref_task_color'))).getSingleOrNull();
+  Future<List<TarefaHabitoModel>> loadDocuments({bool forceSync = false}) async {
+    final now = DateTime.now();
+    final String user = Core.loginController.currentUser?.$id ?? '';
 
+    _setupReactiveStreams(user);
+
+    final localFuture = repository.getTarefasEHabitos(
+      usuarioId: user,
+      forceLocal: true,
+    );
+
+    tarefasHabitosFuture = localFuture;
+
+    final localData = await localFuture;
+    if (_tarefasHabitosList.isEmpty && localData.isNotEmpty) {
       mobx.runInAction(() {
-        if (habitSetting != null) {
-          habitColor.value = Color(int.parse(habitSetting.value, radix: 16));
-        }
-        if (taskSetting != null) {
-          taskColor.value = Color(int.parse(taskSetting.value, radix: 16));
-        }
+        _tarefasHabitosList.clear();
+        _tarefasHabitosList.addAll(localData);
       });
-    } catch (e) {
-      debugPrint('Could not load configured colors: $e');
     }
+
+    if (!forceSync &&
+        _lastSyncTime != null &&
+        now.difference(_lastSyncTime!) < const Duration(minutes: 3)) {
+      return localData;
+    }
+
+    unawaited(_syncRemoteDataInBackground(user));
+    return localData;
   }
 
-  Future<void> setHabitColor(Color color) async {
-    mobx.runInAction(() {
-      habitColor.value = color;
-    });
-    try {
-      final value = color.toARGB32().toRadixString(16);
-      await Core.database
-          .into(Core.database.appSettings)
-          .insert(
-            AppSettingsCompanion.insert(key: 'pref_habit_color', value: value),
-            mode: InsertMode.insertOrReplace,
-          );
-    } catch (e) {
-      log('Error saving habit color: $e');
-    }
-  }
-
-  Future<void> setTaskColor(Color color) async {
-    mobx.runInAction(() {
-      taskColor.value = color;
-    });
-    try {
-      final value = color.toARGB32().toRadixString(16);
-      await Core.database
-          .into(Core.database.appSettings)
-          .insert(
-            AppSettingsCompanion.insert(key: 'pref_task_color', value: value),
-            mode: InsertMode.insertOrReplace,
-          );
-    } catch (e) {
-      log('Error saving task color: $e');
-    }
-  }
-
-  StreamSubscription? _tarefasHabitosSub;
-
-  Future<bool> loadDocuments({bool forceSync = false}) async {
-    return await mobx.runInAction(() async {
-      try {
-        if (Core.loginController.currentUser == null) {
-          await Core.loginController.loadUser();
-        }
-        final String userId = Core.loginController.currentUser?.$id ?? '';
-        if (userId.isNotEmpty) {
-          Core.realtimeService.startSubscription(userId: userId);
-        }
-
-        // 1. Subscribe to Drift streams reactively
-        _tarefasHabitosSub?.cancel();
+  void _setupReactiveStreams(String userId) {
+    if (_tarefasHabitosSub == null) {
+      if (userId.isNotEmpty) {
         final stream = repository.watchTarefasEHabitos(usuarioId: userId);
-        try {
-          final firstData = await stream.first;
-          mobx.runInAction(() {
-            _tarefasHabitosList.clear();
-            _tarefasHabitosList.addAll(firstData);
-          });
-        } catch (_) {}
         _tarefasHabitosSub = stream.listen((data) {
           mobx.runInAction(() {
             _tarefasHabitosList.clear();
             _tarefasHabitosList.addAll(data);
           });
         });
-
-        // 2. Start remote sync in background (non-blocking)
-        _syncRemoteDataInBackground(userId, forceSync: forceSync);
-
-        return true;
-      } on Exception catch (e) {
-        log(e.toString());
-        return false;
       }
-    }, name: 'loadDocuments');
+    }
   }
 
-  DateTime? _lastSyncTime;
-
-  Future<void> _syncRemoteDataInBackground(
-    String userId, {
-    bool forceSync = false,
-  }) async {
-    final now = DateTime.now();
-    if (!forceSync &&
-        _lastSyncTime != null &&
-        now.difference(_lastSyncTime!) < const Duration(minutes: 3)) {
-      return;
-    }
+  Future<void> _syncRemoteDataInBackground(String user) async {
+    mobx.runInAction(() {
+      _isSyncing.value = true;
+    });
     try {
-      mobx.runInAction(() {
-        _isSyncing.value = true;
-      });
-      final String? lastSyncStr = await Core.database.getSetting('last_tarefas_habitos_sync_time');
-      final DateTime? lastSyncedAt = lastSyncStr != null ? DateTime.tryParse(lastSyncStr) : null;
+      final String? lastTarefasSyncStr = await Core.database.getSetting(
+        'last_tarefas_habitos_sync_time',
+      );
+      final DateTime? lastTarefasSyncedAt = lastTarefasSyncStr != null
+          ? DateTime.tryParse(lastTarefasSyncStr)
+          : null;
+
+      final String? lastHistoricoSyncStr = await Core.database.getSetting(
+        'last_historico_sync_time',
+      );
+      final DateTime? lastHistoricoSyncedAt = lastHistoricoSyncStr != null
+          ? DateTime.tryParse(lastHistoricoSyncStr)
+          : null;
 
       await repository.getTarefasEHabitos(
-        usuarioId: userId,
-        lastSyncedAt: lastSyncedAt,
+        usuarioId: user,
+        lastSyncedAt: lastTarefasSyncedAt,
       );
       await repository.getHistorico(
-        usuarioId: userId,
-        lastSyncedAt: lastSyncedAt,
+        usuarioId: user,
+        lastSyncedAt: lastHistoricoSyncedAt,
       );
-
+      final now = DateTime.now();
       _lastSyncTime = now;
-      await Core.database.setSetting('last_tarefas_habitos_sync_time', now.toIso8601String());
+      await Core.database.setSetting(
+        'last_tarefas_habitos_sync_time',
+        now.toIso8601String(),
+      );
+      await Core.database.setSetting(
+        'last_historico_sync_time',
+        now.toIso8601String(),
+      );
     } catch (e) {
-      log('Background sync of habits failed: $e');
+      log('Background sync failed for Tarefas/Habitos: $e');
     } finally {
       mobx.runInAction(() {
         _isSyncing.value = false;
@@ -327,16 +354,14 @@ class TarefasHabitosController {
     _tarefasHabitosSub?.cancel();
     _tarefasHabitosSub = null;
     _lastSyncTime = null;
-    tarefasHabitosFuture = null;
-    tarefasHabitosQtdCollectionId = null;
     mobx.runInAction(() {
-      _isSyncing.value = false;
       _tarefasHabitosList.clear();
+      _isSyncing.value = false;
     });
+    tarefasHabitosFuture = null;
   }
 
-  Future<void> incrementQtdHabito(String documentId) async {
-    log('Começo');
+  Future<void> addQtdHabito(String documentId) async {
     try {
       mobx.runInAction(() {
         final List<TarefaHabitoModel> temp = List<TarefaHabitoModel>.from(
@@ -346,7 +371,11 @@ class TarefasHabitosController {
           (el) => el.id == documentId,
         );
         for (final element in found.tarefasHabitosQtd) {
-          element.vezesPraticado += element.valor;
+          if (element.valor < 0) {
+            element.vezesPraticado = 0;
+          } else {
+            element.vezesPraticado += element.valor;
+          }
         }
         _tarefasHabitosList.setAll(0, temp);
 
@@ -360,6 +389,8 @@ class TarefasHabitosController {
     }
   }
 
+  Future<void> incrementQtdHabito(String documentId) => addQtdHabito(documentId);
+
   Future<void> completeTarefa(String documentId) async {
     try {
       mobx.runInAction(() {
@@ -370,7 +401,11 @@ class TarefasHabitosController {
         if (index != -1) {
           final found = temp[index];
           for (final element in found.tarefasHabitosQtd) {
-            element.vezesPraticado += element.valor;
+            if (element.valor < 0) {
+              element.vezesPraticado = 0;
+            } else {
+              element.vezesPraticado += element.valor;
+            }
           }
           final bool isHabit = found.tipo == 'habito';
           temp[index] = found.copyWith(concluida: !isHabit);
@@ -395,6 +430,7 @@ class TarefasHabitosController {
     required List<Map<String, dynamic>> metas,
     DateTime? agendamento,
     int? duration,
+    bool arquivado = false,
   }) async {
     try {
       if (Core.loginController.currentUser == null) {
@@ -405,11 +441,15 @@ class TarefasHabitosController {
       final List<Map<String, dynamic>> metaDataList = metas
           .map(
             (meta) => {
+              if (meta['id'] != null) 'id': meta['id'] as String?,
+              if (meta['createdAt'] != null) 'createdAt': meta['createdAt'],
               'metaVezes': meta['metaVezes'] as int,
               'categoriaId': meta['categoriaId'] as String?,
               'valor': meta['valor'] as num,
               'reiniciaEmQtd': meta['reiniciaEmQtd'] as int,
               'reiniciaEmTipo': meta['reiniciaEmTipo'] as String,
+              if (meta['vezesPraticado'] != null)
+                'vezesPraticado': meta['vezesPraticado'] as num?,
             },
           )
           .toList();
@@ -420,6 +460,7 @@ class TarefasHabitosController {
         metas: metaDataList,
         agendamento: agendamento,
         duration: duration,
+        arquivado: arquivado,
         usuarioId: user,
       );
 
@@ -439,6 +480,7 @@ class TarefasHabitosController {
     required List<String> allExistingQtdRowIds,
     DateTime? agendamento,
     int? duration,
+    bool? arquivado,
   }) async {
     try {
       if (Core.loginController.currentUser == null) {
@@ -450,11 +492,14 @@ class TarefasHabitosController {
           .map(
             (meta) => {
               'id': meta['id'] as String?,
+              if (meta['createdAt'] != null) 'createdAt': meta['createdAt'],
               'metaVezes': meta['metaVezes'] as int,
               'categoriaId': meta['categoriaId'] as String?,
               'valor': meta['valor'] as num,
               'reiniciaEmQtd': meta['reiniciaEmQtd'] as int,
               'reiniciaEmTipo': meta['reiniciaEmTipo'] as String,
+              if (meta['vezesPraticado'] != null)
+                'vezesPraticado': meta['vezesPraticado'] as num?,
             },
           )
           .toList();
@@ -467,6 +512,7 @@ class TarefasHabitosController {
         allExistingQtdRowIds: allExistingQtdRowIds,
         agendamento: agendamento,
         duration: duration,
+        arquivado: arquivado,
         usuarioId: user,
       );
 

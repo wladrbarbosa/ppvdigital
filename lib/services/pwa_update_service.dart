@@ -1,4 +1,5 @@
 import 'dart:convert';
+
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:ppvdigital/services/pwa_update_stub.dart'
@@ -32,7 +33,7 @@ class PwaUpdateService {
         final String serverVersion =
             '${data['version']}+${data['build_number']}';
 
-        // Strip leading non-numeric characters (e.g. 'b0.26.0+1' -> '0.26.0+1')
+        // Strip leading non-numeric characters (e.g. 'b0.27.0+1' -> '0.27.0+1')
         final String cleanCurrentVersion = currentVersion
             .replaceAll(RegExp(r'^[^\d]+'), '')
             .trim();

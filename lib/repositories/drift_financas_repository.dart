@@ -532,7 +532,22 @@ class DriftFinancasRepository implements FinancasRepository {
     bool forceLocal = false,
     DateTime? lastSyncedAt,
   }) async {
-    final localContas = await database.select(database.contas).get();
+    final localContas = await (database.select(database.contas)
+          ..where((c) => c.userId.equals(usuarioId)))
+        .get();
+    final userContaIds = localContas.map((c) => c.remoteId).toSet();
+
+    final List<String> effectiveContaIds = (contaIds.isNotEmpty)
+        ? (userContaIds.isNotEmpty
+            ? contaIds.where((id) => userContaIds.contains(id)).toList()
+            : contaIds)
+        : userContaIds.toList();
+
+    // If explicit contaIds were requested by caller, but none belong to the user, return empty
+    if (contaIds.isNotEmpty && userContaIds.isNotEmpty && effectiveContaIds.isEmpty) {
+      return [];
+    }
+
     final localContatos = await database.select(database.contatos).get();
     final localCategorias = await database
         .select(database.categoriaTransacoes)
@@ -549,6 +564,13 @@ class DriftFinancasRepository implements FinancasRepository {
     };
 
     final localQuery = database.select(database.transacaos);
+    if (effectiveContaIds.isNotEmpty) {
+      localQuery.where(
+        (t) =>
+            t.contaId.isIn(effectiveContaIds) |
+            t.contaDestinoId.isIn(effectiveContaIds),
+      );
+    }
 
     if (targetMonth != null) {
       final firstDayOfMonth = DateTime(targetMonth.year, targetMonth.month);
@@ -590,7 +612,7 @@ class DriftFinancasRepository implements FinancasRepository {
     try {
       final remote = await remoteRepository.getTransacoes(
         usuarioId: usuarioId,
-        contaIds: contaIds,
+        contaIds: effectiveContaIds,
         targetMonth: targetMonth,
         beforeDate: beforeDate,
         lastSyncedAt: lastSyncedAt,
@@ -600,6 +622,13 @@ class DriftFinancasRepository implements FinancasRepository {
         await database.transaction(() async {
           if (lastSyncedAt == null) {
             final deleteQuery = database.delete(database.transacaos);
+            if (effectiveContaIds.isNotEmpty) {
+              deleteQuery.where(
+                (t) =>
+                    t.contaId.isIn(effectiveContaIds) |
+                    t.contaDestinoId.isIn(effectiveContaIds),
+              );
+            }
             if (targetMonth != null) {
               final firstDayOfMonth = DateTime(
                 targetMonth.year,
@@ -632,10 +661,10 @@ class DriftFinancasRepository implements FinancasRepository {
         });
       }
 
-      if (lastSyncedAt != null && targetMonth != null && contaIds.isNotEmpty) {
+      if (lastSyncedAt != null && targetMonth != null) {
         final activeRemote = await remoteRepository.getTransacoes(
           usuarioId: usuarioId,
-          contaIds: contaIds,
+          contaIds: effectiveContaIds,
           targetMonth: targetMonth,
         );
         final activeIds = activeRemote.map((t) => t.id).toSet();
@@ -647,16 +676,23 @@ class DriftFinancasRepository implements FinancasRepository {
           targetMonth.month + 1,
         ).subtract(const Duration(milliseconds: 1));
 
-        final scopeQuery = database.select(database.transacaos)
-          ..where(
+        final scopeQuery = database.select(database.transacaos);
+        if (effectiveContaIds.isNotEmpty) {
+          scopeQuery.where(
             (t) =>
-                t.dataCompetencia.isBiggerThanValue(
-                  firstDayOfMonth.subtract(const Duration(seconds: 1)),
-                ) &
-                t.dataCompetencia.isSmallerThanValue(
-                  lastDayOfMonth.add(const Duration(seconds: 1)),
-                ),
+                t.contaId.isIn(effectiveContaIds) |
+                t.contaDestinoId.isIn(effectiveContaIds),
           );
+        }
+        scopeQuery.where(
+          (t) =>
+              t.dataCompetencia.isBiggerThanValue(
+                firstDayOfMonth.subtract(const Duration(seconds: 1)),
+              ) &
+              t.dataCompetencia.isSmallerThanValue(
+                lastDayOfMonth.add(const Duration(seconds: 1)),
+              ),
+        );
 
         final localRowsInMonth = await scopeQuery.get();
         for (final row in localRowsInMonth) {
@@ -964,7 +1000,28 @@ class DriftFinancasRepository implements FinancasRepository {
         for (final c in localCategorias) c.remoteId: toCategoriaDomain(c),
       };
 
+      // Determine valid accounts for the current user
+      final userContas = localContas.where((c) => c.userId == usuarioId);
+      final userContaIds = userContas.map((c) => c.remoteId).toSet();
+
+      final Set<String> validContaIds = (contaIds.isNotEmpty)
+          ? (userContaIds.isNotEmpty
+              ? contaIds.where((id) => userContaIds.contains(id)).toSet()
+              : contaIds.toSet())
+          : userContaIds;
+
       Iterable<Transacao> filtered = localTrans;
+      if (validContaIds.isNotEmpty) {
+        filtered = filtered.where(
+          (t) =>
+              (t.contaId != null && validContaIds.contains(t.contaId)) ||
+              (t.contaDestinoId != null &&
+                  validContaIds.contains(t.contaDestinoId)),
+        );
+      } else if (contaIds.isNotEmpty && userContaIds.isNotEmpty) {
+        filtered = [];
+      }
+
       if (targetMonth != null) {
         final firstDayOfMonth = DateTime(targetMonth.year, targetMonth.month);
         final lastDayOfMonth = DateTime(
@@ -972,7 +1029,7 @@ class DriftFinancasRepository implements FinancasRepository {
           targetMonth.month + 1,
         ).subtract(const Duration(milliseconds: 1));
 
-        filtered = localTrans.where(
+        filtered = filtered.where(
           (t) =>
               t.dataCompetencia.isAfter(
                 firstDayOfMonth.subtract(const Duration(seconds: 1)),
@@ -1349,16 +1406,34 @@ class DriftFinancasRepository implements FinancasRepository {
       } else if (action == 'create' || action == 'update') {
         if (tableId == Core.tableTransacoes) {
           final model = TransacaoModel.fromMap(payload);
-          await _upsertTransacao(model);
+          final localContas = await database.select(database.contas).get();
+          final userContaIds = localContas.map((c) => c.remoteId).toSet();
+          final bool isUserTx = userContaIds.isEmpty ||
+              (model.conta != null &&
+                  userContaIds.contains(model.conta!.id)) ||
+              (model.contaDestino != null &&
+                  userContaIds.contains(model.contaDestino!.id));
+          if (isUserTx) {
+            await _upsertTransacao(model);
+          }
         } else if (tableId == Core.tableContas) {
           final model = ContaModel.fromMap(payload);
-          await _upsertConta(model);
+          final currentUserId = Core.loginController.userid;
+          if (currentUserId == null || model.userId == currentUserId) {
+            await _upsertConta(model);
+          }
         } else if (tableId == Core.tableCategoriasTransacoes) {
           final model = CategoriaTransacaoModel.fromMap(payload);
-          await _upsertCategoria(model);
+          final currentUserId = Core.loginController.userid;
+          if (currentUserId == null || model.userId == currentUserId) {
+            await _upsertCategoria(model);
+          }
         } else if (tableId == Core.tableContatos) {
           final model = ContatoModel.fromMap(payload);
-          await _upsertContato(model);
+          final currentUserId = Core.loginController.userid;
+          if (currentUserId == null || model.ownerId == currentUserId) {
+            await _upsertContato(model);
+          }
         }
       }
     });

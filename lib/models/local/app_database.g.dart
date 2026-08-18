@@ -320,6 +320,21 @@ class $TarefaHabitosTable extends TarefaHabitos
       'CHECK ("concluida" IN (0, 1))',
     ),
   );
+  static const VerificationMeta _arquivadoMeta = const VerificationMeta(
+    'arquivado',
+  );
+  @override
+  late final GeneratedColumn<bool> arquivado = GeneratedColumn<bool>(
+    'arquivado',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("arquivado" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
   static const VerificationMeta _agendamentoMeta = const VerificationMeta(
     'agendamento',
   );
@@ -365,6 +380,7 @@ class $TarefaHabitosTable extends TarefaHabitos
     tipo,
     usuario,
     concluida,
+    arquivado,
     agendamento,
     duration,
     metas,
@@ -424,6 +440,12 @@ class $TarefaHabitosTable extends TarefaHabitos
     } else if (isInserting) {
       context.missing(_concluidaMeta);
     }
+    if (data.containsKey('arquivado')) {
+      context.handle(
+        _arquivadoMeta,
+        arquivado.isAcceptableOrUnknown(data['arquivado']!, _arquivadoMeta),
+      );
+    }
     if (data.containsKey('agendamento')) {
       context.handle(
         _agendamentoMeta,
@@ -472,6 +494,10 @@ class $TarefaHabitosTable extends TarefaHabitos
         DriftSqlType.bool,
         data['${effectivePrefix}concluida'],
       )!,
+      arquivado: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}arquivado'],
+      )!,
       agendamento: attachedDatabase.typeMapping.read(
         DriftSqlType.dateTime,
         data['${effectivePrefix}agendamento'],
@@ -505,6 +531,7 @@ class TarefaHabito extends DataClass implements Insertable<TarefaHabito> {
   final String tipo;
   final String usuario;
   final bool concluida;
+  final bool arquivado;
   final DateTime? agendamento;
   final int? duration;
   final List<TarefaHabitoQtdModel> metas;
@@ -515,6 +542,7 @@ class TarefaHabito extends DataClass implements Insertable<TarefaHabito> {
     required this.tipo,
     required this.usuario,
     required this.concluida,
+    required this.arquivado,
     this.agendamento,
     this.duration,
     required this.metas,
@@ -528,6 +556,7 @@ class TarefaHabito extends DataClass implements Insertable<TarefaHabito> {
     map['tipo'] = Variable<String>(tipo);
     map['usuario'] = Variable<String>(usuario);
     map['concluida'] = Variable<bool>(concluida);
+    map['arquivado'] = Variable<bool>(arquivado);
     if (!nullToAbsent || agendamento != null) {
       map['agendamento'] = Variable<DateTime>(agendamento);
     }
@@ -550,6 +579,7 @@ class TarefaHabito extends DataClass implements Insertable<TarefaHabito> {
       tipo: Value(tipo),
       usuario: Value(usuario),
       concluida: Value(concluida),
+      arquivado: Value(arquivado),
       agendamento: agendamento == null && nullToAbsent
           ? const Value.absent()
           : Value(agendamento),
@@ -572,6 +602,7 @@ class TarefaHabito extends DataClass implements Insertable<TarefaHabito> {
       tipo: serializer.fromJson<String>(json['tipo']),
       usuario: serializer.fromJson<String>(json['usuario']),
       concluida: serializer.fromJson<bool>(json['concluida']),
+      arquivado: serializer.fromJson<bool>(json['arquivado']),
       agendamento: serializer.fromJson<DateTime?>(json['agendamento']),
       duration: serializer.fromJson<int?>(json['duration']),
       metas: serializer.fromJson<List<TarefaHabitoQtdModel>>(json['metas']),
@@ -587,6 +618,7 @@ class TarefaHabito extends DataClass implements Insertable<TarefaHabito> {
       'tipo': serializer.toJson<String>(tipo),
       'usuario': serializer.toJson<String>(usuario),
       'concluida': serializer.toJson<bool>(concluida),
+      'arquivado': serializer.toJson<bool>(arquivado),
       'agendamento': serializer.toJson<DateTime?>(agendamento),
       'duration': serializer.toJson<int?>(duration),
       'metas': serializer.toJson<List<TarefaHabitoQtdModel>>(metas),
@@ -600,6 +632,7 @@ class TarefaHabito extends DataClass implements Insertable<TarefaHabito> {
     String? tipo,
     String? usuario,
     bool? concluida,
+    bool? arquivado,
     Value<DateTime?> agendamento = const Value.absent(),
     Value<int?> duration = const Value.absent(),
     List<TarefaHabitoQtdModel>? metas,
@@ -610,6 +643,7 @@ class TarefaHabito extends DataClass implements Insertable<TarefaHabito> {
     tipo: tipo ?? this.tipo,
     usuario: usuario ?? this.usuario,
     concluida: concluida ?? this.concluida,
+    arquivado: arquivado ?? this.arquivado,
     agendamento: agendamento.present ? agendamento.value : this.agendamento,
     duration: duration.present ? duration.value : this.duration,
     metas: metas ?? this.metas,
@@ -622,6 +656,7 @@ class TarefaHabito extends DataClass implements Insertable<TarefaHabito> {
       tipo: data.tipo.present ? data.tipo.value : this.tipo,
       usuario: data.usuario.present ? data.usuario.value : this.usuario,
       concluida: data.concluida.present ? data.concluida.value : this.concluida,
+      arquivado: data.arquivado.present ? data.arquivado.value : this.arquivado,
       agendamento: data.agendamento.present
           ? data.agendamento.value
           : this.agendamento,
@@ -639,6 +674,7 @@ class TarefaHabito extends DataClass implements Insertable<TarefaHabito> {
           ..write('tipo: $tipo, ')
           ..write('usuario: $usuario, ')
           ..write('concluida: $concluida, ')
+          ..write('arquivado: $arquivado, ')
           ..write('agendamento: $agendamento, ')
           ..write('duration: $duration, ')
           ..write('metas: $metas')
@@ -654,6 +690,7 @@ class TarefaHabito extends DataClass implements Insertable<TarefaHabito> {
     tipo,
     usuario,
     concluida,
+    arquivado,
     agendamento,
     duration,
     metas,
@@ -668,6 +705,7 @@ class TarefaHabito extends DataClass implements Insertable<TarefaHabito> {
           other.tipo == this.tipo &&
           other.usuario == this.usuario &&
           other.concluida == this.concluida &&
+          other.arquivado == this.arquivado &&
           other.agendamento == this.agendamento &&
           other.duration == this.duration &&
           other.metas == this.metas);
@@ -680,6 +718,7 @@ class TarefaHabitosCompanion extends UpdateCompanion<TarefaHabito> {
   final Value<String> tipo;
   final Value<String> usuario;
   final Value<bool> concluida;
+  final Value<bool> arquivado;
   final Value<DateTime?> agendamento;
   final Value<int?> duration;
   final Value<List<TarefaHabitoQtdModel>> metas;
@@ -690,6 +729,7 @@ class TarefaHabitosCompanion extends UpdateCompanion<TarefaHabito> {
     this.tipo = const Value.absent(),
     this.usuario = const Value.absent(),
     this.concluida = const Value.absent(),
+    this.arquivado = const Value.absent(),
     this.agendamento = const Value.absent(),
     this.duration = const Value.absent(),
     this.metas = const Value.absent(),
@@ -701,6 +741,7 @@ class TarefaHabitosCompanion extends UpdateCompanion<TarefaHabito> {
     required String tipo,
     required String usuario,
     required bool concluida,
+    this.arquivado = const Value.absent(),
     this.agendamento = const Value.absent(),
     this.duration = const Value.absent(),
     required List<TarefaHabitoQtdModel> metas,
@@ -717,6 +758,7 @@ class TarefaHabitosCompanion extends UpdateCompanion<TarefaHabito> {
     Expression<String>? tipo,
     Expression<String>? usuario,
     Expression<bool>? concluida,
+    Expression<bool>? arquivado,
     Expression<DateTime>? agendamento,
     Expression<int>? duration,
     Expression<String>? metas,
@@ -728,6 +770,7 @@ class TarefaHabitosCompanion extends UpdateCompanion<TarefaHabito> {
       if (tipo != null) 'tipo': tipo,
       if (usuario != null) 'usuario': usuario,
       if (concluida != null) 'concluida': concluida,
+      if (arquivado != null) 'arquivado': arquivado,
       if (agendamento != null) 'agendamento': agendamento,
       if (duration != null) 'duration': duration,
       if (metas != null) 'metas': metas,
@@ -741,6 +784,7 @@ class TarefaHabitosCompanion extends UpdateCompanion<TarefaHabito> {
     Value<String>? tipo,
     Value<String>? usuario,
     Value<bool>? concluida,
+    Value<bool>? arquivado,
     Value<DateTime?>? agendamento,
     Value<int?>? duration,
     Value<List<TarefaHabitoQtdModel>>? metas,
@@ -752,6 +796,7 @@ class TarefaHabitosCompanion extends UpdateCompanion<TarefaHabito> {
       tipo: tipo ?? this.tipo,
       usuario: usuario ?? this.usuario,
       concluida: concluida ?? this.concluida,
+      arquivado: arquivado ?? this.arquivado,
       agendamento: agendamento ?? this.agendamento,
       duration: duration ?? this.duration,
       metas: metas ?? this.metas,
@@ -779,6 +824,9 @@ class TarefaHabitosCompanion extends UpdateCompanion<TarefaHabito> {
     if (concluida.present) {
       map['concluida'] = Variable<bool>(concluida.value);
     }
+    if (arquivado.present) {
+      map['arquivado'] = Variable<bool>(arquivado.value);
+    }
     if (agendamento.present) {
       map['agendamento'] = Variable<DateTime>(agendamento.value);
     }
@@ -802,6 +850,7 @@ class TarefaHabitosCompanion extends UpdateCompanion<TarefaHabito> {
           ..write('tipo: $tipo, ')
           ..write('usuario: $usuario, ')
           ..write('concluida: $concluida, ')
+          ..write('arquivado: $arquivado, ')
           ..write('agendamento: $agendamento, ')
           ..write('duration: $duration, ')
           ..write('metas: $metas')
@@ -3351,18 +3400,16 @@ class $$AppSettingsTableTableManager
               $$AppSettingsTableOrderingComposer($db: db, $table: table),
           createComputedFieldComposer: () =>
               $$AppSettingsTableAnnotationComposer($db: db, $table: table),
-          updateCompanionCallback:
-              ({
-                Value<int> id = const Value.absent(),
-                Value<String> key = const Value.absent(),
-                Value<String> value = const Value.absent(),
-              }) => AppSettingsCompanion(id: id, key: key, value: value),
-          createCompanionCallback:
-              ({
-                Value<int> id = const Value.absent(),
-                required String key,
-                required String value,
-              }) => AppSettingsCompanion.insert(id: id, key: key, value: value),
+          updateCompanionCallback: ({
+            Value<int> id = const Value.absent(),
+            Value<String> key = const Value.absent(),
+            Value<String> value = const Value.absent(),
+          }) => AppSettingsCompanion(id: id, key: key, value: value),
+          createCompanionCallback: ({
+            Value<int> id = const Value.absent(),
+            required String key,
+            required String value,
+          }) => AppSettingsCompanion.insert(id: id, key: key, value: value),
           withReferenceMapper: (p0) => p0
               .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
               .toList(),
@@ -3396,6 +3443,7 @@ typedef $$TarefaHabitosTableCreateCompanionBuilder =
       required String tipo,
       required String usuario,
       required bool concluida,
+      Value<bool> arquivado,
       Value<DateTime?> agendamento,
       Value<int?> duration,
       required List<TarefaHabitoQtdModel> metas,
@@ -3408,6 +3456,7 @@ typedef $$TarefaHabitosTableUpdateCompanionBuilder =
       Value<String> tipo,
       Value<String> usuario,
       Value<bool> concluida,
+      Value<bool> arquivado,
       Value<DateTime?> agendamento,
       Value<int?> duration,
       Value<List<TarefaHabitoQtdModel>> metas,
@@ -3449,6 +3498,11 @@ class $$TarefaHabitosTableFilterComposer
 
   ColumnFilters<bool> get concluida => $composableBuilder(
     column: $table.concluida,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get arquivado => $composableBuilder(
+    column: $table.arquivado,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -3512,6 +3566,11 @@ class $$TarefaHabitosTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<bool> get arquivado => $composableBuilder(
+    column: $table.arquivado,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<DateTime> get agendamento => $composableBuilder(
     column: $table.agendamento,
     builder: (column) => ColumnOrderings(column),
@@ -3554,6 +3613,9 @@ class $$TarefaHabitosTableAnnotationComposer
 
   GeneratedColumn<bool> get concluida =>
       $composableBuilder(column: $table.concluida, builder: (column) => column);
+
+  GeneratedColumn<bool> get arquivado =>
+      $composableBuilder(column: $table.arquivado, builder: (column) => column);
 
   GeneratedColumn<DateTime> get agendamento => $composableBuilder(
     column: $table.agendamento,
@@ -3605,6 +3667,7 @@ class $$TarefaHabitosTableTableManager
                 Value<String> tipo = const Value.absent(),
                 Value<String> usuario = const Value.absent(),
                 Value<bool> concluida = const Value.absent(),
+                Value<bool> arquivado = const Value.absent(),
                 Value<DateTime?> agendamento = const Value.absent(),
                 Value<int?> duration = const Value.absent(),
                 Value<List<TarefaHabitoQtdModel>> metas = const Value.absent(),
@@ -3615,6 +3678,7 @@ class $$TarefaHabitosTableTableManager
                 tipo: tipo,
                 usuario: usuario,
                 concluida: concluida,
+                arquivado: arquivado,
                 agendamento: agendamento,
                 duration: duration,
                 metas: metas,
@@ -3627,6 +3691,7 @@ class $$TarefaHabitosTableTableManager
                 required String tipo,
                 required String usuario,
                 required bool concluida,
+                Value<bool> arquivado = const Value.absent(),
                 Value<DateTime?> agendamento = const Value.absent(),
                 Value<int?> duration = const Value.absent(),
                 required List<TarefaHabitoQtdModel> metas,
@@ -3637,6 +3702,7 @@ class $$TarefaHabitosTableTableManager
                 tipo: tipo,
                 usuario: usuario,
                 concluida: concluida,
+                arquivado: arquivado,
                 agendamento: agendamento,
                 duration: duration,
                 metas: metas,
@@ -3881,22 +3947,20 @@ typedef $$HistoricoTarefasHabitosTableProcessedTableManager =
       HistoricoTarefasHabito,
       PrefetchHooks Function()
     >;
-typedef $$ContasTableCreateCompanionBuilder =
-    ContasCompanion Function({
-      Value<int> id,
-      required String remoteId,
-      required String name,
-      required String userId,
-      required double saldoAtual,
-    });
-typedef $$ContasTableUpdateCompanionBuilder =
-    ContasCompanion Function({
-      Value<int> id,
-      Value<String> remoteId,
-      Value<String> name,
-      Value<String> userId,
-      Value<double> saldoAtual,
-    });
+typedef $$ContasTableCreateCompanionBuilder = ContasCompanion Function({
+  Value<int> id,
+  required String remoteId,
+  required String name,
+  required String userId,
+  required double saldoAtual,
+});
+typedef $$ContasTableUpdateCompanionBuilder = ContasCompanion Function({
+  Value<int> id,
+  Value<String> remoteId,
+  Value<String> name,
+  Value<String> userId,
+  Value<double> saldoAtual,
+});
 
 class $$ContasTableFilterComposer
     extends Composer<_$AppDatabase, $ContasTable> {
@@ -4071,26 +4135,24 @@ typedef $$ContasTableProcessedTableManager =
       Conta,
       PrefetchHooks Function()
     >;
-typedef $$ContatosTableCreateCompanionBuilder =
-    ContatosCompanion Function({
-      Value<int> id,
-      required String remoteId,
-      required String ownerId,
-      required String nome,
-      Value<String?> telefone,
-      Value<String?> email,
-      Value<String?> userId,
-    });
-typedef $$ContatosTableUpdateCompanionBuilder =
-    ContatosCompanion Function({
-      Value<int> id,
-      Value<String> remoteId,
-      Value<String> ownerId,
-      Value<String> nome,
-      Value<String?> telefone,
-      Value<String?> email,
-      Value<String?> userId,
-    });
+typedef $$ContatosTableCreateCompanionBuilder = ContatosCompanion Function({
+  Value<int> id,
+  required String remoteId,
+  required String ownerId,
+  required String nome,
+  Value<String?> telefone,
+  Value<String?> email,
+  Value<String?> userId,
+});
+typedef $$ContatosTableUpdateCompanionBuilder = ContatosCompanion Function({
+  Value<int> id,
+  Value<String> remoteId,
+  Value<String> ownerId,
+  Value<String> nome,
+  Value<String?> telefone,
+  Value<String?> email,
+  Value<String?> userId,
+});
 
 class $$ContatosTableFilterComposer
     extends Composer<_$AppDatabase, $ContatosTable> {
@@ -4526,40 +4588,38 @@ typedef $$CategoriaTransacoesTableProcessedTableManager =
       CategoriaTransacoe,
       PrefetchHooks Function()
     >;
-typedef $$TransacaosTableCreateCompanionBuilder =
-    TransacaosCompanion Function({
-      Value<int> id,
-      required String remoteId,
-      required String descricao,
-      required double valor,
-      required String tipo,
-      required DateTime dataCompetencia,
-      Value<bool> consolidada,
-      Value<String?> contaId,
-      Value<String?> contaDestinoId,
-      Value<String?> categoriaId,
-      Value<String?> devedorContatoId,
-      Value<String?> credorContatoId,
-      required List<DivisaoTransacaoModel> divisoes,
-      Value<TransacaoRecorrenciaModel?> recorrencia,
-    });
-typedef $$TransacaosTableUpdateCompanionBuilder =
-    TransacaosCompanion Function({
-      Value<int> id,
-      Value<String> remoteId,
-      Value<String> descricao,
-      Value<double> valor,
-      Value<String> tipo,
-      Value<DateTime> dataCompetencia,
-      Value<bool> consolidada,
-      Value<String?> contaId,
-      Value<String?> contaDestinoId,
-      Value<String?> categoriaId,
-      Value<String?> devedorContatoId,
-      Value<String?> credorContatoId,
-      Value<List<DivisaoTransacaoModel>> divisoes,
-      Value<TransacaoRecorrenciaModel?> recorrencia,
-    });
+typedef $$TransacaosTableCreateCompanionBuilder = TransacaosCompanion Function({
+  Value<int> id,
+  required String remoteId,
+  required String descricao,
+  required double valor,
+  required String tipo,
+  required DateTime dataCompetencia,
+  Value<bool> consolidada,
+  Value<String?> contaId,
+  Value<String?> contaDestinoId,
+  Value<String?> categoriaId,
+  Value<String?> devedorContatoId,
+  Value<String?> credorContatoId,
+  required List<DivisaoTransacaoModel> divisoes,
+  Value<TransacaoRecorrenciaModel?> recorrencia,
+});
+typedef $$TransacaosTableUpdateCompanionBuilder = TransacaosCompanion Function({
+  Value<int> id,
+  Value<String> remoteId,
+  Value<String> descricao,
+  Value<double> valor,
+  Value<String> tipo,
+  Value<DateTime> dataCompetencia,
+  Value<bool> consolidada,
+  Value<String?> contaId,
+  Value<String?> contaDestinoId,
+  Value<String?> categoriaId,
+  Value<String?> devedorContatoId,
+  Value<String?> credorContatoId,
+  Value<List<DivisaoTransacaoModel>> divisoes,
+  Value<TransacaoRecorrenciaModel?> recorrencia,
+});
 
 class $$TransacaosTableFilterComposer
     extends Composer<_$AppDatabase, $TransacaosTable> {

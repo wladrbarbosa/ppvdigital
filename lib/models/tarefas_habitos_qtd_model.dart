@@ -68,10 +68,17 @@ class TarefaHabitoQtdModel {
   }
 
   factory TarefaHabitoQtdModel.fromMap(Map<String, dynamic> map) {
-    final int rawMs =
-        (map['dataCriacao'] as int?) ??
-        (map['createdAt'] as int?) ??
-        DateTime.now().millisecondsSinceEpoch;
+    final rawDate =
+        map['dataCriacao'] ?? map['createdAt'] ?? map[r'$createdAt'];
+    DateTime parsedDate = DateTime.now();
+    if (rawDate is int) {
+      parsedDate = DateTime.fromMillisecondsSinceEpoch(rawDate);
+    } else if (rawDate is String) {
+      parsedDate = DateTime.tryParse(rawDate) ?? DateTime.now();
+    } else if (rawDate is DateTime) {
+      parsedDate = rawDate;
+    }
+
     return TarefaHabitoQtdModel(
       id: (map['id'] ?? map[r'$id'] ?? '') as String,
       metaVezes: (map['metaVezes'] as int?) ?? 1,
@@ -85,7 +92,7 @@ class TarefaHabitoQtdModel {
       reiniciaEmQtd: (map['reiniciaEmQtd'] as int?) ?? 1,
       reiniciaEmTipo: (map['reiniciaEmTipo'] as String?) ?? 'dias',
       vezesPraticado: (map['vezesPraticado'] as num?) ?? 0,
-      createdAt: DateTime.fromMillisecondsSinceEpoch(rawMs),
+      createdAt: parsedDate,
     );
   }
 

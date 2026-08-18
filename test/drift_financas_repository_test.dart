@@ -1,6 +1,7 @@
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ppvdigital/app/capacitacao/financas/financas_controller.dart';
+import 'package:ppvdigital/models/conta_model.dart';
 import 'package:ppvdigital/models/local/app_database.dart';
 import 'package:ppvdigital/models/transacao_model.dart';
 import 'package:ppvdigital/models/transacao_recorrencia_model.dart';
@@ -476,6 +477,7 @@ void main() {
   });
 
   test('getTransacoes reconciles deleted remote transactions when lastSyncedAt is provided', () async {
+    final conta = ContaModel(id: 'c1', name: 'Conta 1', userId: 'user1', saldoAtual: 0);
     final t1 = TransacaoModel(
       id: 't_active',
       descricao: 'Active Tx',
@@ -483,6 +485,7 @@ void main() {
       tipo: 'despesa',
       dataCompetencia: DateTime(2026, 7, 10),
       consolidada: true,
+      conta: conta,
       divisoes: [],
     );
     final t2 = TransacaoModel(
@@ -492,6 +495,7 @@ void main() {
       tipo: 'despesa',
       dataCompetencia: DateTime(2026, 7, 12),
       consolidada: true,
+      conta: conta,
       divisoes: [],
     );
 

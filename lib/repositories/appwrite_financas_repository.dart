@@ -209,6 +209,10 @@ class AppwriteFinancasRepository implements FinancasRepository {
     bool forceLocal = false,
     DateTime? lastSyncedAt,
   }) async {
+    if (contaIds.isEmpty) {
+      return [];
+    }
+
     final TablesDB tablesDB = TablesDB(databases.client);
     final List<TransacaoModel> loadedTrans = [];
 

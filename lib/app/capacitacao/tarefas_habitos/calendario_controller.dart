@@ -129,7 +129,10 @@ class CalendarioController {
         _historicoSub?.cancel();
         final stream = Core.tarefaHabitoRepository.watchHistorico(usuarioId: userId);
         try {
-          final firstData = await stream.first;
+          final firstData = await Core.tarefaHabitoRepository.getHistorico(
+            usuarioId: userId,
+            forceLocal: true,
+          );
           mobx.runInAction(() {
             _historicoList.clear();
             _historicoList.addAll(firstData);
@@ -142,6 +145,8 @@ class CalendarioController {
             _historicoList.addAll(data);
           });
         });
+
+        unawaited(Core.tarefasHabitosController.loadDocuments());
 
         return true;
       } on Exception catch (e) {

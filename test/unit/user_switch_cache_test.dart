@@ -186,7 +186,7 @@ void main() {
       final calendarioController = CalendarioController();
       final categoriasController = CategoriasController();
 
-      TarefasHabitosController.tarefasHabitosFuture = Future.value();
+      TarefasHabitosController.tarefasHabitosFuture = Future.value(<TarefaHabitoModel>[]);
       HistoricoController.historicoFuture = Future.value();
       CalendarioController.historicoFuture = Future.value();
       CategoriasController.categoriasFuture = Future.value();

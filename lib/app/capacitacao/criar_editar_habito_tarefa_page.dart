@@ -85,6 +85,10 @@ class _CriarHabitoTarefaPageState extends State<CriarHabitoTarefaPage> {
   final List<MetaItem> _metas = [];
 
   String _tipo = 'habito'; // 'habito' or 'tarefa'
+  bool _isHabitoNegativo = false;
+  bool _arquivado = false;
+  bool _isSaving = false;
+  bool _isDeleting = false;
   DateTime? _agendamento;
 
   @override
@@ -96,8 +100,11 @@ class _CriarHabitoTarefaPageState extends State<CriarHabitoTarefaPage> {
       final item = widget.editingItem!;
       _nomeController.text = item.nome;
       _tipo = item.tipo;
+      _arquivado = item.arquivado;
       _agendamento = item.agendamento;
       _durationController.text = item.duration?.toString() ?? '';
+
+      _isHabitoNegativo = item.tarefasHabitosQtd.any((q) => q.valor < 0);
 
       for (final qtd in item.tarefasHabitosQtd) {
         _metas.add(
@@ -105,11 +112,13 @@ class _CriarHabitoTarefaPageState extends State<CriarHabitoTarefaPage> {
             id: qtd.id,
             createdAt: qtd.createdAt,
             metaVezes: _tipo == 'tarefa' ? '1' : qtd.metaVezes.toString(),
-            valor: qtd.valor.toPtBr(compactIfInteger: true),
-            reiniciaEmQtd: _tipo == 'tarefa'
+            valor: qtd.valor.abs().toPtBr(compactIfInteger: true),
+            reiniciaEmQtd: _tipo == 'tarefa' || _isHabitoNegativo
                 ? '1'
                 : qtd.reiniciaEmQtd.toString(),
-            reiniciaEmTipo: _tipo == 'tarefa' ? 'dias' : qtd.reiniciaEmTipo,
+            reiniciaEmTipo: _tipo == 'tarefa' || _isHabitoNegativo
+                ? 'dias'
+                : qtd.reiniciaEmTipo,
             selectedCategoryId: qtd.categoriasTarefasHabitos?.id,
           ),
         );
@@ -167,71 +176,104 @@ class _CriarHabitoTarefaPageState extends State<CriarHabitoTarefaPage> {
   }
 
   Future<void> _save() async {
+    if (_isSaving || _isDeleting) return;
     if (!_formKey.currentState!.validate()) return;
 
-    final String nome = _nomeController.text.trim();
-    final int? duration = int.tryParse(_durationController.text.trim());
-    final List<Map<String, dynamic>> metasData = _metas.map((meta) {
-      final double? evalVal =
-          evaluateMathExpression(meta.valorController.text);
-      return {
-        'id': meta.id,
-        'createdAt': meta.createdAt?.toIso8601String(),
-        'metaVezes': int.parse(meta.metaVezesController.text),
-        'valor': evalVal ??
-            (double.tryParse(meta.valorController.text
-                    .replaceAll('.', '')
-                    .replaceAll(',', '.')) ??
-                1.0),
-        'reiniciaEmQtd': int.parse(meta.reiniciaEmQtdController.text),
-        'reiniciaEmTipo': meta.reiniciaEmTipo,
-        'categoriaId': meta.selectedCategoryId,
-      };
-    }).toList();
+    setState(() {
+      _isSaving = true;
+    });
 
-    final bool success;
-    if (widget.editingItem != null) {
-      final List<String> allExistingQtdRowIds = widget
-          .editingItem!
-          .tarefasHabitosQtd
-          .map((qtd) => qtd.id)
-          .toList();
-      success = await Core.tarefasHabitosController.updateTarefaHabito(
-        id: widget.editingItem!.id,
-        nome: nome,
-        tipo: _tipo,
-        metas: metasData,
-        allExistingQtdRowIds: allExistingQtdRowIds,
-        agendamento: _agendamento,
-        duration: duration,
-      );
-    } else {
-      success = await Core.tarefasHabitosController.createTarefaHabito(
-        nome: nome,
-        tipo: _tipo,
-        metas: metasData,
-        agendamento: _agendamento,
-        duration: duration,
-      );
-    }
+    try {
+      final String nome = _nomeController.text.trim();
+      final int? duration = int.tryParse(_durationController.text.trim());
+      final List<Map<String, dynamic>> metasData = _metas.map((meta) {
+        final double? evalVal = evaluateMathExpression(
+          meta.valorController.text,
+        );
+        final double rawVal =
+            (evalVal ??
+                    (double.tryParse(
+                          meta.valorController.text
+                              .replaceAll('.', '')
+                              .replaceAll(',', '.'),
+                        ) ??
+                        1.0))
+                .abs();
+        final double finalVal = (_tipo == 'habito' && _isHabitoNegativo)
+            ? -rawVal
+            : rawVal;
 
-    if (success && mounted) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Salvo com sucesso!')));
-      if (widget.lastRoute != null) {
-        Routefly.navigate(widget.lastRoute!);
+        return {
+          'id': meta.id,
+          'createdAt': meta.createdAt?.toIso8601String(),
+          'metaVezes': int.parse(meta.metaVezesController.text),
+          'valor': finalVal,
+          'reiniciaEmQtd': (_tipo == 'tarefa' || _isHabitoNegativo)
+              ? 1
+              : int.parse(meta.reiniciaEmQtdController.text),
+          'reiniciaEmTipo': (_tipo == 'tarefa' || _isHabitoNegativo)
+              ? 'dias'
+              : meta.reiniciaEmTipo,
+          'categoriaId': meta.selectedCategoryId,
+        };
+      }).toList();
+
+      final bool success;
+      final DateTime? finalAgendamento = (_tipo == 'tarefa')
+          ? _agendamento
+          : null;
+
+      if (widget.editingItem != null) {
+        final List<String> allExistingQtdRowIds = widget
+            .editingItem!
+            .tarefasHabitosQtd
+            .map((qtd) => qtd.id)
+            .toList();
+        success = await Core.tarefasHabitosController.updateTarefaHabito(
+          id: widget.editingItem!.id,
+          nome: nome,
+          tipo: _tipo,
+          metas: metasData,
+          allExistingQtdRowIds: allExistingQtdRowIds,
+          agendamento: finalAgendamento,
+          duration: duration,
+          arquivado: _arquivado,
+        );
       } else {
-        Navigator.of(context).pop();
+        success = await Core.tarefasHabitosController.createTarefaHabito(
+          nome: nome,
+          tipo: _tipo,
+          metas: metasData,
+          agendamento: finalAgendamento,
+          duration: duration,
+          arquivado: _arquivado,
+        );
       }
-    } else if (mounted) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Erro ao salvar.')));
+
+      if (success && mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(const SnackBar(content: Text('Salvo com sucesso!')));
+        if (widget.lastRoute != null) {
+          Routefly.navigate(widget.lastRoute!);
+        } else {
+          Navigator.of(context).pop();
+        }
+      } else if (mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(const SnackBar(content: Text('Erro ao salvar.')));
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isSaving = false;
+        });
+      }
     }
   }
 
   Future<void> _delete() async {
+    if (_isSaving || _isDeleting) return;
+
     final bool? confirm = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
@@ -252,30 +294,39 @@ class _CriarHabitoTarefaPageState extends State<CriarHabitoTarefaPage> {
 
     if (confirm != true || !mounted) return;
 
-    final List<String> allExistingQtdRowIds = widget
-        .editingItem!
-        .tarefasHabitosQtd
-        .map((qtd) => qtd.id)
-        .toList();
+    setState(() {
+      _isDeleting = true;
+    });
 
-    final bool success = await Core.tarefasHabitosController.deleteTarefaHabito(
-      widget.editingItem!.id,
-      allExistingQtdRowIds,
-    );
+    try {
+      final List<String> allExistingQtdRowIds = widget
+          .editingItem!
+          .tarefasHabitosQtd
+          .map((qtd) => qtd.id)
+          .toList();
 
-    if (success && mounted) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Excluído com sucesso!')));
-      if (widget.lastRoute != null) {
-        Routefly.navigate(widget.lastRoute!);
-      } else {
-        Navigator.of(context).pop();
+      final bool success = await Core.tarefasHabitosController
+          .deleteTarefaHabito(widget.editingItem!.id, allExistingQtdRowIds);
+
+      if (success && mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Excluído com sucesso!')));
+        if (widget.lastRoute != null) {
+          Routefly.navigate(widget.lastRoute!);
+        } else {
+          Navigator.of(context).pop();
+        }
+      } else if (mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(const SnackBar(content: Text('Erro ao excluir.')));
       }
-    } else if (mounted) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Erro ao excluir.')));
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isDeleting = false;
+        });
+      }
     }
   }
 
@@ -306,13 +357,15 @@ class _CriarHabitoTarefaPageState extends State<CriarHabitoTarefaPage> {
                 ),
                 IconButton(
                   icon: const Icon(Icons.close),
-                  onPressed: () {
-                    if (widget.lastRoute != null) {
-                      Routefly.navigate(widget.lastRoute!);
-                    } else {
-                      Navigator.of(context).pop();
-                    }
-                  },
+                  onPressed: (_isSaving || _isDeleting)
+                      ? null
+                      : () {
+                          if (widget.lastRoute != null) {
+                            Routefly.navigate(widget.lastRoute!);
+                          } else {
+                            Navigator.of(context).pop();
+                          }
+                        },
                 ),
               ],
             ),
@@ -386,6 +439,38 @@ class _CriarHabitoTarefaPageState extends State<CriarHabitoTarefaPage> {
                 });
               },
             ),
+            if (_tipo == 'habito') ...[
+              const SizedBox(height: 12),
+              SegmentedButton<bool>(
+                segments: const [
+                  ButtonSegment<bool>(
+                    value: false,
+                    label: Text('Positivo (Construir)'),
+                    icon: Icon(Icons.add_circle_outline, color: Colors.green),
+                  ),
+                  ButtonSegment<bool>(
+                    value: true,
+                    label: Text('Negativo (Parar)'),
+                    icon: Icon(
+                      Icons.remove_circle_outline,
+                      color: Colors.redAccent,
+                    ),
+                  ),
+                ],
+                selected: {_isHabitoNegativo},
+                onSelectionChanged: (Set<bool> newSelection) {
+                  setState(() {
+                    _isHabitoNegativo = newSelection.first;
+                    if (_isHabitoNegativo) {
+                      for (final meta in _metas) {
+                        meta.reiniciaEmQtdController.text = '1';
+                        meta.reiniciaEmTipo = 'dias';
+                      }
+                    }
+                  });
+                },
+              ),
+            ],
             const SizedBox(height: 16),
             const Text(
               'Metas',
@@ -498,9 +583,11 @@ class _CriarHabitoTarefaPageState extends State<CriarHabitoTarefaPage> {
                               child: TextFormField(
                                 controller: meta.metaVezesController,
                                 keyboardType: TextInputType.number,
-                                decoration: const InputDecoration(
-                                  labelText: 'Meta (Vezes)',
-                                  border: OutlineInputBorder(),
+                                decoration: InputDecoration(
+                                  labelText: _isHabitoNegativo
+                                      ? 'Meta (dias sem praticar)'
+                                      : 'Meta (Vezes)',
+                                  border: const OutlineInputBorder(),
                                 ),
                                 validator: (value) {
                                   if (value == null || value.trim().isEmpty) {
@@ -518,9 +605,11 @@ class _CriarHabitoTarefaPageState extends State<CriarHabitoTarefaPage> {
                               child: TextFormField(
                                 controller: meta.valorController,
                                 keyboardType: TextInputType.number,
-                                decoration: const InputDecoration(
-                                  labelText: 'Valor por Vez',
-                                  border: OutlineInputBorder(),
+                                decoration: InputDecoration(
+                                  labelText: _isHabitoNegativo
+                                      ? 'Impacto Negativo (Valor)'
+                                      : 'Valor por Vez',
+                                  border: const OutlineInputBorder(),
                                 ),
                                 validator: (value) {
                                   if (value == null || value.trim().isEmpty) {
@@ -535,66 +624,68 @@ class _CriarHabitoTarefaPageState extends State<CriarHabitoTarefaPage> {
                             ),
                           ],
                         ),
-                        const SizedBox(height: 12),
-                        Row(
-                          children: [
-                            Expanded(
-                              child: TextFormField(
-                                controller: meta.reiniciaEmQtdController,
-                                keyboardType: TextInputType.number,
-                                decoration: const InputDecoration(
-                                  labelText: 'Reinicia a cada',
-                                  border: OutlineInputBorder(),
+                        if (!_isHabitoNegativo) ...[
+                          const SizedBox(height: 12),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: TextFormField(
+                                  controller: meta.reiniciaEmQtdController,
+                                  keyboardType: TextInputType.number,
+                                  decoration: const InputDecoration(
+                                    labelText: 'Reinicia a cada',
+                                    border: OutlineInputBorder(),
+                                  ),
+                                  validator: (value) {
+                                    if (value == null || value.trim().isEmpty) {
+                                      return 'Obrigatório';
+                                    }
+                                    if (int.tryParse(value) == null) {
+                                      return 'Inválido';
+                                    }
+                                    return null;
+                                  },
                                 ),
-                                validator: (value) {
-                                  if (value == null || value.trim().isEmpty) {
-                                    return 'Obrigatório';
-                                  }
-                                  if (int.tryParse(value) == null) {
-                                    return 'Inválido';
-                                  }
-                                  return null;
-                                },
                               ),
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: DropdownButtonFormField<String>(
-                                isExpanded: true,
-                                initialValue: meta.reiniciaEmTipo,
-                                decoration: const InputDecoration(
-                                  labelText: 'Tipo Período',
-                                  border: OutlineInputBorder(),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: DropdownButtonFormField<String>(
+                                  isExpanded: true,
+                                  initialValue: meta.reiniciaEmTipo,
+                                  decoration: const InputDecoration(
+                                    labelText: 'Tipo Período',
+                                    border: OutlineInputBorder(),
+                                  ),
+                                  items: const [
+                                    DropdownMenuItem(
+                                      value: 'dias',
+                                      child: Text('Dias'),
+                                    ),
+                                    DropdownMenuItem(
+                                      value: 'semanas',
+                                      child: Text('Semanas'),
+                                    ),
+                                    DropdownMenuItem(
+                                      value: 'meses',
+                                      child: Text('Meses'),
+                                    ),
+                                    DropdownMenuItem(
+                                      value: 'anos',
+                                      child: Text('Anos'),
+                                    ),
+                                  ],
+                                  onChanged: (val) {
+                                    if (val != null) {
+                                      setState(() {
+                                        meta.reiniciaEmTipo = val;
+                                      });
+                                    }
+                                  },
                                 ),
-                                items: const [
-                                  DropdownMenuItem(
-                                    value: 'dias',
-                                    child: Text('Dias'),
-                                  ),
-                                  DropdownMenuItem(
-                                    value: 'semanas',
-                                    child: Text('Semanas'),
-                                  ),
-                                  DropdownMenuItem(
-                                    value: 'meses',
-                                    child: Text('Meses'),
-                                  ),
-                                  DropdownMenuItem(
-                                    value: 'anos',
-                                    child: Text('Anos'),
-                                  ),
-                                ],
-                                onChanged: (val) {
-                                  if (val != null) {
-                                    setState(() {
-                                      meta.reiniciaEmTipo = val;
-                                    });
-                                  }
-                                },
                               ),
-                            ),
-                          ],
-                        ),
+                            ],
+                          ),
+                        ],
                       ] else ...[
                         TextFormField(
                           controller: meta.valorController,
@@ -636,6 +727,28 @@ class _CriarHabitoTarefaPageState extends State<CriarHabitoTarefaPage> {
               icon: const Icon(Icons.add),
               label: const Text('Adicionar Outra Meta'),
             ),
+            const SizedBox(height: 16),
+            Card(
+              elevation: 0,
+              color: Theme.of(context).colorScheme.surfaceContainerHighest
+                  .withValues(alpha: 0.5),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: SwitchListTile(
+                title: const Text('Arquivar Tarefa/Hábito'),
+                subtitle: const Text(
+                  'Itens arquivados ficam ocultos da lista principal.',
+                ),
+                secondary: const Icon(Icons.archive_outlined),
+                value: _arquivado,
+                onChanged: (val) {
+                  setState(() {
+                    _arquivado = val;
+                  });
+                },
+              ),
+            ),
             if (_tipo == 'tarefa') ...[
               const SizedBox(height: 16),
               OutlinedButton.icon(
@@ -654,9 +767,18 @@ class _CriarHabitoTarefaPageState extends State<CriarHabitoTarefaPage> {
               children: [
                 if (widget.editingItem != null)
                   ElevatedButton.icon(
-                    onPressed: _delete,
-                    icon: const Icon(Icons.delete, color: Colors.white),
-                    label: const Text('Excluir'),
+                    onPressed: (_isSaving || _isDeleting) ? null : _delete,
+                    icon: _isDeleting
+                        ? const SizedBox(
+                            width: 16,
+                            height: 16,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              valueColor: AlwaysStoppedAnimation(Colors.white),
+                            ),
+                          )
+                        : const Icon(Icons.delete, color: Colors.white),
+                    label: Text(_isDeleting ? 'Excluindo...' : 'Excluir'),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.red,
                       foregroundColor: Colors.white,
@@ -666,14 +788,20 @@ class _CriarHabitoTarefaPageState extends State<CriarHabitoTarefaPage> {
                   const Spacer(),
                 const SizedBox(width: 8),
                 ElevatedButton(
-                  onPressed: _save,
+                  onPressed: (_isSaving || _isDeleting) ? null : _save,
                   style: ElevatedButton.styleFrom(
                     padding: const EdgeInsets.symmetric(
                       horizontal: 24,
                       vertical: 12,
                     ),
                   ),
-                  child: const Text('Salvar'),
+                  child: _isSaving
+                      ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Text('Salvar'),
                 ),
               ],
             ),

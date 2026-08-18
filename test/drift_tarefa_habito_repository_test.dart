@@ -236,4 +236,119 @@ void main() {
 
     await sub.cancel();
   });
+
+  test('negative habit calculates abstinence streak from creation date and resets on relapse', () async {
+    final creationDate = DateTime.now().subtract(const Duration(days: 5));
+    final negativeHabitMeta = TarefaHabitoQtdModel(
+      id: 'meta_neg',
+      metaVezes: 30,
+      usuario: 'user1',
+      valor: -1,
+      reiniciaEmQtd: 1,
+      reiniciaEmTipo: 'dias',
+      vezesPraticado: 0,
+      createdAt: creationDate,
+    );
+
+    final negativeHabit = TarefaHabitoModel(
+      id: 'h_neg',
+      nome: 'Parar de Fumar',
+      tipo: 'habito',
+      usuario: 'user1',
+      concluida: false,
+      agendamento: null,
+      tarefasHabitosQtd: [negativeHabitMeta],
+    );
+
+    await database.into(database.tarefaHabitos).insert(driftRepository.toCompanion(negativeHabit));
+
+    // 1. Initial streak without any relapses (created 5 days ago => 5 days streak)
+    var habits = await driftRepository.getTarefasEHabitos(
+      usuarioId: 'user1',
+      forceLocal: true,
+    );
+    expect(habits.first.tarefasHabitosQtd.first.valor, equals(-1));
+    expect(habits.first.tarefasHabitosQtd.first.vezesPraticado, equals(5));
+
+    // 2. Relapse occurred 2 days ago
+    final relapseDate = DateTime.now().subtract(const Duration(days: 2));
+    await database.into(database.historicoTarefasHabitos).insert(
+      HistoricoTarefasHabitosCompanion.insert(
+        remoteId: 'relapse1',
+        usuario: 'user1',
+        tarefaHabitoId: 'h_neg',
+        createdAt: relapseDate,
+      ),
+    );
+
+    // 3. Fetch habits: streak should now be 2 days (from 2 days ago to today)
+    habits = await driftRepository.getTarefasEHabitos(
+      usuarioId: 'user1',
+      forceLocal: true,
+    );
+    expect(habits.first.tarefasHabitosQtd.first.vezesPraticado, equals(2));
+  });
+
+  test('upsert does not overwrite complete negative habit meta with default positive value', () async {
+    final creationDate = DateTime.now().subtract(const Duration(days: 10));
+    final localNegativeMeta = TarefaHabitoQtdModel(
+      id: 'meta_neg_1',
+      metaVezes: 30,
+      usuario: 'user1',
+      valor: -1,
+      reiniciaEmQtd: 1,
+      reiniciaEmTipo: 'dias',
+      vezesPraticado: 0,
+      createdAt: creationDate,
+    );
+
+    final localHabit = TarefaHabitoModel(
+      id: 'h_neg_sync',
+      nome: 'Parar de Roer Unhas',
+      tipo: 'habito',
+      usuario: 'user1',
+      concluida: false,
+      agendamento: null,
+      tarefasHabitosQtd: [localNegativeMeta],
+    );
+
+    await database.into(database.tarefaHabitos).insert(driftRepository.toCompanion(localHabit));
+
+    // Remote sync simulation where remote returns default/partial meta
+    final remoteHabit = TarefaHabitoModel(
+      id: 'h_neg_sync',
+      nome: 'Parar de Roer Unhas',
+      tipo: 'habito',
+      usuario: 'user1',
+      concluida: false,
+      agendamento: null,
+      tarefasHabitosQtd: [
+        TarefaHabitoQtdModel(
+          id: 'meta_neg_1',
+          metaVezes: 30,
+          usuario: 'user1',
+          valor: 1.0, // remote sent default 1.0
+          reiniciaEmQtd: 1,
+          reiniciaEmTipo: 'dias',
+          vezesPraticado: 0,
+          createdAt: DateTime.now(),
+        ),
+      ],
+    );
+    remoteRepository.items = [remoteHabit];
+
+    // Run incremental sync
+    await driftRepository.getTarefasEHabitos(
+      usuarioId: 'user1',
+      lastSyncedAt: DateTime.now().subtract(const Duration(minutes: 5)),
+    );
+
+    final habits = await driftRepository.getTarefasEHabitos(
+      usuarioId: 'user1',
+      forceLocal: true,
+    );
+    // Preserved negative valor (-1) and original creation date (10 days streak)
+    expect(habits.first.tarefasHabitosQtd.first.valor, equals(-1));
+    expect(habits.first.tarefasHabitosQtd.first.vezesPraticado, equals(10));
+  });
 }

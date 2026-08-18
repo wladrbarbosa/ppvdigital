@@ -27,7 +27,7 @@ class MockTarefasHabitosController extends TarefasHabitosController {
   MockTarefasHabitosController() : super(DummyRepo());
 
   @override
-  Future<void> loadConfiguredColors() async {}
+  Future<void> loadCustomColors() async {}
 
   @override
   List<TarefaHabitoModel> get tarefasHabitosList => [

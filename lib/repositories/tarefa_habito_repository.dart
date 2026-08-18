@@ -25,11 +25,13 @@ abstract class TarefaHabitoRepository {
   });
 
   Future<bool> createTarefaHabito({
+    String? id,
     required String nome,
     required String tipo,
     required List<Map<String, dynamic>> metas,
     DateTime? agendamento,
     int? duration,
+    bool arquivado = false,
     required String usuarioId,
   });
 
@@ -41,6 +43,7 @@ abstract class TarefaHabitoRepository {
     required List<String> allExistingQtdRowIds,
     DateTime? agendamento,
     int? duration,
+    bool? arquivado,
     required String usuarioId,
   });
 

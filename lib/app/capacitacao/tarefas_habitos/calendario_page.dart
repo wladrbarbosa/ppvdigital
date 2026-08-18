@@ -31,6 +31,8 @@ class _CalendarioPageState extends State<CalendarioPage> {
   void _showDeleteDialog(BuildContext context, HistoricoItemModel item) {
     final dateStr =
         '${item.createdAt.day.toString().padLeft(2, '0')}/${item.createdAt.month.toString().padLeft(2, '0')}/${item.createdAt.year} às ${item.createdAt.hour.toString().padLeft(2, '0')}:${item.createdAt.minute.toString().padLeft(2, '0')}';
+    final bool isNegativo =
+        item.tarefasEHabitos.tarefasHabitosQtd.any((q) => q.valor < 0);
 
     showDialog(
       context: context,
@@ -51,10 +53,14 @@ class _CalendarioPageState extends State<CalendarioPage> {
               ),
               const SizedBox(height: 4),
               Text(
-                'Tipo: ${item.tarefasEHabitos.tipo == 'habito' ? 'Hábito' : 'Tarefa'}',
+                'Tipo: ${item.tarefasEHabitos.tipo == 'habito' ? (isNegativo ? 'Hábito Negativo (Recaída)' : 'Hábito') : 'Tarefa'}',
               ),
               const SizedBox(height: 4),
-              Text('Concluído em: $dateStr'),
+              Text(
+                isNegativo
+                    ? 'Recaída em: $dateStr'
+                    : 'Concluído em: $dateStr',
+              ),
             ],
           ),
           actions: [
@@ -182,12 +188,27 @@ class _HistoricoDataSource extends CalendarDataSource {
                 .first
                 .categoriasTarefasHabitos
           : null;
+      final bool isNegativo = item.tarefasEHabitos.tarefasHabitosQtd
+          .any((q) => q.valor < 0);
+      final String prefix = isNegativo ? '[Recaída] ' : '';
+      final subject = item.tarefasEHabitos.nome.isNotEmpty
+          ? '$prefix${item.tarefasEHabitos.nome}'
+          : (item.tarefasEHabitos.tipo == 'habito'
+              ? (isNegativo ? 'Recaída Registrada' : 'Hábito Praticado')
+              : 'Tarefa Concluída');
+      final duration = item.tarefasEHabitos.duration ?? 30;
+
       return Appointment(
         id: item.id,
         startTime: item.createdAt.toLocal(),
-        endTime: item.createdAt.toLocal().add(const Duration(minutes: 30)),
-        subject: item.tarefasEHabitos.nome,
-        color: category?.cor ?? Colors.blue,
+        endTime: item.createdAt.toLocal().add(Duration(minutes: duration)),
+        subject: subject,
+        color: isNegativo
+            ? (category?.cor ?? Colors.deepOrange)
+            : (category?.cor ??
+                (item.tarefasEHabitos.tipo == 'habito'
+                    ? Colors.blue
+                    : Colors.teal)),
         notes: item.id,
       );
     }).toList();

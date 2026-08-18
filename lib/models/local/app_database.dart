@@ -103,6 +103,7 @@ class TarefaHabitos extends Table {
   TextColumn get tipo => text()();
   TextColumn get usuario => text()();
   BoolColumn get concluida => boolean()();
+  BoolColumn get arquivado => boolean().withDefault(const Constant(false))();
   DateTimeColumn get agendamento => dateTime().nullable()();
   IntColumn get duration => integer().nullable()();
   TextColumn get metas =>
@@ -179,7 +180,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase([QueryExecutor? executor]) : super(executor ?? _openConnection());
 
   @override
-  int get schemaVersion => 4;
+  int get schemaVersion => 5;
 
   @override
   MigrationStrategy get migration {
@@ -222,11 +223,23 @@ class AppDatabase extends _$AppDatabase {
             log('Migration error adding icone to categoriaTransacoes: $e');
           }
         }
+        if (from < 5) {
+          try {
+            await m.addColumn(tarefaHabitos, tarefaHabitos.arquivado);
+          } catch (e) {
+            log('Migration error adding arquivado to tarefaHabitos: $e');
+          }
+        }
       },
       beforeOpen: (details) async {
         try {
           await customStatement(
             'ALTER TABLE categoria_transacoes ADD COLUMN icone TEXT;',
+          );
+        } catch (_) {}
+        try {
+          await customStatement(
+            'ALTER TABLE tarefa_habitos ADD COLUMN arquivado INTEGER NOT NULL DEFAULT 0;',
           );
         } catch (_) {}
       },

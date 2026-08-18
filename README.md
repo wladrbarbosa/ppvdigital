@@ -5,7 +5,7 @@
 ![MobX](https://img.shields.io/badge/State-MobX-orange)
 ![Drift](https://img.shields.io/badge/Database-Drift%20SQLite-lightgrey)
 ![Appwrite](https://img.shields.io/badge/Backend-Appwrite-FD366E?logo=appwrite)
-![Tests](https://img.shields.io/badge/Tests-68%2F68%20Passed-brightgreen)
+![Tests](https://img.shields.io/badge/Tests-82%2F82%20Passed-brightgreen)
 
 O **PPVDigital** é uma plataforma completa desenvolvida em Flutter (Web/Mobile) para planejamento pessoal, acompanhamento de hábitos, gestão de tarefas e controle financeiro pessoal e compartilhado. O projeto traz para o formato digital o conceito do **Projeto Pessoal de Vida (PPV)**, com foco em capacitação, acompanhamento de métricas e funcionamento offline transparente.
 
@@ -21,7 +21,7 @@ A aplicação adota uma arquitetura reativa, offline-first e modularizada por co
 
 - **Framework**: [Flutter](https://flutter.dev) (gerenciado via **FVM** - Flutter Version Manager).
 - **Gerenciamento de Estado**: [MobX](https://pub.dev/packages/mobx) e `flutter_mobx` utilizando reatividade com instanciações manuais (`mobx.Observable`) e mutações seguras via `mobx.runInAction()`.
-- **Banco de Dados Local & Cache Offline**: [Drift](https://drift.simonbinder.eu/) (SQLite reativo), permitindo navegação rápida sem dependência imediata de rede e isolamento atômico de dados por usuário (`clearAllUserData()`).
+- **Banco de Dados Local & Cache Offline**: [Drift](https://drift.simonbinder.eu/) (SQLite reativo v5), permitindo navegação rápida sem dependência imediata de rede e isolamento atômico de dados por usuário (`clearAllUserData()`).
 - **Backend & Backend-as-a-Service (BaaS)**: [Appwrite SDK](https://appwrite.io), gerenciando autenticação, sessões, persistência remota e **Appwrite Realtime (WebSockets)** escopado por usuário para sincronização instantânea inter-dispositivos.
 - **Serverless Functions**: Função Go 1.26 (`functions/process_recurrent_transactions`) para processamento automatizado de transações recorrentes indeterminadas.
 - **Arquitetura Híbrida de Sincronização**: Combinação de mutações REST API, canal Realtime Pub/Sub WebSocket para atualizações ativas, e **Delta Sync com Reconciliação de Exclusões** ao retomar o foco da aplicação (`AppLifecycleState.resumed`).
@@ -40,6 +40,10 @@ O módulo financeiro permite controlar contas, categorias, lançamentos individu
 - **Receita**: Incremente no saldo das contas afetadas.
 - **Despesa**: Débito no saldo das contas afetadas.
 - **Transferência**: Débito na conta de origem e crédito na conta de destino, com impacto neutro no patrimônio total.
+
+#### Isolamento Estrito de Transações por Contas do Usuário
+- Consultas locais (`getTransacoes`, `watchTransacoes`) no Drift SQLite filtram estritamente por contas pertencentes ao usuário autenticado (`t.contaId.isIn(userContaIds) | t.contaDestinoId.isIn(userContaIds)`), impedindo vazamento de dados locais entre contas não autorizadas.
+- Eventos de Realtime WebSockets (`handleRealtimeEvent`) descartam automaticamente inserções/atualizações de transações cujas contas não pertençam ao usuário ativo.
 
 #### Divisão por Pesos entre Contatos (`DivisaoTransacaoModel`)
 - Suporta a divisão proporcional de uma despesa/receita entre múltiplos contatos.
@@ -64,6 +68,21 @@ O módulo financeiro permite controlar contas, categorias, lançamentos individu
 ### 🎯 2. Módulo de Tarefas e Hábitos
 
 Acompanhamento do desenvolvimento pessoal através da criação e monitoramento de hábitos e execução de tarefas.
+
+#### Hábitos Positivos vs. Hábitos Negativos
+- **Hábitos Positivos (Construir)**: Hábitos com valores positivos que aumentam o progresso executado e possuem configuração de janelas de reinício e ciclos periódicos.
+- **Hábitos Negativos (Parar / Abstinência)**: Hábitos destinados a interromper comportamentos indesejados.
+  - Possuem valor multiplicador negativo (reduzem o progresso no `DashboardLogic`).
+  - Utilizam o campo `metaVezes` para registrar a **Meta de dias sem praticar** (abstinência).
+  - Cálculo automático de **dias sem praticar** baseado no intervalo entre o último registro de recaída no histórico (ou criação) e o dia atual.
+  - **Visualização Visual Diferenciada**: Cards em cor contrastante (`Colors.deepOrange`), com indicador líquido que se inicia vazio (0%) e se preenche gradualmente com os dias sem praticar até atingir 100% na meta de dias.
+  - **Registro de Recaída**: Botão de ação dedicado com ícone de alerta e diálogo de confirmação explicativo antes de registrar a recaída e reiniciar a contagem.
+  - **Ordenação**: Suporte a ordenação dinâmica de hábitos por tipo (`Positivos / Negativos`).
+
+#### Tarefas e Hábitos Arquivados (`arquivado`)
+- Campo booleano `arquivado` suportado em Drift SQLite (Schema v5) e Appwrite API.
+- Itens arquivados não aparecem na listagem padrão nem alimentam os cálculos do dashboard ativo.
+- Disponível visualização dedicada de itens arquivados através de botão alternador na tela de listagem de hábitos e tarefas.
 
 #### Janelas de Reinício e Frequência de Hábitos
 - Configuração de ciclos de reinício por **dias**, **semanas**, **meses** ou **anos**.
@@ -90,7 +109,7 @@ Acompanhamento do desenvolvimento pessoal através da criação e monitoramento 
   - **Tempo Executado**: Soma os minutos registrados em `HistoricoItemModel` dentro dos limites exatos do ciclo corrente (`startOfDay..endOfDay`, `startOfWeek..endOfWeek`, `startOfMonth..endOfMonth`, `startOfYear..endOfYear`).
 - **% Meta por Categoria**:
   - **Metas**: Calculadas estritamente a partir de hábitos (tarefas não entram na meta).
-  - **Executado**: Contabiliza execuções de hábitos e tarefas concluídas na categoria durante o ciclo.
+  - **Executado**: Contabiliza execuções de hábitos e tarefas concluídas na categoria durante o ciclo (com execuções de hábitos negativos reduzindo o progresso).
 
 ---
 
@@ -149,6 +168,9 @@ fvm flutter test
 - `test/business_logic/drift_cache_sync_test.dart`: Teste automatizado que varre a codebase para garantir que nenhuma consulta viole a regra do `Query.select()` do Appwrite, e teste de preservação do cache local Drift.
 - `test/drift_financas_repository_test.dart`: Testes de integração das operações de finanças e realtime no banco SQLite local.
 - `test/drift_tarefa_habito_repository_test.dart`: Testes de integração das operações de tarefas/hábitos e realtime no banco SQLite local.
+- `test/unit/transaction_isolation_test.dart`: Testes unitários de isolamento de consultas e streams de transações por contas de usuário e descarte de eventos realtime de terceiros.
+- `test/unit/negative_habits_test.dart`: Testes unitários do impacto negativo de hábitos no progresso do dashboard e distribuição de atenção.
+- `test/unit/arquivado_tarefas_habitos_test.dart`: Testes unitários de serialização e persistência do campo `arquivado` em SQLite (v5).
 - `test/unit/user_switch_cache_test.dart`: Testes unitários de isolamento multi-usuário, limpeza atômica do SQLite e reset completo de controllers MobX.
 - `test/widget_test.dart`: Teste de fumaça de instanciação de widgets.
 
