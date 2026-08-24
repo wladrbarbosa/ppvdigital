@@ -9,6 +9,7 @@ class MetaItem {
   MetaItem({
     this.id,
     this.createdAt,
+    this.vezesPraticado = 0,
     required String metaVezes,
     required String valor,
     required String reiniciaEmQtd,
@@ -19,6 +20,7 @@ class MetaItem {
        reiniciaEmQtdController = TextEditingController(text: reiniciaEmQtd);
   String? id;
   DateTime? createdAt;
+  num vezesPraticado;
   final TextEditingController metaVezesController;
   final TextEditingController valorController;
   final TextEditingController reiniciaEmQtdController;
@@ -111,6 +113,7 @@ class _CriarHabitoTarefaPageState extends State<CriarHabitoTarefaPage> {
           MetaItem(
             id: qtd.id,
             createdAt: qtd.createdAt,
+            vezesPraticado: qtd.vezesPraticado,
             metaVezes: _tipo == 'tarefa' ? '1' : qtd.metaVezes.toString(),
             valor: qtd.valor.abs().toPtBr(compactIfInteger: true),
             reiniciaEmQtd: _tipo == 'tarefa' || _isHabitoNegativo
@@ -215,6 +218,7 @@ class _CriarHabitoTarefaPageState extends State<CriarHabitoTarefaPage> {
               ? 'dias'
               : meta.reiniciaEmTipo,
           'categoriaId': meta.selectedCategoryId,
+          'vezesPraticado': meta.vezesPraticado,
         };
       }).toList();
 

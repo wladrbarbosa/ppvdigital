@@ -74,6 +74,7 @@ class AppwriteTarefaHabitoRepository implements TarefaHabitoRepository {
 
   @override
   Future<void> recordHistorico({
+    String? id,
     required String foundId,
     required String usuarioId,
   }) async {
@@ -81,7 +82,7 @@ class AppwriteTarefaHabitoRepository implements TarefaHabitoRepository {
     await tablesDB.createRow(
       databaseId: Core.databaseId,
       tableId: Core.tableHistoricoTarefasHabitos,
-      rowId: ID.unique(),
+      rowId: id ?? ID.unique(),
       data: {'tarefasEHabitos': foundId, 'usuario': usuarioId},
     );
   }

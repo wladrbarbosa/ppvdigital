@@ -5,7 +5,7 @@
 ![MobX](https://img.shields.io/badge/State-MobX-orange)
 ![Drift](https://img.shields.io/badge/Database-Drift%20SQLite-lightgrey)
 ![Appwrite](https://img.shields.io/badge/Backend-Appwrite-FD366E?logo=appwrite)
-![Tests](https://img.shields.io/badge/Tests-82%2F82%20Passed-brightgreen)
+![Tests](https://img.shields.io/badge/Tests-86%2F86%20Passed-brightgreen)
 
 O **PPVDigital** é uma plataforma completa desenvolvida em Flutter (Web/Mobile) para planejamento pessoal, acompanhamento de hábitos, gestão de tarefas e controle financeiro pessoal e compartilhado. O projeto traz para o formato digital o conceito do **Projeto Pessoal de Vida (PPV)**, com foco em capacitação, acompanhamento de métricas e funcionamento offline transparente.
 

@@ -261,6 +261,9 @@ class TarefasHabitosController {
 
   Future<List<TarefaHabitoModel>> loadDocuments({bool forceSync = false}) async {
     final now = DateTime.now();
+    if (Core.loginController.currentUser == null) {
+      await Core.loginController.loadUser();
+    }
     final String user = Core.loginController.currentUser?.$id ?? '';
 
     _setupReactiveStreams(user);
@@ -273,12 +276,10 @@ class TarefasHabitosController {
     tarefasHabitosFuture = localFuture;
 
     final localData = await localFuture;
-    if (_tarefasHabitosList.isEmpty && localData.isNotEmpty) {
-      mobx.runInAction(() {
-        _tarefasHabitosList.clear();
-        _tarefasHabitosList.addAll(localData);
-      });
-    }
+    mobx.runInAction(() {
+      _tarefasHabitosList.clear();
+      _tarefasHabitosList.addAll(localData);
+    });
 
     if (!forceSync &&
         _lastSyncTime != null &&
@@ -363,27 +364,39 @@ class TarefasHabitosController {
 
   Future<void> addQtdHabito(String documentId) async {
     try {
+      if (Core.loginController.currentUser == null) {
+        await Core.loginController.loadUser();
+      }
+      final String userId = Core.loginController.currentUser?.$id ?? '';
+
       mobx.runInAction(() {
         final List<TarefaHabitoModel> temp = List<TarefaHabitoModel>.from(
           _tarefasHabitosList.toList(),
         );
-        final TarefaHabitoModel found = temp.singleWhere(
-          (el) => el.id == documentId,
-        );
-        for (final element in found.tarefasHabitosQtd) {
-          if (element.valor < 0) {
-            element.vezesPraticado = 0;
-          } else {
-            element.vezesPraticado += element.valor;
-          }
+        final int index = temp.indexWhere((el) => el.id == documentId);
+        if (index != -1) {
+          final found = temp[index];
+          final updatedMetas = found.tarefasHabitosQtd.map((element) {
+            if (element.valor < 0) {
+              return element.copyWith(vezesPraticado: 0);
+            } else {
+              return element.copyWith(
+                vezesPraticado: element.vezesPraticado + element.valor,
+              );
+            }
+          }).toList();
+          temp[index] = found.copyWith(tarefaHabitoQtd: updatedMetas);
+          _tarefasHabitosList.clear();
+          _tarefasHabitosList.addAll(temp);
         }
-        _tarefasHabitosList.setAll(0, temp);
-
-        repository.recordHistorico(
-          foundId: found.id,
-          usuarioId: Core.loginController.currentUser?.$id ?? '',
-        );
       }, name: 'addQtdHabito');
+
+      if (userId.isNotEmpty) {
+        await repository.recordHistorico(
+          foundId: documentId,
+          usuarioId: userId,
+        );
+      }
     } on Exception catch (e) {
       log(e.toString());
     }
@@ -393,6 +406,12 @@ class TarefasHabitosController {
 
   Future<void> completeTarefa(String documentId) async {
     try {
+      if (Core.loginController.currentUser == null) {
+        await Core.loginController.loadUser();
+      }
+      final String userId = Core.loginController.currentUser?.$id ?? '';
+
+      bool isHabit = false;
       mobx.runInAction(() {
         final List<TarefaHabitoModel> temp = List<TarefaHabitoModel>.from(
           _tarefasHabitosList.toList(),
@@ -400,25 +419,31 @@ class TarefasHabitosController {
         final int index = temp.indexWhere((el) => el.id == documentId);
         if (index != -1) {
           final found = temp[index];
-          for (final element in found.tarefasHabitosQtd) {
+          isHabit = found.tipo == 'habito';
+          final updatedMetas = found.tarefasHabitosQtd.map((element) {
             if (element.valor < 0) {
-              element.vezesPraticado = 0;
+              return element.copyWith(vezesPraticado: 0);
             } else {
-              element.vezesPraticado += element.valor;
+              return element.copyWith(
+                vezesPraticado: element.vezesPraticado + element.valor,
+              );
             }
-          }
-          final bool isHabit = found.tipo == 'habito';
-          temp[index] = found.copyWith(concluida: !isHabit);
+          }).toList();
+          temp[index] = found.copyWith(
+            concluida: !isHabit,
+            tarefaHabitoQtd: updatedMetas,
+          );
           _tarefasHabitosList.clear();
           _tarefasHabitosList.addAll(temp);
-
-          final String userId = Core.loginController.currentUser?.$id ?? '';
-          repository.recordHistorico(foundId: documentId, usuarioId: userId);
-          if (!isHabit) {
-            repository.updateConcluida(documentId: documentId, concluida: true);
-          }
         }
       }, name: 'completeTarefa');
+
+      if (userId.isNotEmpty) {
+        await repository.recordHistorico(foundId: documentId, usuarioId: userId);
+        if (!isHabit) {
+          await repository.updateConcluida(documentId: documentId, concluida: true);
+        }
+      }
     } on Exception catch (e) {
       log(e.toString());
     }
@@ -515,6 +540,15 @@ class TarefasHabitosController {
         arquivado: arquivado,
         usuarioId: user,
       );
+
+      final updatedLocal = await repository.getTarefasEHabitos(
+        usuarioId: user,
+        forceLocal: true,
+      );
+      mobx.runInAction(() {
+        _tarefasHabitosList.clear();
+        _tarefasHabitosList.addAll(updatedLocal);
+      });
 
       await loadDocuments();
       return true;

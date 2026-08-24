@@ -455,5 +455,49 @@ void main() {
         expect(workCat.cycles['anos']!.totalGoal, equals(730.0 + 520.0 + 240.0));
       });
     });
+
+    group('6. Preservação de Progresso ao Editar Hábitos e Duração', () {
+      test('Alterar duration de TarefaHabitoModel não reseta tarefasHabitosQtd e vezesPraticado', () {
+        final originalMeta = TarefaHabitoQtdModel(
+          id: 'q_prog',
+          usuario: 'user1',
+          metaVezes: 3,
+          valor: 1.0,
+          reiniciaEmQtd: 1,
+          reiniciaEmTipo: 'dias',
+          vezesPraticado: 2.0,
+          createdAt: DateTime.now().subtract(const Duration(days: 5)),
+        );
+
+        final originalHabit = TarefaHabitoModel(
+          id: 'h_duration',
+          nome: 'Caminhada Matinal',
+          tipo: 'habito',
+          usuario: 'user1',
+          concluida: false,
+          agendamento: null,
+          duration: 30,
+          tarefasHabitosQtd: [originalMeta],
+        );
+
+        expect(originalHabit.duration, equals(30));
+        expect(originalHabit.tarefasHabitosQtd.first.vezesPraticado, equals(2.0));
+
+        // Simula atualização de duração para 45 minutos
+        final updatedHabit = originalHabit.copyWith(
+          duration: 45,
+          tarefaHabitoQtd: [
+            originalMeta.copyWith(
+              metaVezes: 3,
+              vezesPraticado: 2.0,
+            ),
+          ],
+        );
+
+        expect(updatedHabit.duration, equals(45));
+        expect(updatedHabit.tarefasHabitosQtd.first.vezesPraticado, equals(2.0));
+        expect(updatedHabit.tarefasHabitosQtd.first.id, equals('q_prog'));
+      });
+    });
   });
 }

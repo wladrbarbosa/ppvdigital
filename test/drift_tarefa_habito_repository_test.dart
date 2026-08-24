@@ -9,6 +9,7 @@ import 'package:ppvdigital/repositories/tarefa_habito_repository.dart';
 
 class MockRemoteTarefaHabitoRepository implements TarefaHabitoRepository {
   List<TarefaHabitoModel> items = [];
+  List<HistoricoItemModel> historyItems = [];
 
   @override
   Future<List<TarefaHabitoModel>> getTarefasEHabitos({
@@ -17,6 +18,43 @@ class MockRemoteTarefaHabitoRepository implements TarefaHabitoRepository {
     DateTime? lastSyncedAt,
   }) async {
     return items;
+  }
+
+  @override
+  Future<List<HistoricoItemModel>> getHistorico({
+    required String usuarioId,
+    bool forceLocal = false,
+    DateTime? lastSyncedAt,
+  }) async {
+    return historyItems;
+  }
+
+  @override
+  Future<void> recordHistorico({
+    String? id,
+    required String foundId,
+    required String usuarioId,
+  }) async {
+    final habit = items.cast<TarefaHabitoModel?>().firstWhere(
+          (h) => h?.id == foundId,
+          orElse: () => TarefaHabitoModel(
+            id: foundId,
+            nome: '',
+            tipo: 'habito',
+            usuario: usuarioId,
+            concluida: false,
+            agendamento: null,
+            tarefasHabitosQtd: [],
+          ),
+        )!;
+    historyItems.add(
+      HistoricoItemModel(
+        id: id ?? 'rem_${DateTime.now().millisecondsSinceEpoch}',
+        usuario: usuarioId,
+        tarefasEHabitos: habit,
+        createdAt: DateTime.now(),
+      ),
+    );
   }
 
   @override
@@ -350,5 +388,176 @@ void main() {
     // Preserved negative valor (-1) and original creation date (10 days streak)
     expect(habits.first.tarefasHabitosQtd.first.valor, equals(-1));
     expect(habits.first.tarefasHabitosQtd.first.vezesPraticado, equals(10));
+  });
+
+  test('updating habit duration preserves vezesPraticado and does not lose progress', () async {
+    final habitMeta = TarefaHabitoQtdModel(
+      id: 'meta_water',
+      metaVezes: 3,
+      usuario: 'user1',
+      valor: 1,
+      reiniciaEmQtd: 1,
+      reiniciaEmTipo: 'dias',
+      vezesPraticado: 0,
+      createdAt: DateTime.now().subtract(const Duration(days: 3)),
+    );
+
+    final habit = TarefaHabitoModel(
+      id: 'h_water',
+      nome: 'Beber 2L de Água',
+      tipo: 'habito',
+      usuario: 'user1',
+      concluida: false,
+      agendamento: null,
+      duration: 15,
+      tarefasHabitosQtd: [habitMeta],
+    );
+
+    await database.into(database.tarefaHabitos).insert(driftRepository.toCompanion(habit));
+
+    // 1. Mark habit twice today via recordHistorico
+    await driftRepository.recordHistorico(foundId: 'h_water', usuarioId: 'user1');
+    await driftRepository.recordHistorico(foundId: 'h_water', usuarioId: 'user1');
+
+    // Verify progress is 2 / 3
+    var habits = await driftRepository.getTarefasEHabitos(
+      usuarioId: 'user1',
+      forceLocal: true,
+    );
+    expect(habits.first.duration, equals(15));
+    expect(habits.first.tarefasHabitosQtd.first.vezesPraticado, equals(2));
+
+    // 2. User edits habit duration from 15 to 45 minutes
+    final success = await driftRepository.updateTarefaHabito(
+      id: 'h_water',
+      nome: 'Beber 2L de Água',
+      tipo: 'habito',
+      duration: 45,
+      allExistingQtdRowIds: ['meta_water'],
+      usuarioId: 'user1',
+      metas: [
+        {
+          'id': 'meta_water',
+          'metaVezes': 3,
+          'valor': 1.0,
+          'reiniciaEmQtd': 1,
+          'reiniciaEmTipo': 'dias',
+          'createdAt': habitMeta.createdAt.toIso8601String(),
+          'vezesPraticado': 2,
+        },
+      ],
+    );
+    expect(success, isTrue);
+
+    // 3. Fetch habits again: duration must be 45 and vezesPraticado MUST REMAIN 2
+    habits = await driftRepository.getTarefasEHabitos(
+      usuarioId: 'user1',
+      forceLocal: true,
+    );
+    expect(habits.first.duration, equals(45));
+    expect(habits.first.tarefasHabitosQtd.first.vezesPraticado, equals(2));
+
+    // Verify history records are intact
+    final history = await driftRepository.getHistorico(
+      usuarioId: 'user1',
+      forceLocal: true,
+    );
+    expect(history.where((h) => h.tarefasEHabitos.id == 'h_water').length, equals(2));
+  });
+
+  test('_populatePeriodVezesPraticado includes history with empty user fallback', () async {
+    final habitMeta = TarefaHabitoQtdModel(
+      id: 'meta_med',
+      metaVezes: 2,
+      usuario: 'user1',
+      valor: 1,
+      reiniciaEmQtd: 1,
+      reiniciaEmTipo: 'dias',
+      vezesPraticado: 0,
+      createdAt: DateTime.now().subtract(const Duration(days: 2)),
+    );
+
+    final habit = TarefaHabitoModel(
+      id: 'h_med',
+      nome: 'Meditação',
+      tipo: 'habito',
+      usuario: 'user1',
+      concluida: false,
+      agendamento: null,
+      duration: 20,
+      tarefasHabitosQtd: [habitMeta],
+    );
+
+    await database.into(database.tarefaHabitos).insert(driftRepository.toCompanion(habit));
+
+    // Insert history item with empty user string (simulating uninitialized user)
+    await database.into(database.historicoTarefasHabitos).insert(
+      HistoricoTarefasHabitosCompanion.insert(
+        remoteId: 'hist_fallback_user',
+        usuario: '',
+        tarefaHabitoId: 'h_med',
+        createdAt: DateTime.now(),
+      ),
+    );
+
+    final habits = await driftRepository.getTarefasEHabitos(
+      usuarioId: 'user1',
+      forceLocal: true,
+    );
+    expect(habits.first.tarefasHabitosQtd.first.vezesPraticado, equals(1));
+  });
+
+  test('recordHistorico aligns tempHistoryId with remote and prevents reconciliation deletion', () async {
+    final habitMeta = TarefaHabitoQtdModel(
+      id: 'meta_run',
+      metaVezes: 1,
+      usuario: 'user1',
+      valor: 1,
+      reiniciaEmQtd: 1,
+      reiniciaEmTipo: 'dias',
+      vezesPraticado: 0,
+      createdAt: DateTime.now().subtract(const Duration(days: 1)),
+    );
+
+    final habit = TarefaHabitoModel(
+      id: 'h_run',
+      nome: 'Corrida',
+      tipo: 'habito',
+      usuario: 'user1',
+      concluida: false,
+      agendamento: null,
+      duration: 30,
+      tarefasHabitosQtd: [habitMeta],
+    );
+
+    remoteRepository.items = [habit];
+    await database.into(database.tarefaHabitos).insert(driftRepository.toCompanion(habit));
+
+    // Record habit history locally and remotely
+    await driftRepository.recordHistorico(foundId: 'h_run', usuarioId: 'user1');
+
+    // Confirm local ID matches remote ID
+    expect(remoteRepository.historyItems.length, equals(1));
+    final localRows = await database.select(database.historicoTarefasHabitos).get();
+    expect(localRows.length, equals(1));
+    expect(localRows.first.remoteId, equals(remoteRepository.historyItems.first.id));
+
+    // Run getHistorico delta sync (reconciliation)
+    await driftRepository.getHistorico(
+      usuarioId: 'user1',
+      lastSyncedAt: DateTime.now().subtract(const Duration(seconds: 1)),
+    );
+
+    // Verify local row was NOT deleted by reconciliation
+    final rowsAfterSync = await database.select(database.historicoTarefasHabitos).get();
+    expect(rowsAfterSync.length, equals(1));
+    expect(rowsAfterSync.first.remoteId, equals(remoteRepository.historyItems.first.id));
+
+    // Habit progress remains 1
+    final habits = await driftRepository.getTarefasEHabitos(
+      usuarioId: 'user1',
+      forceLocal: true,
+    );
+    expect(habits.first.tarefasHabitosQtd.first.vezesPraticado, equals(1));
   });
 }

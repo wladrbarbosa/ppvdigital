@@ -15,6 +15,7 @@ abstract class TarefaHabitoRepository {
   });
 
   Future<void> recordHistorico({
+    String? id,
     required String foundId,
     required String usuarioId,
   });

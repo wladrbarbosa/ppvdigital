@@ -700,16 +700,23 @@ class ListaHabitosTarefasWidgetState extends State<ListaHabitosTarefasWidget> {
                                                   ? el.metaVezes
                                                   : previousValue,
                                             );
-                                        final Color? liquidColor = isHabitoNegativo
-                                            ? (item
-                                                    .tarefasHabitosQtd[i]
-                                                    .categoriasTarefasHabitos
-                                                    ?.cor ??
-                                                Colors.deepOrange)
-                                            : item
-                                                .tarefasHabitosQtd[i]
-                                                .categoriasTarefasHabitos
-                                                ?.cor;
+                                        final catCor = item
+                                            .tarefasHabitosQtd[i]
+                                            .categoriasTarefasHabitos
+                                            ?.cor;
+                                        final bool hasValidCatColor =
+                                            catCor != null &&
+                                            catCor.a > 0 &&
+                                            catCor.toARGB32() != 0 &&
+                                            catCor != const Color(0x00000000);
+                                        final Color liquidColor =
+                                            isHabitoNegativo
+                                                ? (hasValidCatColor
+                                                    ? catCor
+                                                    : Colors.deepOrange)
+                                                : (hasValidCatColor
+                                                    ? catCor
+                                                    : habitColor);
 
                                         // Para tarefas, não preencher com cor (manter progresso em 0.0)
                                         if (item.tipo == 'habito') {
@@ -732,11 +739,9 @@ class ListaHabitosTarefasWidgetState extends State<ListaHabitosTarefasWidget> {
                                                 value: liquidValue,
                                                 backgroundColor:
                                                     indicatorBgColor,
-                                                valueColor: liquidColor != null
-                                                    ? AlwaysStoppedAnimation(
-                                                        liquidColor,
-                                                      )
-                                                    : null,
+                                                valueColor: AlwaysStoppedAnimation(
+                                                  liquidColor,
+                                                ),
                                                 direction: Axis.vertical,
                                                 shapePath: Path()
                                                   ..addRRect(

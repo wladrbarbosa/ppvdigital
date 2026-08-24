@@ -105,7 +105,9 @@ class DriftTarefaHabitoRepository implements TarefaHabitoRepository {
         if (actionType == 'recordHistorico') {
           final docId = item['documentId'] as String;
           final userId = item['usuarioId'] as String;
+          final historyId = item['tempHistoryId'] as String?;
           await remoteRepository.recordHistorico(
+            id: historyId,
             foundId: docId,
             usuarioId: userId,
           );
@@ -241,7 +243,7 @@ class DriftTarefaHabitoRepository implements TarefaHabitoRepository {
     DateTime? lastSyncedAt,
   }) async {
     final localQuery = database.select(database.historicoTarefasHabitos)
-      ..where((h) => h.usuario.equals(usuarioId));
+      ..where((h) => h.usuario.equals(usuarioId) | h.usuario.equals(''));
     final localRows = await localQuery.get();
 
     final habits = await database.select(database.tarefaHabitos).get();
@@ -299,11 +301,13 @@ class DriftTarefaHabitoRepository implements TarefaHabitoRepository {
 
   @override
   Future<void> recordHistorico({
+    String? id,
     required String foundId,
     required String usuarioId,
   }) async {
     // 1. Insert new history record locally into SQLite
-    final tempHistoryId = ID.unique();
+    final tempHistoryId = id ?? ID.unique();
+    final now = DateTime.now();
     await database
         .into(database.historicoTarefasHabitos)
         .insert(
@@ -311,11 +315,28 @@ class DriftTarefaHabitoRepository implements TarefaHabitoRepository {
             remoteId: tempHistoryId,
             usuario: usuarioId,
             tarefaHabitoId: foundId,
-            createdAt: DateTime.now(),
+            createdAt: now,
           ),
         );
 
-    // 2. Add to pending sync queue
+    // 2. Directly update the habit's meta in SQLite cache
+    final habitRow = await (database.select(database.tarefaHabitos)
+          ..where((t) => t.remoteId.equals(foundId)))
+        .getSingleOrNull();
+    if (habitRow != null) {
+      final updatedMetas = habitRow.metas.map((m) {
+        if (m.valor < 0) {
+          return m.copyWith(vezesPraticado: 0);
+        } else {
+          return m.copyWith(vezesPraticado: m.vezesPraticado + m.valor);
+        }
+      }).toList();
+      await (database.update(database.tarefaHabitos)
+            ..where((t) => t.remoteId.equals(foundId)))
+          .write(TarefaHabitosCompanion(metas: Value(updatedMetas)));
+    }
+
+    // 3. Add to pending sync queue
     final syncItem = {
       'actionType': 'recordHistorico',
       'tempHistoryId': tempHistoryId,
@@ -327,6 +348,7 @@ class DriftTarefaHabitoRepository implements TarefaHabitoRepository {
     // 3. Attempt to upload immediately
     try {
       await remoteRepository.recordHistorico(
+        id: tempHistoryId,
         foundId: foundId,
         usuarioId: usuarioId,
       );
@@ -444,18 +466,26 @@ class DriftTarefaHabitoRepository implements TarefaHabitoRepository {
           : (createdAtRaw is String
               ? DateTime.tryParse(createdAtRaw) ?? DateTime.now()
               : (createdAtRaw is DateTime ? createdAtRaw : DateTime.now()));
+      CategoriasTarefasHabitosModel? categoryModel;
+      final String? catId = m['categoriaId'] as String?;
+      if (catId != null && catId.isNotEmpty) {
+        final foundCat = Core.categoriasController.categoriasList
+            .cast<CategoriasTarefasHabitosModel?>()
+            .firstWhere((c) => c?.id == catId, orElse: () => null);
+        categoryModel = foundCat ??
+            CategoriasTarefasHabitosModel(
+              id: catId,
+              nome: '',
+              cor: const Color(0xFF2196F3),
+              usuario: usuarioId,
+            );
+      }
+
       return TarefaHabitoQtdModel(
         id: m['id'] as String,
         metaVezes: m['metaVezes'] as int,
         usuario: usuarioId,
-        categoriasTarefasHabitos: m['categoriaId'] != null
-            ? CategoriasTarefasHabitosModel(
-                id: m['categoriaId'] as String,
-                nome: '',
-                cor: const Color(0x00000000),
-                usuario: usuarioId,
-              )
-            : null,
+        categoriasTarefasHabitos: categoryModel,
         valor: m['valor'] as num,
         reiniciaEmQtd: m['reiniciaEmQtd'] as int,
         reiniciaEmTipo: m['reiniciaEmTipo'] as String,
@@ -553,18 +583,33 @@ class DriftTarefaHabitoRepository implements TarefaHabitoRepository {
           existingMeta?.vezesPraticado ??
           0;
 
+      CategoriasTarefasHabitosModel? categoryModel;
+      final String? catId = m['categoriaId'] as String?;
+      if (catId != null && catId.isNotEmpty) {
+        if (existingMeta?.categoriasTarefasHabitos?.id == catId &&
+            existingMeta?.categoriasTarefasHabitos?.cor != null &&
+            (existingMeta?.categoriasTarefasHabitos?.cor.a ?? 0) > 0 &&
+            existingMeta?.categoriasTarefasHabitos?.cor != const Color(0x00000000)) {
+          categoryModel = existingMeta!.categoriasTarefasHabitos;
+        } else {
+          final foundCat = Core.categoriasController.categoriasList
+              .cast<CategoriasTarefasHabitosModel?>()
+              .firstWhere((c) => c?.id == catId, orElse: () => null);
+          categoryModel = foundCat ??
+              CategoriasTarefasHabitosModel(
+                id: catId,
+                nome: '',
+                cor: const Color(0xFF2196F3),
+                usuario: usuarioId,
+              );
+        }
+      }
+
       return TarefaHabitoQtdModel(
         id: metaId,
         metaVezes: m['metaVezes'] as int,
         usuario: usuarioId,
-        categoriasTarefasHabitos: m['categoriaId'] != null
-            ? CategoriasTarefasHabitosModel(
-                id: m['categoriaId'] as String,
-                nome: '',
-                cor: const Color(0x00000000),
-                usuario: usuarioId,
-              )
-            : null,
+        categoriasTarefasHabitos: categoryModel,
         valor: m['valor'] as num,
         reiniciaEmQtd: m['reiniciaEmQtd'] as int,
         reiniciaEmTipo: m['reiniciaEmTipo'] as String,
@@ -695,7 +740,7 @@ class DriftTarefaHabitoRepository implements TarefaHabitoRepository {
     String usuarioId,
   ) async {
     final historyQuery = database.select(database.historicoTarefasHabitos)
-      ..where((h) => h.usuario.equals(usuarioId));
+      ..where((h) => h.usuario.equals(usuarioId) | h.usuario.equals(''));
     final historyRows = await historyQuery.get();
 
     final Map<String, List<DateTime>> habitHistoryDates = {};
@@ -742,7 +787,14 @@ class DriftTarefaHabitoRepository implements TarefaHabitoRepository {
               dDate.isAfter(startPeriod);
         }).length;
 
-        final calculatedVezes = periodCount * meta.valor;
+        final num calculatedVezes;
+        if (periodCount > 0) {
+          calculatedVezes = periodCount * meta.valor;
+        } else if (dates.isEmpty && meta.vezesPraticado > 0) {
+          calculatedVezes = meta.vezesPraticado;
+        } else {
+          calculatedVezes = 0;
+        }
         return meta.copyWith(vezesPraticado: calculatedVezes);
       }).toList();
 
@@ -769,6 +821,7 @@ class DriftTarefaHabitoRepository implements TarefaHabitoRepository {
       final rowId = item['id'] as String? ??
           item['rowId'] as String? ??
           item['tempId'] as String? ??
+          item['tempHistoryId'] as String? ??
           item['documentId'] as String?;
       if (rowId != null && rowId.isNotEmpty) ids.add(rowId);
     }
@@ -802,7 +855,15 @@ class DriftTarefaHabitoRepository implements TarefaHabitoRepository {
 
       await (database.update(database.tarefaHabitos)
             ..where((t) => t.remoteId.equals(model.id)))
-          .write(toCompanion(model.copyWith(tarefaHabitoQtd: mergedMetas)));
+          .write(
+            toCompanion(
+              model.copyWith(
+                duration: model.duration ?? existing.duration,
+                arquivado: model.arquivado || existing.arquivado,
+                tarefaHabitoQtd: mergedMetas,
+              ),
+            ),
+          );
     } else {
       await database.into(database.tarefaHabitos).insert(toCompanion(model));
     }
