@@ -15,16 +15,15 @@ publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 # In iOS, build-name is used as CFBundleShortVersionString while build-number used as CFBundleVersion.
 # Read more about iOS versioning at
 # https://developer.apple.com/library/archive/documentation/General/Reference/InfoPlistKeyReference/Articles/CoreFoundationKeys.html
-version: 0.27.1+1
+version: 0.27.2+1
 
 environment:
   sdk: ">=3.13.0 <4.0.0"
 
 dependencies:
-  appwrite: 25.4.0
+  appwrite: 26.0.0
   collection: 1.19.1
   crypto: 3.0.7
-  cupertino_icons: ^1.0.8
   drift: ^2.34.3
   drift_flutter: ^0.3.0
   fl_chart: 1.2.0
@@ -44,15 +43,15 @@ dependencies:
   intl: 0.20.3
   lint: 2.8.0
   liquid_progress_indicator_v2: 0.5.0
-  mobx: 2.6.0
+  mobx: 2.6.1
   path_provider: ^2.1.6
   routefly:
     git:
       url: 'git@github.com:wladrbarbosa/routefly.git'
       ref: '2f19820cb9494d5d399dd76ff53454b981618305'
-  shimmer: 3.0.0
-  syncfusion_flutter_calendar: 34.2.3
-  syncfusion_localizations: 34.2.3
+  shimmer: 4.0.0
+  syncfusion_flutter_calendar: 34.2.4
+  syncfusion_localizations: 34.2.4
   timeline_tile: 2.0.0
   timezone: ^0.11.1
 

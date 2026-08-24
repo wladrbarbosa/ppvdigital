@@ -87,5 +87,14 @@ Welcome agent! This file contains project-specific guidelines, technical rules, 
   * **Rule:** Appwrite Realtime subscriptions (`AppwriteRealtimeService`) must be scoped per authenticated user (`user.[userId]`) and handle events across all active domain collections (Finanças and Tarefas/Hábitos).
   * **Rule:** When performing incremental delta syncs (`lastSyncedAt != null`), repositories (`DriftFinancasRepository`, `DriftTarefaHabitoRepository`) must reconcile active remote document IDs against local Drift SQLite rows for the active scope (e.g. target month, active user tasks) and delete local rows that no longer exist on remote (unless present in pending offline sync queue).
 
+---
+
+## 10. Maximização de Cobertura de Testes Automatizados (~100%)
+* **Manutenção Contínua da Cobertura de Testes Próxima de 100%:**
+  Para garantir estabilidade, confiabilidade arquitetural e prevenção de regressões:
+  * **Rule:** Ao criar ou modificar novas funcionalidades, serviços de domínio, repositórios, controllers, modelos ou métodos utilitários, sempre implemente e expanda testes unitários e de integração abrangendo todos os caminhos lógicos (sucesso, exceções, bordas, valores nulos e limites), buscando manter a cobertura de testes o mais próxima possível de 100%.
+  * **Rule:** Execute regularmente `fvm flutter test --coverage` para verificar a cobertura do código e assegurar que novos códigos ou refatorações nunca reduzam os índices de cobertura do projeto.
+
+
 
 

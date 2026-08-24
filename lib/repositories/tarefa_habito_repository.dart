@@ -8,10 +8,18 @@ abstract class TarefaHabitoRepository {
     DateTime? lastSyncedAt,
   });
 
+  Future<Set<String>> getActiveTarefaHabitoIds({
+    required String usuarioId,
+  });
+
   Future<List<HistoricoItemModel>> getHistorico({
     required String usuarioId,
     bool forceLocal = false,
     DateTime? lastSyncedAt,
+  });
+
+  Future<Set<String>> getActiveHistoricoIds({
+    required String usuarioId,
   });
 
   Future<void> recordHistorico({

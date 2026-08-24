@@ -24,6 +24,15 @@ class MockRemoteFinancasRepository implements FinancasRepository {
   }
 
   @override
+  Future<Set<String>> getActiveTransacaoIdsInMonth({
+    required String usuarioId,
+    required List<String> contaIds,
+    required DateTime targetMonth,
+  }) async {
+    return transacoes.map((t) => t.id).toSet();
+  }
+
+  @override
   Future<List<TransacaoModel>> getRecurrenceSeries({
     required String recurrenceId,
   }) async {

@@ -3,9 +3,9 @@
 ![Flutter](https://img.shields.io/badge/Flutter-FVM%203.44.7-blue?logo=flutter)
 ![Dart](https://img.shields.io/badge/Dart-3.12%2B-0175C2?logo=dart)
 ![MobX](https://img.shields.io/badge/State-MobX-orange)
-![Drift](https://img.shields.io/badge/Database-Drift%20SQLite-lightgrey)
+![Drift](https://img.shields.io/badge/Database-Drift%20SQLite%20(v6)-lightgrey)
 ![Appwrite](https://img.shields.io/badge/Backend-Appwrite-FD366E?logo=appwrite)
-![Tests](https://img.shields.io/badge/Tests-86%2F86%20Passed-brightgreen)
+![Tests](https://img.shields.io/badge/Tests-112%2F112%20Passed-brightgreen)
 
 O **PPVDigital** é uma plataforma completa desenvolvida em Flutter (Web/Mobile) para planejamento pessoal, acompanhamento de hábitos, gestão de tarefas e controle financeiro pessoal e compartilhado. O projeto traz para o formato digital o conceito do **Projeto Pessoal de Vida (PPV)**, com foco em capacitação, acompanhamento de métricas e funcionamento offline transparente.
 
@@ -20,11 +20,12 @@ A aplicação adota uma arquitetura reativa, offline-first e modularizada por co
 ### Principais Tecnologias e Bibliotecas
 
 - **Framework**: [Flutter](https://flutter.dev) (gerenciado via **FVM** - Flutter Version Manager).
-- **Gerenciamento de Estado**: [MobX](https://pub.dev/packages/mobx) e `flutter_mobx` utilizando reatividade com instanciações manuais (`mobx.Observable`) e mutações seguras via `mobx.runInAction()`.
-- **Banco de Dados Local & Cache Offline**: [Drift](https://drift.simonbinder.eu/) (SQLite reativo v5), permitindo navegação rápida sem dependência imediata de rede e isolamento atômico de dados por usuário (`clearAllUserData()`).
+- **Gerenciamento de Estado**: [MobX](https://pub.dev/packages/mobx) e `flutter_mobx` utilizando reatividade com instanciações manuais (`mobx.Observable`), getters com baixa alocação e mutações seguras via `mobx.runInAction()`.
+- **Banco de Dados Local & Cache Offline**: [Drift](https://drift.simonbinder.eu/) (SQLite reativo **Schema v6** com índices compostos em colunas críticas como `remoteId`, `usuarioId`, `dataCompetencia`, `agendamento`), permitindo consultas ultrarrápidas sem dependência imediata de rede e isolamento atômico de dados por usuário (`clearAllUserData()`).
 - **Backend & Backend-as-a-Service (BaaS)**: [Appwrite SDK](https://appwrite.io), gerenciando autenticação, sessões, persistência remota e **Appwrite Realtime (WebSockets)** escopado por usuário para sincronização instantânea inter-dispositivos.
 - **Serverless Functions**: Função Go 1.26 (`functions/process_recurrent_transactions`) para processamento automatizado de transações recorrentes indeterminadas.
-- **Arquitetura Híbrida de Sincronização**: Combinação de mutações REST API, canal Realtime Pub/Sub WebSocket para atualizações ativas, e **Delta Sync com Reconciliação de Exclusões** ao retomar o foco da aplicação (`AppLifecycleState.resumed`).
+- **Arquitetura Híbrida de Sincronização**: Combinação de mutações REST API, canal Realtime Pub/Sub WebSocket para atualizações ativas, e **Delta Sync com Projeção Leve de IDs** (`Query.select(['$id'])`) para reconciliação de exclusões sem consumo desnecessário de tráfego de rede ao retomar o foco (`AppLifecycleState.resumed`).
+- **Domínio e Tipagem Forte**: Enums tipados do Dart 3 (`TipoTransacao`, `TipoItem`, `TipoHabito`, `TipoRecorrencia`) e desacoplamento de regras puras com `RecorrenciaService` via *switch expressions*.
 - **Roteamento Baseado em Arquivos**: [Routefly](https://github.com/wladrbarbosa/routefly) para navegação declarativa baseada na estrutura do sistema de arquivos.
 - **Visualização de Dados**: `fl_chart`, `timeline_tile`, `flutter_animation_progress_bar` e `syncfusion_flutter_calendar`.
 
@@ -51,8 +52,8 @@ O módulo financeiro permite controlar contas, categorias, lançamentos individu
   $$\text{Valor do Contato} = \text{Valor Total} \times \left( \frac{\text{Peso do Contato}}{\sum \text{Pesos}} \right)$$
 - Se nenhuma divisão for cadastrada, o valor é atribuído 100% ao responsável pela conta.
 
-#### Recorrência e Parcelamentos (`TransacaoRecorrenciaModel`)
-- Suporta frequências **diária**, **semanal**, **mensal** e **anual**.
+#### Recorrência e Parcelamentos (`RecorrenciaService` & `TransacaoRecorrenciaModel`)
+- Suporta frequências **diária**, **semanal**, **mensal** e **anual** calculadas pelo serviço desacoplado de domínio `RecorrenciaService`.
 - Cálculo automático das datas de competência de cada parcela com tratamento para anos bissextos e bordas de meses.
 - Permite número fixo de parcelas (`totalParcelas`) ou recorrência indeterminada (`fimRecorrencia`).
 - Atualizações em série permitem propagação em lote para transações futuras da mesma recorrência.

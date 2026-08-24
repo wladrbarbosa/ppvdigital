@@ -1,9 +1,11 @@
 import 'dart:convert';
 
+import 'package:flutter/foundation.dart';
 import 'package:ppvdigital/models/categoria_transacao_model.dart';
 import 'package:ppvdigital/models/conta_model.dart';
 import 'package:ppvdigital/models/contato_model.dart';
 import 'package:ppvdigital/models/divisao_transacao_model.dart';
+import 'package:ppvdigital/models/enums.dart';
 import 'package:ppvdigital/models/transacao_recorrencia_model.dart';
 
 class TransacaoModel {
@@ -111,6 +113,8 @@ class TransacaoModel {
   factory TransacaoModel.fromJson(String source) =>
       TransacaoModel.fromMap(json.decode(source) as Map<String, dynamic>);
 
+  TipoTransacao get tipoEnum => TipoTransacao.fromString(tipo);
+
   static DateTime parseDateCompetencia(String raw) {
     if (raw.length >= 10) {
       final datePart = raw.substring(0, 10);
@@ -202,6 +206,7 @@ class TransacaoModel {
         other.consolidada == consolidada &&
         other.categoria == categoria &&
         other.recorrencia == recorrencia &&
+        listEquals(other.divisoes, divisoes) &&
         other.devedorContato == devedorContato &&
         other.credorContato == credorContato;
   }
@@ -218,6 +223,7 @@ class TransacaoModel {
         consolidada.hashCode ^
         categoria.hashCode ^
         recorrencia.hashCode ^
+        Object.hashAll(divisoes) ^
         devedorContato.hashCode ^
         credorContato.hashCode;
   }

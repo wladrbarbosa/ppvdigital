@@ -208,9 +208,9 @@ class DriftTarefaHabitoRepository implements TarefaHabitoRepository {
       }
 
       if (lastSyncedAt != null || remoteDocs.isNotEmpty) {
-        final fullRemote =
-            await remoteRepository.getTarefasEHabitos(usuarioId: usuarioId);
-        final remoteIds = fullRemote.map((t) => t.id).toSet();
+        final remoteIds = await remoteRepository.getActiveTarefaHabitoIds(
+          usuarioId: usuarioId,
+        );
         final pendingIds = await _getPendingIds();
         final localRows = await localQuery.get();
         for (final row in localRows) {
@@ -233,6 +233,19 @@ class DriftTarefaHabitoRepository implements TarefaHabitoRepository {
         'Appwrite offline or failed to fetch: $e. Returning cached local data.',
       );
       return await _populatePeriodVezesPraticado(localList, usuarioId);
+    }
+  }
+
+  @override
+  Future<Set<String>> getActiveTarefaHabitoIds({
+    required String usuarioId,
+  }) async {
+    try {
+      return await remoteRepository.getActiveTarefaHabitoIds(
+        usuarioId: usuarioId,
+      );
+    } catch (_) {
+      return {};
     }
   }
 
@@ -272,9 +285,9 @@ class DriftTarefaHabitoRepository implements TarefaHabitoRepository {
       }
 
       if (lastSyncedAt != null || remoteList.isNotEmpty) {
-        final fullRemote =
-            await remoteRepository.getHistorico(usuarioId: usuarioId);
-        final remoteIds = fullRemote.map((h) => h.id).toSet();
+        final remoteIds = await remoteRepository.getActiveHistoricoIds(
+          usuarioId: usuarioId,
+        );
         final pendingIds = await _getPendingIds();
         final currentLocalRows = await localQuery.get();
         for (final row in currentLocalRows) {
@@ -296,6 +309,19 @@ class DriftTarefaHabitoRepository implements TarefaHabitoRepository {
     } catch (e) {
       log('Appwrite offline or failed to fetch history: $e');
       return localList;
+    }
+  }
+
+  @override
+  Future<Set<String>> getActiveHistoricoIds({
+    required String usuarioId,
+  }) async {
+    try {
+      return await remoteRepository.getActiveHistoricoIds(
+        usuarioId: usuarioId,
+      );
+    } catch (_) {
+      return {};
     }
   }
 

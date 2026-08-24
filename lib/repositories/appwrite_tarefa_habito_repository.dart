@@ -50,6 +50,24 @@ class AppwriteTarefaHabitoRepository implements TarefaHabitoRepository {
   }
 
   @override
+  Future<Set<String>> getActiveTarefaHabitoIds({
+    required String usuarioId,
+  }) async {
+    final TablesDB tablesDB = TablesDB(databases.client);
+    final queries = [
+      Query.equal('usuario', usuarioId),
+      Query.select([r'$id']),
+      Query.limit(5000),
+    ];
+    final res = await tablesDB.listRows(
+      databaseId: Core.databaseId,
+      tableId: Core.tableTarefasEHabitos,
+      queries: queries,
+    );
+    return res.rows.map((r) => r.$id).toSet();
+  }
+
+  @override
   Future<List<HistoricoItemModel>> getHistorico({
     required String usuarioId,
     bool forceLocal = false,
@@ -70,6 +88,24 @@ class AppwriteTarefaHabitoRepository implements TarefaHabitoRepository {
       queries: queries,
     );
     return res.rows.toHistoricoModelList();
+  }
+
+  @override
+  Future<Set<String>> getActiveHistoricoIds({
+    required String usuarioId,
+  }) async {
+    final TablesDB tablesDB = TablesDB(databases.client);
+    final queries = [
+      Query.equal('usuario', usuarioId),
+      Query.select([r'$id']),
+      Query.limit(5000),
+    ];
+    final res = await tablesDB.listRows(
+      databaseId: Core.databaseId,
+      tableId: Core.tableHistoricoTarefasHabitos,
+      queries: queries,
+    );
+    return res.rows.map((r) => r.$id).toSet();
   }
 
   @override

@@ -306,6 +306,59 @@ class AppwriteFinancasRepository implements FinancasRepository {
   }
 
   @override
+  Future<Set<String>> getActiveTransacaoIdsInMonth({
+    required String usuarioId,
+    required List<String> contaIds,
+    required DateTime targetMonth,
+  }) async {
+    if (contaIds.isEmpty) return {};
+    final TablesDB tablesDB = TablesDB(databases.client);
+    final firstDayOfMonth = DateTime(targetMonth.year, targetMonth.month);
+    final lastDayOfMonth = DateTime(
+      targetMonth.year,
+      targetMonth.month + 1,
+    ).subtract(const Duration(milliseconds: 1));
+
+    final baseQueries = [
+      Query.select([r'$id']),
+      Query.limit(5000),
+      Query.greaterThanEqual(
+        'dataCompetencia',
+        firstDayOfMonth.toIso8601String(),
+      ),
+      Query.lessThanEqual(
+        'dataCompetencia',
+        lastDayOfMonth.toIso8601String(),
+      ),
+    ];
+
+    final Set<String> ids = {};
+    for (int k = 0; k < contaIds.length; k += 100) {
+      final chunkContaIds = contaIds.sublist(
+        k,
+        k + 100 > contaIds.length ? contaIds.length : k + 100,
+      );
+      final docs1 = await tablesDB.listRows(
+        databaseId: Core.databaseId,
+        tableId: Core.tableTransacoes,
+        queries: [Query.equal('conta', chunkContaIds), ...baseQueries],
+      );
+      for (final doc in docs1.rows) {
+        ids.add(doc.$id);
+      }
+      final docs2 = await tablesDB.listRows(
+        databaseId: Core.databaseId,
+        tableId: Core.tableTransacoes,
+        queries: [Query.equal('contaDestino', chunkContaIds), ...baseQueries],
+      );
+      for (final doc in docs2.rows) {
+        ids.add(doc.$id);
+      }
+    }
+    return ids;
+  }
+
+  @override
   Future<List<TransacaoModel>> getRecurrenceSeries({
     required String recurrenceId,
   }) async {

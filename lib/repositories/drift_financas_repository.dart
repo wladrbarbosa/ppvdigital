@@ -662,12 +662,11 @@ class DriftFinancasRepository implements FinancasRepository {
       }
 
       if (lastSyncedAt != null && targetMonth != null) {
-        final activeRemote = await remoteRepository.getTransacoes(
+        final activeIds = await remoteRepository.getActiveTransacaoIdsInMonth(
           usuarioId: usuarioId,
           contaIds: effectiveContaIds,
           targetMonth: targetMonth,
         );
-        final activeIds = activeRemote.map((t) => t.id).toSet();
         final pendingIds = await _getPendingIds();
 
         final firstDayOfMonth = DateTime(targetMonth.year, targetMonth.month);
@@ -719,6 +718,23 @@ class DriftFinancasRepository implements FinancasRepository {
     } catch (e) {
       log('Offline transactions load fallback: $e');
       return localList;
+    }
+  }
+
+  @override
+  Future<Set<String>> getActiveTransacaoIdsInMonth({
+    required String usuarioId,
+    required List<String> contaIds,
+    required DateTime targetMonth,
+  }) async {
+    try {
+      return await remoteRepository.getActiveTransacaoIdsInMonth(
+        usuarioId: usuarioId,
+        contaIds: contaIds,
+        targetMonth: targetMonth,
+      );
+    } catch (_) {
+      return {};
     }
   }
 

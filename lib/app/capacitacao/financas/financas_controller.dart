@@ -4,6 +4,7 @@ import 'dart:developer';
 
 import 'package:appwrite/appwrite.dart';
 import 'package:mobx/mobx.dart' as mobx;
+import 'package:ppvdigital/app/capacitacao/financas/services/recorrencia_service.dart';
 import 'package:ppvdigital/core.dart';
 import 'package:ppvdigital/models/categoria_transacao_model.dart';
 import 'package:ppvdigital/models/conta_model.dart';
@@ -46,23 +47,23 @@ class FinancasController {
 
   final mobx.ObservableList<ContaModel> _contasList =
       mobx.ObservableList<ContaModel>(name: 'contasList');
-  List<ContaModel> get contasList => _contasList.toList();
+  List<ContaModel> get contasList => _contasList;
 
   final mobx.ObservableList<CategoriaTransacaoModel> _categoriasList =
       mobx.ObservableList<CategoriaTransacaoModel>(name: 'categoriasList');
-  List<CategoriaTransacaoModel> get categoriasList => _categoriasList.toList();
+  List<CategoriaTransacaoModel> get categoriasList => _categoriasList;
 
   final mobx.ObservableList<ContatoModel> _contatosList =
       mobx.ObservableList<ContatoModel>(name: 'contatosList');
-  List<ContatoModel> get contatosList => _contatosList.toList();
+  List<ContatoModel> get contatosList => _contatosList;
 
   final mobx.ObservableList<TransacaoModel> _transacoesList =
       mobx.ObservableList<TransacaoModel>(name: 'transacoesList');
-  List<TransacaoModel> get transacoesList => _transacoesList.toList();
+  List<TransacaoModel> get transacoesList => _transacoesList;
 
   final mobx.ObservableList<DivisaoTransacaoModel> _divisoesList =
       mobx.ObservableList<DivisaoTransacaoModel>(name: 'divisoesList');
-  List<DivisaoTransacaoModel> get divisoesList => _divisoesList.toList();
+  List<DivisaoTransacaoModel> get divisoesList => _divisoesList;
 
   static Future<void>? financasFuture;
   static DateTime? defaultDataCompetencia;
@@ -115,15 +116,7 @@ class FinancasController {
 
   Future<void> _subscribeToStreams(String user, DateTime targetMonth) async {
     _contatosSub?.cancel();
-    final contatosStream = repository.watchContatos(usuarioId: user);
-    try {
-      final firstData = await contatosStream.first;
-      mobx.runInAction(() {
-        _contatosList.clear();
-        _contatosList.addAll(firstData);
-      });
-    } catch (_) {}
-    _contatosSub = contatosStream.listen((data) {
+    _contatosSub = repository.watchContatos(usuarioId: user).listen((data) {
       mobx.runInAction(() {
         _contatosList.clear();
         _contatosList.addAll(data);
@@ -131,15 +124,7 @@ class FinancasController {
     });
 
     _contasSub?.cancel();
-    final contasStream = repository.watchContas(usuarioId: user);
-    try {
-      final firstData = await contasStream.first;
-      mobx.runInAction(() {
-        _contasList.clear();
-        _contasList.addAll(firstData);
-      });
-    } catch (_) {}
-    _contasSub = contasStream.listen((data) {
+    _contasSub = repository.watchContas(usuarioId: user).listen((data) {
       mobx.runInAction(() {
         _contasList.clear();
         _contasList.addAll(data);
@@ -147,15 +132,7 @@ class FinancasController {
     });
 
     _categoriasSub?.cancel();
-    final categoriasStream = repository.watchCategorias(usuarioId: user);
-    try {
-      final firstData = await categoriasStream.first;
-      mobx.runInAction(() {
-        _categoriasList.clear();
-        _categoriasList.addAll(firstData);
-      });
-    } catch (_) {}
-    _categoriasSub = categoriasStream.listen((data) {
+    _categoriasSub = repository.watchCategorias(usuarioId: user).listen((data) {
       mobx.runInAction(() {
         _categoriasList.clear();
         _categoriasList.addAll(data);
@@ -163,31 +140,9 @@ class FinancasController {
     });
 
     _transacoesSub?.cancel();
-    final transacoesStream = repository.watchTransacoes(
-      usuarioId: user,
-      contaIds: [],
-    );
-    try {
-      final firstData = await transacoesStream.first;
-      mobx.runInAction(() {
-        final firstDayOfMonth = DateTime(targetMonth.year, targetMonth.month);
-        final loadedTrans = firstData
-            .where(
-              (t) => t.dataCompetencia.isAfter(
-                firstDayOfMonth.subtract(const Duration(seconds: 1)),
-              ),
-            )
-            .toList();
-        final loadedPastTrans = firstData
-            .where((t) => t.dataCompetencia.isBefore(firstDayOfMonth))
-            .toList();
-
-        _transacoesList.clear();
-        _transacoesList.addAll(loadedTrans);
-        _transacoesList.addAll(loadedPastTrans);
-      });
-    } catch (_) {}
-    _transacoesSub = transacoesStream.listen((data) {
+    _transacoesSub = repository
+        .watchTransacoes(usuarioId: user, contaIds: [])
+        .listen((data) {
       mobx.runInAction(() {
         final firstDayOfMonth = DateTime(targetMonth.year, targetMonth.month);
         final loadedTrans = data
@@ -533,44 +488,21 @@ class FinancasController {
         );
       }
 
-      final int remainingParcels = totalParcelas - parcelaInicio + 1;
-      final int loopLimit = recorrente
-          ? (recorrenciaIndeterminada ? 24 : remainingParcels)
-          : 1;
-
       final List<Map<String, dynamic>> ops = [];
 
       if (recorrente) {
-        for (int i = 1; i <= loopLimit; i++) {
-          DateTime date = dataCompetencia;
-          if (tipoRecorrencia == 'dia') {
-            date = dataCompetencia.add(Duration(days: (i - 1) * frequencia));
-          } else if (tipoRecorrencia == 'semana') {
-            date = dataCompetencia.add(
-              Duration(days: (i - 1) * 7 * frequencia),
-            );
-          } else if (tipoRecorrencia == 'mês') {
-            date = DateTime(
-              dataCompetencia.year,
-              dataCompetencia.month + (i - 1) * frequencia,
-              dataCompetencia.day,
-              dataCompetencia.hour,
-              dataCompetencia.minute,
-            );
-          } else if (tipoRecorrencia == 'ano') {
-            date = DateTime(
-              dataCompetencia.year + (i - 1) * frequencia,
-              dataCompetencia.month,
-              dataCompetencia.day,
-              dataCompetencia.hour,
-              dataCompetencia.minute,
-            );
-          }
+        final parcelas = RecorrenciaService.gerarParcelas(
+          descricao: descricao,
+          dataCompetencia: dataCompetencia,
+          recorrente: recorrente,
+          recorrenciaIndeterminada: recorrenciaIndeterminada,
+          tipoRecorrencia: tipoRecorrencia,
+          frequencia: frequencia,
+          totalParcelas: totalParcelas,
+          parcelaInicio: parcelaInicio,
+        );
 
-          final String descFinal = recorrente && !recorrenciaIndeterminada
-              ? '$descricao (Parcela ${parcelaInicio + i - 1}/$totalParcelas)'
-              : descricao;
-
+        for (final parcela in parcelas) {
           final String tRowId = ID.unique();
 
           // Stage transaction creation
@@ -580,10 +512,10 @@ class FinancasController {
             'tableId': Core.tableTransacoes,
             'rowId': tRowId,
             'data': {
-              'descricao': descFinal,
+              'descricao': parcela.descricao,
               'valor': valor,
               'tipo': tipo,
-              'dataCompetencia': date.toIso8601String(),
+              'dataCompetencia': parcela.dataCompetencia.toIso8601String(),
               'conta': contaId,
               'contaDestino': contaDestinoId,
               'consolidada': consolidada,
@@ -889,38 +821,6 @@ class FinancasController {
       }
 
       String? updatedRecId = original.recorrencia?.id;
-
-      // Local helper function to calculate recurrent dates
-      DateTime calculateRecurrentDate(
-        DateTime baseDate,
-        String period,
-        int freq,
-        int offset,
-      ) {
-        if (period == 'dia') {
-          return baseDate.add(Duration(days: offset * freq));
-        } else if (period == 'semana') {
-          return baseDate.add(Duration(days: offset * 7 * freq));
-        } else if (period == 'mês') {
-          return DateTime(
-            baseDate.year,
-            baseDate.month + offset * freq,
-            baseDate.day,
-            baseDate.hour,
-            baseDate.minute,
-          );
-        } else if (period == 'ano') {
-          return DateTime(
-            baseDate.year + offset * freq,
-            baseDate.month,
-            baseDate.day,
-            baseDate.hour,
-            baseDate.minute,
-          );
-        }
-        return baseDate;
-      }
-
       String newMainDesc = descricao;
 
       if (optionRecorrencia == 'new_recurrence') {
@@ -942,11 +842,11 @@ class FinancasController {
         final int loopLimit = totalParcelas == null ? 24 : remainingParcels;
 
         for (int i = 2; i <= loopLimit; i++) {
-          final DateTime nextDate = calculateRecurrentDate(
-            dataCompetencia,
-            tipoRecorrencia ?? 'mês',
-            frequencia ?? 1,
-            i - 1,
+          final DateTime nextDate = RecorrenciaService.calcularDataParcela(
+            dataBase: dataCompetencia,
+            tipoRecorrencia: tipoRecorrencia ?? 'mês',
+            frequencia: frequencia ?? 1,
+            stepIndex: i - 1,
           );
           final int nextParcel = startParcel + i - 1;
           final String descFinal = totalParcelas == null
@@ -1085,11 +985,11 @@ class FinancasController {
               }
 
               // Calculate new date based on offset (j + 1)
-              final newDate = calculateRecurrentDate(
-                dataCompetencia,
-                finalPeriod,
-                finalFreq,
-                j + 1,
+              final newDate = RecorrenciaService.calcularDataParcela(
+                dataBase: dataCompetencia,
+                tipoRecorrencia: finalPeriod,
+                frequencia: finalFreq,
+                stepIndex: j + 1,
               );
 
               final int nextParcel = currentParcel + j + 1;
@@ -1217,11 +1117,11 @@ class FinancasController {
 
               // Calculate new date based on offset from edited transaction
               final int offset = j - idxEdit;
-              final newDate = calculateRecurrentDate(
-                dataCompetencia,
-                finalPeriod,
-                finalFreq,
-                offset,
+              final newDate = RecorrenciaService.calcularDataParcela(
+                dataBase: dataCompetencia,
+                tipoRecorrencia: finalPeriod,
+                frequencia: finalFreq,
+                stepIndex: offset,
               );
 
               final int nextParcel = j + 1;

@@ -3274,6 +3274,62 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $CategoriaTransacoesTable categoriaTransacoes =
       $CategoriaTransacoesTable(this);
   late final $TransacaosTable transacaos = $TransacaosTable(this);
+  late final Index idxTarefaUsuario = Index(
+    'idx_tarefa_usuario',
+    'CREATE INDEX idx_tarefa_usuario ON tarefa_habitos (usuario)',
+  );
+  late final Index idxTarefaTipo = Index(
+    'idx_tarefa_tipo',
+    'CREATE INDEX idx_tarefa_tipo ON tarefa_habitos (tipo)',
+  );
+  late final Index idxTarefaArquivado = Index(
+    'idx_tarefa_arquivado',
+    'CREATE INDEX idx_tarefa_arquivado ON tarefa_habitos (arquivado)',
+  );
+  late final Index idxHistoricoUsuario = Index(
+    'idx_historico_usuario',
+    'CREATE INDEX idx_historico_usuario ON historico_tarefas_habitos (usuario)',
+  );
+  late final Index idxHistoricoTarefa = Index(
+    'idx_historico_tarefa',
+    'CREATE INDEX idx_historico_tarefa ON historico_tarefas_habitos (tarefa_habito_id)',
+  );
+  late final Index idxHistoricoCreated = Index(
+    'idx_historico_created',
+    'CREATE INDEX idx_historico_created ON historico_tarefas_habitos (created_at)',
+  );
+  late final Index idxContasUser = Index(
+    'idx_contas_user',
+    'CREATE INDEX idx_contas_user ON contas (user_id)',
+  );
+  late final Index idxContatosOwner = Index(
+    'idx_contatos_owner',
+    'CREATE INDEX idx_contatos_owner ON contatos (owner_id)',
+  );
+  late final Index idxContatosUser = Index(
+    'idx_contatos_user',
+    'CREATE INDEX idx_contatos_user ON contatos (user_id)',
+  );
+  late final Index idxCategoriaTransacoesUser = Index(
+    'idx_categoria_transacoes_user',
+    'CREATE INDEX idx_categoria_transacoes_user ON categoria_transacoes (user_id)',
+  );
+  late final Index idxTransacaoCompetencia = Index(
+    'idx_transacao_competencia',
+    'CREATE INDEX idx_transacao_competencia ON transacaos (data_competencia)',
+  );
+  late final Index idxTransacaoConta = Index(
+    'idx_transacao_conta',
+    'CREATE INDEX idx_transacao_conta ON transacaos (conta_id)',
+  );
+  late final Index idxTransacaoContaDestino = Index(
+    'idx_transacao_conta_destino',
+    'CREATE INDEX idx_transacao_conta_destino ON transacaos (conta_destino_id)',
+  );
+  late final Index idxTransacaoCategoria = Index(
+    'idx_transacao_categoria',
+    'CREATE INDEX idx_transacao_categoria ON transacaos (categoria_id)',
+  );
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -3286,6 +3342,20 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     contatos,
     categoriaTransacoes,
     transacaos,
+    idxTarefaUsuario,
+    idxTarefaTipo,
+    idxTarefaArquivado,
+    idxHistoricoUsuario,
+    idxHistoricoTarefa,
+    idxHistoricoCreated,
+    idxContasUser,
+    idxContatosOwner,
+    idxContatosUser,
+    idxCategoriaTransacoesUser,
+    idxTransacaoCompetencia,
+    idxTransacaoConta,
+    idxTransacaoContaDestino,
+    idxTransacaoCategoria,
   ];
 }
 

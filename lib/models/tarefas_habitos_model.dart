@@ -1,21 +1,10 @@
-// ignore_for_file: public_member_api_docs, sort_constructors_first
 import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
-
+import 'package:ppvdigital/models/enums.dart';
 import 'package:ppvdigital/models/tarefas_habitos_qtd_model.dart';
 
 class TarefaHabitoModel {
-  final String id;
-  final String nome;
-  final String tipo;
-  final String usuario;
-  final bool concluida;
-  final bool arquivado;
-  final DateTime? agendamento;
-  final List<TarefaHabitoQtdModel> tarefasHabitosQtd;
-  final int? duration;
-
   TarefaHabitoModel({
     required this.id,
     required this.nome,
@@ -27,6 +16,57 @@ class TarefaHabitoModel {
     required this.tarefasHabitosQtd,
     this.duration,
   });
+
+  factory TarefaHabitoModel.fromMap(Map<String, dynamic> map) {
+    final String docId = (map[r'$id'] ?? map['id'] ?? '') as String;
+    final dynamic rawMetas = map['metas'] ??
+        map['tarefaHabitoQtd'] ??
+        map['tarefasHabitosQtds'] ??
+        map['tarefasHabitosQtd'];
+    List<TarefaHabitoQtdModel> metas = [];
+    if (rawMetas is List) {
+      metas = rawMetas
+          .whereType<Map>()
+          .map(
+            (x) => TarefaHabitoQtdModel.fromMap(Map<String, dynamic>.from(x)),
+          )
+          .toList();
+    }
+    return TarefaHabitoModel(
+      id: docId,
+      nome: (map['nome'] ?? '') as String,
+      tipo: (map['tipo'] ?? 'tarefa') as String,
+      usuario: (map['usuario'] ?? '') as String,
+      concluida: map['concluida'] is bool && map['concluida'] as bool,
+      arquivado: map['arquivado'] is bool && map['arquivado'] as bool,
+      agendamento: map['agendamento'] != null
+          ? (map['agendamento'] is int
+                ? DateTime.fromMillisecondsSinceEpoch(map['agendamento'] as int)
+                : DateTime.tryParse(map['agendamento'].toString()))
+          : null,
+      tarefasHabitosQtd: metas,
+      duration: map['duration'] is num
+          ? (map['duration'] as num).toInt()
+          : null,
+    );
+  }
+
+  factory TarefaHabitoModel.fromJson(String source) =>
+      TarefaHabitoModel.fromMap(json.decode(source) as Map<String, dynamic>);
+
+  final String id;
+  final String nome;
+  final String tipo;
+  final String usuario;
+  final bool concluida;
+  final bool arquivado;
+  final DateTime? agendamento;
+  final List<TarefaHabitoQtdModel> tarefasHabitosQtd;
+  final int? duration;
+
+  TipoItem get tipoEnum => TipoItem.fromString(tipo);
+  bool get isHabitoNegativo => tarefasHabitosQtd.any((q) => q.valor < 0);
+  TipoHabito get tipoHabitoEnum => isHabitoNegativo ? TipoHabito.negativo : TipoHabito.positivo;
 
   TarefaHabitoModel copyWith({
     String? id,
@@ -66,44 +106,7 @@ class TarefaHabitoModel {
     };
   }
 
-  factory TarefaHabitoModel.fromMap(Map<String, dynamic> map) {
-    final String docId = (map[r'$id'] ?? map['id'] ?? '') as String;
-    final dynamic rawMetas = map['metas'] ??
-        map['tarefaHabitoQtd'] ??
-        map['tarefasHabitosQtds'] ??
-        map['tarefasHabitosQtd'];
-    List<TarefaHabitoQtdModel> metas = [];
-    if (rawMetas is List) {
-      metas = rawMetas
-          .whereType<Map>()
-          .map(
-            (x) => TarefaHabitoQtdModel.fromMap(Map<String, dynamic>.from(x)),
-          )
-          .toList();
-    }
-    return TarefaHabitoModel(
-      id: docId,
-      nome: (map['nome'] ?? '') as String,
-      tipo: (map['tipo'] ?? 'tarefa') as String,
-      usuario: (map['usuario'] ?? '') as String,
-      concluida: map['concluida'] is bool && map['concluida'] as bool,
-      arquivado: map['arquivado'] is bool && map['arquivado'] as bool,
-      agendamento: map['agendamento'] != null
-          ? (map['agendamento'] is int
-                ? DateTime.fromMillisecondsSinceEpoch(map['agendamento'] as int)
-                : DateTime.tryParse(map['agendamento'].toString()))
-          : null,
-      tarefasHabitosQtd: metas,
-      duration: map['duration'] is num
-          ? (map['duration'] as num).toInt()
-          : null,
-    );
-  }
-
   String toJson() => json.encode(toMap());
-
-  factory TarefaHabitoModel.fromJson(String source) =>
-      TarefaHabitoModel.fromMap(json.decode(source) as Map<String, dynamic>);
 
   @override
   String toString() {

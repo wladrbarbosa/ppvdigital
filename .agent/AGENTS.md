@@ -50,7 +50,8 @@ When source skills reference legacy tool names, use these Antigravity equivalent
 
 Before saying a task is done:
 
-1. Run the relevant verification command(s).
-2. Confirm exit status and key output.
-3. Update `<project-root>/docs/plans/task.md`.
-4. Report evidence, then claim completion.
+1. Run the relevant verification command(s) (`fvm flutter analyze`, `fvm flutter test`).
+2. Maintain and expand automated test coverage seeking to keep it as close to 100% as possible.
+3. Confirm exit status and key output.
+4. Update `<project-root>/docs/plans/task.md`.
+5. Report evidence, then claim completion.

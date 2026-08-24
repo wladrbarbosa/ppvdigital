@@ -21,12 +21,26 @@ class MockRemoteTarefaHabitoRepository implements TarefaHabitoRepository {
   }
 
   @override
+  Future<Set<String>> getActiveTarefaHabitoIds({
+    required String usuarioId,
+  }) async {
+    return items.map((t) => t.id).toSet();
+  }
+
+  @override
   Future<List<HistoricoItemModel>> getHistorico({
     required String usuarioId,
     bool forceLocal = false,
     DateTime? lastSyncedAt,
   }) async {
     return historyItems;
+  }
+
+  @override
+  Future<Set<String>> getActiveHistoricoIds({
+    required String usuarioId,
+  }) async {
+    return historyItems.map((h) => h.id).toSet();
   }
 
   @override

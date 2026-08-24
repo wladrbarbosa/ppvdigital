@@ -69,6 +69,12 @@ abstract class FinancasRepository {
     DateTime? lastSyncedAt,
   });
 
+  Future<Set<String>> getActiveTransacaoIdsInMonth({
+    required String usuarioId,
+    required List<String> contaIds,
+    required DateTime targetMonth,
+  });
+
   Future<List<TransacaoModel>> getRecurrenceSeries({
     required String recurrenceId,
   });

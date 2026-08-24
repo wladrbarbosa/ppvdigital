@@ -1,8 +1,8 @@
 | Task | Status | Description |
 |---|---|---|
-| 1. Isolamento de Transações por Usuário/Contas | COMPLETED | Filtrar estritamente transações locais por `contaIds` em `getTransacoes` e `watchTransacoes`, e validar contas do usuário em `handleRealtimeEvent` |
-| 2. Suporte a Hábitos Negativos e Abstinência | COMPLETED | Suporte a hábitos negativos com `metaVezes` como meta de dias sem praticar, contagem de streak/dias de abstinência, preenchimento líquido crescente, cor diferenciada (`deepOrange`), diálogo de confirmação de recaída e ordenação por tipo |
-| 3. Campo e Visualização de Tarefas/Hábitos Arquivados | COMPLETED | Adicionar campo `arquivado` ao Drift SQLite (v5), modelo, repositórios, formulário de cadastro e filtro para alternar entre ativos e arquivados |
-| 4. Persistência de Hábitos Negativos no Hot Reload & Sync | COMPLETED | Corrigir projeção `Query.select` no Appwrite, merge seguro de metas no SQLite `_upsertTarefaHabito`, parsing de `createdAt` em `TarefaHabitoQtdModel.fromMap` e cálculo histórico de recaídas |
-| 5. Testes Automatizados e Análise Estática | COMPLETED | Implementar testes unitários para isolamento de transações, hábitos negativos, cálculo de streak, reconciliação de sync e itens arquivados, validando com `fvm flutter test` e `fvm flutter analyze` (82 testes aprovados) |
-| 6. Preservação de Progresso ao Alterar Duração de Hábitos | COMPLETED | Preservar `vezesPraticado` no formulário e repositório, garantir carregamento seguro do usuário em `recordHistorico` e atualizar listas reativas sem perda de histórico (86 testes aprovados) |
+| 1. Drift SQLite Índices & Schema Upgrade (v6) | COMPLETED | Adicionar índices SQL em `Transacaos`, `HistoricoTarefasHabitos`, `TarefaHabitos`, `Contas` e atualizar schema para v6 |
+| 2. Enums Tipados (Dart 3) e Correção de Igualdade em TransacaoModel | COMPLETED | Criar `TipoTransacao`, `TipoItem`, `TipoHabito`, `TipoRecorrencia` e corrigir `operator ==` com `divisoes` |
+| 3. Otimização do Delta Sync (Projeção Leve de IDs no Appwrite & Drift) | COMPLETED | Projetar apenas `['$id']` nas consultas de reconciliação de exclusão sem carregar payloads completos |
+| 4. Otimização de Memória nos Getters MobX e Streams | COMPLETED | Eliminar alocações repetidas de `.toList()` e queries redundantes `await stream.first` no `FinancasController` |
+| 5. Desacoplamento da Camada de Domínio com RecorrenciaService | COMPLETED | Extrair lógica pura de cálculo de parcelas e datas com switch expressions do Dart 3 |
+| 6. Expansão da Suíte de Testes Automatizados | COMPLETED | Implementar testes para `util.dart`, `RecorrenciaService`, `TransacaoModel` e `FinancasController`, validando cobertura com `fvm flutter test` |

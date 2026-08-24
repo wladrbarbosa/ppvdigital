@@ -96,6 +96,9 @@ class AppSettings extends Table {
   TextColumn get value => text()();
 }
 
+@TableIndex(name: 'idx_tarefa_usuario', columns: {#usuario})
+@TableIndex(name: 'idx_tarefa_tipo', columns: {#tipo})
+@TableIndex(name: 'idx_tarefa_arquivado', columns: {#arquivado})
 class TarefaHabitos extends Table {
   IntColumn get id => integer().autoIncrement()();
   TextColumn get remoteId => text().unique()();
@@ -110,6 +113,9 @@ class TarefaHabitos extends Table {
       text().map(const MetasConverter())(); // Embutido como JSON
 }
 
+@TableIndex(name: 'idx_historico_usuario', columns: {#usuario})
+@TableIndex(name: 'idx_historico_tarefa', columns: {#tarefaHabitoId})
+@TableIndex(name: 'idx_historico_created', columns: {#createdAt})
 class HistoricoTarefasHabitos extends Table {
   IntColumn get id => integer().autoIncrement()();
   TextColumn get remoteId => text().unique()();
@@ -118,6 +124,7 @@ class HistoricoTarefasHabitos extends Table {
   DateTimeColumn get createdAt => dateTime()();
 }
 
+@TableIndex(name: 'idx_contas_user', columns: {#userId})
 class Contas extends Table {
   IntColumn get id => integer().autoIncrement()();
   TextColumn get remoteId => text().unique()();
@@ -126,6 +133,8 @@ class Contas extends Table {
   RealColumn get saldoAtual => real()();
 }
 
+@TableIndex(name: 'idx_contatos_owner', columns: {#ownerId})
+@TableIndex(name: 'idx_contatos_user', columns: {#userId})
 class Contatos extends Table {
   IntColumn get id => integer().autoIncrement()();
   TextColumn get remoteId => text().unique()();
@@ -136,6 +145,7 @@ class Contatos extends Table {
   TextColumn get userId => text().nullable()();
 }
 
+@TableIndex(name: 'idx_categoria_transacoes_user', columns: {#userId})
 class CategoriaTransacoes extends Table {
   IntColumn get id => integer().autoIncrement()();
   TextColumn get remoteId => text().unique()();
@@ -145,6 +155,10 @@ class CategoriaTransacoes extends Table {
   TextColumn get userId => text()();
 }
 
+@TableIndex(name: 'idx_transacao_competencia', columns: {#dataCompetencia})
+@TableIndex(name: 'idx_transacao_conta', columns: {#contaId})
+@TableIndex(name: 'idx_transacao_conta_destino', columns: {#contaDestinoId})
+@TableIndex(name: 'idx_transacao_categoria', columns: {#categoriaId})
 class Transacaos extends Table {
   IntColumn get id => integer().autoIncrement()();
   TextColumn get remoteId => text().unique()();
@@ -180,7 +194,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase([QueryExecutor? executor]) : super(executor ?? _openConnection());
 
   @override
-  int get schemaVersion => 5;
+  int get schemaVersion => 6;
 
   @override
   MigrationStrategy get migration {
@@ -230,6 +244,26 @@ class AppDatabase extends _$AppDatabase {
             log('Migration error adding arquivado to tarefaHabitos: $e');
           }
         }
+        if (from < 6) {
+          try {
+            await customStatement('CREATE INDEX IF NOT EXISTS idx_transacao_competencia ON transacaos (data_competencia);');
+            await customStatement('CREATE INDEX IF NOT EXISTS idx_transacao_conta ON transacaos (conta_id);');
+            await customStatement('CREATE INDEX IF NOT EXISTS idx_transacao_conta_destino ON transacaos (conta_destino_id);');
+            await customStatement('CREATE INDEX IF NOT EXISTS idx_transacao_categoria ON transacaos (categoria_id);');
+            await customStatement('CREATE INDEX IF NOT EXISTS idx_historico_usuario ON historico_tarefas_habitos (usuario);');
+            await customStatement('CREATE INDEX IF NOT EXISTS idx_historico_tarefa ON historico_tarefas_habitos (tarefa_habito_id);');
+            await customStatement('CREATE INDEX IF NOT EXISTS idx_historico_created ON historico_tarefas_habitos (created_at);');
+            await customStatement('CREATE INDEX IF NOT EXISTS idx_tarefa_usuario ON tarefa_habitos (usuario);');
+            await customStatement('CREATE INDEX IF NOT EXISTS idx_tarefa_tipo ON tarefa_habitos (tipo);');
+            await customStatement('CREATE INDEX IF NOT EXISTS idx_tarefa_arquivado ON tarefa_habitos (arquivado);');
+            await customStatement('CREATE INDEX IF NOT EXISTS idx_contas_user ON contas (user_id);');
+            await customStatement('CREATE INDEX IF NOT EXISTS idx_contatos_owner ON contatos (owner_id);');
+            await customStatement('CREATE INDEX IF NOT EXISTS idx_contatos_user ON contatos (user_id);');
+            await customStatement('CREATE INDEX IF NOT EXISTS idx_categoria_transacoes_user ON categoria_transacoes (user_id);');
+          } catch (e) {
+            log('Migration error creating indices: $e');
+          }
+        }
       },
       beforeOpen: (details) async {
         try {
@@ -241,6 +275,22 @@ class AppDatabase extends _$AppDatabase {
           await customStatement(
             'ALTER TABLE tarefa_habitos ADD COLUMN arquivado INTEGER NOT NULL DEFAULT 0;',
           );
+        } catch (_) {}
+        try {
+          await customStatement('CREATE INDEX IF NOT EXISTS idx_transacao_competencia ON transacaos (data_competencia);');
+          await customStatement('CREATE INDEX IF NOT EXISTS idx_transacao_conta ON transacaos (conta_id);');
+          await customStatement('CREATE INDEX IF NOT EXISTS idx_transacao_conta_destino ON transacaos (conta_destino_id);');
+          await customStatement('CREATE INDEX IF NOT EXISTS idx_transacao_categoria ON transacaos (categoria_id);');
+          await customStatement('CREATE INDEX IF NOT EXISTS idx_historico_usuario ON historico_tarefas_habitos (usuario);');
+          await customStatement('CREATE INDEX IF NOT EXISTS idx_historico_tarefa ON historico_tarefas_habitos (tarefa_habito_id);');
+          await customStatement('CREATE INDEX IF NOT EXISTS idx_historico_created ON historico_tarefas_habitos (created_at);');
+          await customStatement('CREATE INDEX IF NOT EXISTS idx_tarefa_usuario ON tarefa_habitos (usuario);');
+          await customStatement('CREATE INDEX IF NOT EXISTS idx_tarefa_tipo ON tarefa_habitos (tipo);');
+          await customStatement('CREATE INDEX IF NOT EXISTS idx_tarefa_arquivado ON tarefa_habitos (arquivado);');
+          await customStatement('CREATE INDEX IF NOT EXISTS idx_contas_user ON contas (user_id);');
+          await customStatement('CREATE INDEX IF NOT EXISTS idx_contatos_owner ON contatos (owner_id);');
+          await customStatement('CREATE INDEX IF NOT EXISTS idx_contatos_user ON contatos (user_id);');
+          await customStatement('CREATE INDEX IF NOT EXISTS idx_categoria_transacoes_user ON categoria_transacoes (user_id);');
         } catch (_) {}
       },
     );

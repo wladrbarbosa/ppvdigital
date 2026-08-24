@@ -22,10 +22,25 @@ class RootAppWidget extends StatefulWidget {
 
 class _RootAppWidgetState extends State<RootAppWidget>
     with WidgetsBindingObserver {
+  MaterialTheme? _materialTheme;
+
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_materialTheme == null) {
+      final TextTheme textTheme = createTextTheme(
+        context,
+        'Acme',
+        'Akaya Kanadaka',
+      );
+      _materialTheme = MaterialTheme(textTheme);
+    }
   }
 
   @override
@@ -101,13 +116,14 @@ class _RootAppWidgetState extends State<RootAppWidget>
     // Retrieves the default theme for the platform
     //TextTheme textTheme = Theme.of(context).textTheme;
 
-    // Use with Google Fonts package to use downloadable fonts
-    final TextTheme textTheme = createTextTheme(
-      context,
-      'Acme',
-      'Akaya Kanadaka',
-    );
-    final MaterialTheme theme = MaterialTheme(textTheme);
+    final MaterialTheme theme = _materialTheme ??
+        MaterialTheme(
+          createTextTheme(
+            context,
+            'Acme',
+            'Akaya Kanadaka',
+          ),
+        );
 
     if (!appLocalizationDelegates.contains(SfGlobalLocalizations.delegate)) {
       appLocalizationDelegates.add(SfGlobalLocalizations.delegate);
