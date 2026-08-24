@@ -424,5 +424,402 @@ void main() {
       expect(list.first.name, 'Trabalho');
       expect(list.first.totalValue, 10.0);
     });
+
+    group('Archived Items Exclusion Tests', () {
+      final categoryA = CategoriasTarefasHabitosModel(
+        id: 'catA',
+        nome: 'Saúde',
+        cor: Colors.green,
+        usuario: 'u1',
+      );
+
+      final activeHabit = TarefaHabitoModel(
+        id: 'h_active',
+        usuario: 'u1',
+        nome: 'Hábito Ativo',
+        tipo: 'habito',
+        duration: 30,
+        concluida: false,
+        agendamento: null,
+        tarefasHabitosQtd: [
+          TarefaHabitoQtdModel(
+            id: 'q_active',
+            usuario: 'u1',
+            metaVezes: 2,
+            valor: 1.0,
+            reiniciaEmTipo: 'dias',
+            reiniciaEmQtd: 1,
+            vezesPraticado: 1,
+            categoriasTarefasHabitos: categoryA,
+            createdAt: DateTime.now(),
+          ),
+        ],
+      );
+
+      final archivedHabit = TarefaHabitoModel(
+        id: 'h_archived',
+        usuario: 'u1',
+        nome: 'Hábito Arquivado',
+        tipo: 'habito',
+        duration: 60,
+        concluida: false,
+        arquivado: true,
+        agendamento: null,
+        tarefasHabitosQtd: [
+          TarefaHabitoQtdModel(
+            id: 'q_archived',
+            usuario: 'u1',
+            metaVezes: 5,
+            valor: 2.0,
+            reiniciaEmTipo: 'dias',
+            reiniciaEmQtd: 1,
+            vezesPraticado: 3,
+            categoriasTarefasHabitos: categoryA,
+            createdAt: DateTime.now(),
+          ),
+        ],
+      );
+
+      final activeTask = TarefaHabitoModel(
+        id: 't_active',
+        usuario: 'u1',
+        nome: 'Tarefa Ativa',
+        tipo: 'tarefa',
+        duration: 20,
+        concluida: true,
+        agendamento: null,
+        tarefasHabitosQtd: [
+          TarefaHabitoQtdModel(
+            id: 'qt_active',
+            usuario: 'u1',
+            metaVezes: 1,
+            valor: 3.0,
+            reiniciaEmTipo: 'dias',
+            reiniciaEmQtd: 1,
+            vezesPraticado: 0,
+            categoriasTarefasHabitos: categoryA,
+            createdAt: DateTime.now(),
+          ),
+        ],
+      );
+
+      final archivedTask = TarefaHabitoModel(
+        id: 't_archived',
+        usuario: 'u1',
+        nome: 'Tarefa Arquivada',
+        tipo: 'tarefa',
+        duration: 40,
+        concluida: true,
+        arquivado: true,
+        agendamento: null,
+        tarefasHabitosQtd: [
+          TarefaHabitoQtdModel(
+            id: 'qt_archived',
+            usuario: 'u1',
+            metaVezes: 1,
+            valor: 5.0,
+            reiniciaEmTipo: 'dias',
+            reiniciaEmQtd: 1,
+            vezesPraticado: 0,
+            categoriasTarefasHabitos: categoryA,
+            createdAt: DateTime.now(),
+          ),
+        ],
+      );
+
+      test('getPlannedCommitmentTime ignores archived habits', () {
+        final planned = DashboardLogic.getPlannedCommitmentTime([
+          activeHabit,
+          archivedHabit,
+        ]);
+        // Apenas activeHabit: 30 * 2 = 60 min
+        expect(planned['dias'], 60);
+      });
+
+      test('getExecutedCommitmentTime ignores archived items in fallback and historico', () {
+        final now = DateTime.now();
+        // 1. Fallback sem historico
+        final executedFallback = DashboardLogic.getExecutedCommitmentTime([
+          activeHabit,
+          archivedHabit,
+          activeTask,
+          archivedTask,
+        ]);
+        // Active habit: 30 * 1 = 30 min. Active task: 20 min. Total = 50 min.
+        // Archived habit (60*3=180) e Archived task (40) devem ser ignorados.
+        expect(executedFallback['dias'], 50);
+
+        // 2. Com historico
+        final historico = [
+          HistoricoItemModel(
+            id: 'hist1',
+            usuario: 'u1',
+            tarefasEHabitos: activeHabit,
+            createdAt: now,
+          ),
+          HistoricoItemModel(
+            id: 'hist2',
+            usuario: 'u1',
+            tarefasEHabitos: archivedHabit,
+            createdAt: now,
+          ),
+        ];
+
+        final executedWithHist = DashboardLogic.getExecutedCommitmentTime(
+          [activeHabit, archivedHabit],
+          historico,
+        );
+        // Apenas o historico do activeHabit (30 min) deve contar
+        expect(executedWithHist['dias'], 30);
+      });
+
+      test('getCategoryProgress ignores archived items and archived history', () {
+        final now = DateTime.now();
+        final historico = [
+          HistoricoItemModel(
+            id: 'hist1',
+            usuario: 'u1',
+            tarefasEHabitos: activeHabit,
+            createdAt: now,
+          ),
+          HistoricoItemModel(
+            id: 'hist2',
+            usuario: 'u1',
+            tarefasEHabitos: archivedHabit,
+            createdAt: now,
+          ),
+        ];
+
+        final list = DashboardLogic.getCategoryProgress(
+          [activeHabit, archivedHabit, activeTask, archivedTask],
+          historico,
+        );
+
+        expect(list.length, 1);
+        final cat = list.first;
+        // Meta do activeHabit: metaVezes(2) * valor(1.0) = 2.0 (archivedHabit ignorado)
+        expect(cat.cycles['dias']!.totalGoal, 2.0);
+        // Executado do historico apenas para activeHabit: valor(1.0) = 1.0 (archivedHabit ignorado)
+        expect(cat.cycles['dias']!.totalExecuted, 1.0);
+      });
+
+      test('getCategoryAttentionDistribution ignores archived items and completed tasks', () {
+        final pendingActiveTask = activeTask.copyWith(concluida: false);
+        final list = DashboardLogic.getCategoryAttentionDistribution([
+          activeHabit,
+          archivedHabit,
+          pendingActiveTask,
+          archivedTask,
+        ]);
+        expect(list.length, 1);
+        // activeHabit valor=1.0 + pendingActiveTask valor=3.0 = 4.0 (archivedHabit e archivedTask ignorados)
+        expect(list.first.totalValue, 4.0);
+      });
+
+      test('getCompletionRateLast7DaysList ignores archived habits and archived historico', () {
+        final now = DateTime.now();
+        final historico = [
+          HistoricoItemModel(
+            id: 'h_act',
+            usuario: 'u1',
+            tarefasEHabitos: activeHabit,
+            createdAt: now,
+          ),
+          HistoricoItemModel(
+            id: 'h_arch',
+            usuario: 'u1',
+            tarefasEHabitos: archivedHabit,
+            createdAt: now,
+          ),
+        ];
+
+        final list = DashboardLogic.getCompletionRateLast7DaysList(
+          [activeHabit, archivedHabit],
+          historico,
+        );
+
+        final todayRate = list.last;
+        // totalHabits = 1 (activeHabit), completed = 1 (activeHabit) -> rate = 1.0
+        expect(todayRate.totalCount, 1);
+        expect(todayRate.completedCount, 1);
+        expect(todayRate.rate, 1.0);
+      });
+
+      test('getHabitTaskDistribution ignores archived items', () {
+        final incompleteActiveTask = activeTask.copyWith(concluida: false);
+        final incompleteArchivedTask = archivedTask.copyWith(concluida: false);
+
+        final distribution = DashboardLogic.getHabitTaskDistribution([
+          activeHabit,
+          archivedHabit,
+          incompleteActiveTask,
+          incompleteArchivedTask,
+        ]);
+
+        // Apenas activeHabit e incompleteActiveTask
+        expect(distribution['Hábitos'], 1);
+        expect(distribution['Tarefas'], 1);
+      });
+
+      test('Categories without active items or with only archived items are completely omitted', () {
+        final catTrabalho = CategoriasTarefasHabitosModel(
+          id: 'catTrabalho',
+          nome: 'Trabalho',
+          cor: Colors.blue,
+          usuario: 'u1',
+        );
+
+        // catTrabalho possui apenas itens arquivados (e qualquer outra categoria sem itens nunca aparece)
+        final archivedTrabalhoHabit = TarefaHabitoModel(
+          id: 'h_trab_arch',
+          usuario: 'u1',
+          nome: 'Reunião Arquivada',
+          tipo: 'habito',
+          duration: 30,
+          concluida: false,
+          arquivado: true,
+          agendamento: null,
+          tarefasHabitosQtd: [
+            TarefaHabitoQtdModel(
+              id: 'q_trab_arch',
+              usuario: 'u1',
+              metaVezes: 2,
+              valor: 1.0,
+              reiniciaEmTipo: 'dias',
+              reiniciaEmQtd: 1,
+              vezesPraticado: 0,
+              categoriasTarefasHabitos: catTrabalho,
+              createdAt: DateTime.now(),
+            ),
+          ],
+        );
+
+        // catLazer não possui nenhum item na lista
+        // Apenas activeHabit (categoria Saúde) está ativo
+        final progressList = DashboardLogic.getCategoryProgress([
+          activeHabit,
+          archivedTrabalhoHabit,
+        ]);
+
+        expect(progressList.length, 1);
+        expect(progressList.first.name, 'Saúde');
+        expect(progressList.any((c) => c.name == 'Trabalho'), isFalse);
+        expect(progressList.any((c) => c.name == 'Lazer'), isFalse);
+
+        final attentionList = DashboardLogic.getCategoryAttentionDistribution([
+          activeHabit,
+          archivedTrabalhoHabit,
+        ]);
+
+        expect(attentionList.length, 1);
+        expect(attentionList.first.name, 'Saúde');
+        expect(attentionList.any((c) => c.name == 'Trabalho'), isFalse);
+        expect(attentionList.any((c) => c.name == 'Lazer'), isFalse);
+      });
+
+      test('Category with empty or whitespace name resolves to Sem Categoria', () {
+        final blankCategory = CategoriasTarefasHabitosModel(
+          id: 'catBlank',
+          nome: '   ',
+          cor: Colors.grey,
+          usuario: 'u1',
+        );
+
+        final habitWithBlankCat = TarefaHabitoModel(
+          id: 'h_blank',
+          usuario: 'u1',
+          nome: 'Hábito Sem Nome de Categoria',
+          tipo: 'habito',
+          duration: 15,
+          concluida: false,
+          agendamento: null,
+          tarefasHabitosQtd: [
+            TarefaHabitoQtdModel(
+              id: 'q_blank',
+              usuario: 'u1',
+              metaVezes: 1,
+              valor: 1.0,
+              reiniciaEmTipo: 'dias',
+              reiniciaEmQtd: 1,
+              vezesPraticado: 0,
+              categoriasTarefasHabitos: blankCategory,
+              createdAt: DateTime.now(),
+            ),
+          ],
+        );
+
+        final progressList = DashboardLogic.getCategoryProgress([
+          habitWithBlankCat,
+        ]);
+
+        expect(progressList.length, 1);
+        expect(progressList.first.name, 'Sem Categoria');
+
+        final attentionList = DashboardLogic.getCategoryAttentionDistribution([
+          habitWithBlankCat,
+        ]);
+
+        expect(attentionList.length, 1);
+        expect(attentionList.first.name, 'Sem Categoria');
+      });
+
+      test('Category with only archived habits and existing historical executions is completely omitted from getCategoryProgress', () {
+        final catCachorros = CategoriasTarefasHabitosModel(
+          id: 'catCachorros',
+          nome: 'Cachorros',
+          cor: Colors.brown,
+          usuario: 'u1',
+        );
+
+        final archivedCachorroHabit = TarefaHabitoModel(
+          id: 'h_cachorro_archived',
+          usuario: 'u1',
+          nome: 'Passear com o cachorro',
+          tipo: 'habito',
+          duration: 30,
+          concluida: false,
+          arquivado: true,
+          agendamento: null,
+          tarefasHabitosQtd: [
+            TarefaHabitoQtdModel(
+              id: 'q_cachorro',
+              usuario: 'u1',
+              metaVezes: 2,
+              valor: 1.0,
+              reiniciaEmTipo: 'dias',
+              reiniciaEmQtd: 1,
+              vezesPraticado: 0,
+              categoriasTarefasHabitos: catCachorros,
+              createdAt: DateTime.now().subtract(const Duration(days: 30)),
+            ),
+          ],
+        );
+
+        final historico = [
+          HistoricoItemModel(
+            id: 'hist_cachorro_old',
+            usuario: 'u1',
+            tarefasEHabitos: archivedCachorroHabit,
+            createdAt: DateTime.now().subtract(const Duration(days: 5)),
+          ),
+          HistoricoItemModel(
+            id: 'hist_saude',
+            usuario: 'u1',
+            tarefasEHabitos: activeHabit,
+            createdAt: DateTime.now(),
+          ),
+        ];
+
+        final progressList = DashboardLogic.getCategoryProgress(
+          [activeHabit, archivedCachorroHabit],
+          historico,
+        );
+
+        // Cachorros tem histórico passado, mas como seu único hábito está arquivado, não deve aparecer
+        expect(progressList.any((c) => c.name == 'Cachorros'), isFalse);
+        expect(progressList.length, 1);
+        expect(progressList.first.name, 'Saúde');
+      });
+    });
   });
 }

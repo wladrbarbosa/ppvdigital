@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:ppvdigital/models/categorias_tarefas_habitos_model.dart';
 import 'package:ppvdigital/models/historico_item_model.dart';
 import 'package:ppvdigital/models/tarefas_habitos_model.dart';
 
@@ -83,22 +84,23 @@ class DashboardLogic {
     final int daysInMonth = DateTime(now.year, now.month + 1, 0).day;
     final int daysInYear =
         ((now.year % 4 == 0 && now.year % 100 != 0) || now.year % 400 == 0)
-            ? 366
-            : 365;
+        ? 366
+        : 365;
 
     for (final item in items) {
+      if (item.arquivado) continue;
       if (item.tipo != 'habito') {
         continue;
       }
       if (item.tarefasHabitosQtd.isEmpty) continue;
 
-      final int duration =
-          (item.duration != null && item.duration! > 0) ? item.duration! : 30;
+      final int duration = (item.duration != null && item.duration! > 0)
+          ? item.duration!
+          : 30;
 
       for (final qtd in item.tarefasHabitosQtd) {
         final int reiniciaQtd = qtd.reiniciaEmQtd > 0 ? qtd.reiniciaEmQtd : 1;
-        final double baseMinutes =
-            (duration * qtd.metaVezes) / reiniciaQtd;
+        final double baseMinutes = (duration * qtd.metaVezes) / reiniciaQtd;
         final String cycle = qtd.reiniciaEmTipo;
 
         switch (cycle) {
@@ -108,7 +110,8 @@ class DashboardLogic {
                 planned['semanas']! + (baseMinutes * 7).round();
             planned['meses'] =
                 planned['meses']! + (baseMinutes * daysInMonth).round();
-            planned['anos'] = planned['anos']! + (baseMinutes * daysInYear).round();
+            planned['anos'] =
+                planned['anos']! + (baseMinutes * daysInYear).round();
 
           case 'semanas':
             planned['dias'] = planned['dias']! + (baseMinutes / 7).round();
@@ -125,11 +128,11 @@ class DashboardLogic {
             planned['anos'] = planned['anos']! + (baseMinutes * 12).round();
 
           case 'anos':
-            planned['dias'] = planned['dias']! + (baseMinutes / daysInYear).round();
+            planned['dias'] =
+                planned['dias']! + (baseMinutes / daysInYear).round();
             planned['semanas'] =
                 planned['semanas']! + (baseMinutes / 52).round();
-            planned['meses'] =
-                planned['meses']! + (baseMinutes / 12).round();
+            planned['meses'] = planned['meses']! + (baseMinutes / 12).round();
             planned['anos'] = planned['anos']! + baseMinutes.round();
         }
       }
@@ -168,6 +171,7 @@ class DashboardLogic {
           const Duration(milliseconds: 1),
         );
         for (final h in historico) {
+          if (h.tarefasEHabitos.arquivado) continue;
           final DateTime hDate = h.createdAt.toLocal();
           if (hDate.isAfter(minStart) && hDate.isBefore(end)) {
             total += h.tarefasEHabitos.duration ?? 30;
@@ -178,6 +182,7 @@ class DashboardLogic {
 
       int total = 0;
       for (final item in items) {
+        if (item.arquivado) continue;
         final int dur = item.duration ?? 30;
         if (item.tipo == 'habito') {
           for (final qtd in item.tarefasHabitosQtd) {
@@ -222,6 +227,13 @@ class DashboardLogic {
     return getPlannedCommitmentTime(items);
   }
 
+  static String _resolveCategoryName(CategoriasTarefasHabitosModel? cat) {
+    if (cat?.nome != null && cat!.nome.trim().isNotEmpty) {
+      return cat.nome.trim();
+    }
+    return 'Sem Categoria';
+  }
+
   /// Calculates category progress (% Meta por Categoria) broken down into 4 cycle columns (Dia, Semana, Mês, Ano).
   /// Larger cycle goals cover smaller cycles, and executed bars reflect executions strictly within each current cycle range.
   static List<CategoryProgressData> getCategoryProgress(
@@ -264,12 +276,13 @@ class DashboardLogic {
     final Map<String, Color> categoryColors = {};
 
     for (final item in items) {
+      if (item.arquivado) continue;
       if (item.tipo == 'habito') {
         if (item.tarefasHabitosQtd.isEmpty) continue;
 
         for (final qtd in item.tarefasHabitosQtd) {
           final cat = qtd.categoriasTarefasHabitos;
-          final catName = cat?.nome ?? 'Sem Categoria';
+          final catName = _resolveCategoryName(cat);
           final catColor =
               cat?.cor ?? defaultColors[colorIdx % defaultColors.length];
 
@@ -286,32 +299,14 @@ class DashboardLogic {
 
           final String cycleKey =
               ['dias', 'semanas', 'meses', 'anos'].contains(qtd.reiniciaEmTipo)
-                  ? qtd.reiniciaEmTipo
-                  : 'dias';
+              ? qtd.reiniciaEmTipo
+              : 'dias';
           final double itemVal = qtd.valor > 0 ? qtd.valor.toDouble() : 0.0;
           final int reiniciaQtd = qtd.reiniciaEmQtd > 0 ? qtd.reiniciaEmQtd : 1;
           final double goalAmount = (qtd.metaVezes * itemVal) / reiniciaQtd;
 
           baseGoals[catName]![cycleKey] =
               (baseGoals[catName]![cycleKey] ?? 0.0) + goalAmount;
-        }
-      } else if (item.tipo == 'tarefa') {
-        // Tarefas não entram na meta, mas garantem que suas categorias apareçam para exibir o executado
-        for (final qtd in item.tarefasHabitosQtd) {
-          final cat = qtd.categoriasTarefasHabitos;
-          final catName = cat?.nome ?? 'Sem Categoria';
-          final catColor =
-              cat?.cor ?? defaultColors[colorIdx % defaultColors.length];
-          if (!categoryColors.containsKey(catName)) {
-            categoryColors[catName] = catColor;
-            baseGoals[catName] = {
-              'dias': 0.0,
-              'semanas': 0.0,
-              'meses': 0.0,
-              'anos': 0.0,
-            };
-            colorIdx++;
-          }
         }
       }
     }
@@ -326,12 +321,14 @@ class DashboardLogic {
 
       if (historico != null) {
         for (final h in historico) {
+          if (h.tarefasEHabitos.arquivado) continue;
           final DateTime hDate = h.createdAt.toLocal();
           if (hDate.isAfter(minStart) && hDate.isBefore(end)) {
             final habit = h.tarefasEHabitos;
             for (final qtd in habit.tarefasHabitosQtd) {
-              final catName =
-                  qtd.categoriasTarefasHabitos?.nome ?? 'Sem Categoria';
+              final catName = _resolveCategoryName(
+                qtd.categoriasTarefasHabitos,
+              );
               if (catName == categoryName) {
                 executed += (qtd.valor != 0 ? qtd.valor : 1.0);
               }
@@ -344,10 +341,12 @@ class DashboardLogic {
         }
       } else {
         for (final item in items) {
+          if (item.arquivado) continue;
           if (item.tipo == 'habito') {
             for (final qtd in item.tarefasHabitosQtd) {
-              final catName =
-                  qtd.categoriasTarefasHabitos?.nome ?? 'Sem Categoria';
+              final catName = _resolveCategoryName(
+                qtd.categoriasTarefasHabitos,
+              );
               if (catName == categoryName) {
                 executed +=
                     qtd.vezesPraticado * (qtd.valor != 0 ? qtd.valor : 1.0);
@@ -359,8 +358,9 @@ class DashboardLogic {
               executed += 1.0;
             } else {
               for (final qtd in item.tarefasHabitosQtd) {
-                final catName =
-                    qtd.categoriasTarefasHabitos?.nome ?? 'Sem Categoria';
+                final catName = _resolveCategoryName(
+                  qtd.categoriasTarefasHabitos,
+                );
                 if (catName == categoryName) {
                   executed += (qtd.valor != 0 ? qtd.valor : 1.0);
                 }
@@ -387,6 +387,13 @@ class DashboardLogic {
           (baseDias * daysInMonth) + (baseSemanas * 4) + baseMeses;
       final double goalAnos =
           (baseDias * 365) + (baseSemanas * 52) + (baseMeses * 12) + baseAnos;
+
+      final bool hasAnyActiveGoal =
+          goalDias > 0 || goalSemanas > 0 || goalMeses > 0 || goalAnos > 0;
+
+      if (!hasAnyActiveGoal) {
+        continue;
+      }
 
       final num execDias = getExecutedForCategoryAndRange(
         catName,
@@ -445,7 +452,7 @@ class DashboardLogic {
   }
 
   /// Calculates distribution of registered attention per category based on the sum of values
-  /// of registered tasks and habits per category.
+  /// of registered active tasks and habits per category.
   static List<CategoryAttentionData> getCategoryAttentionDistribution(
     List<TarefaHabitoModel> items,
   ) {
@@ -464,6 +471,8 @@ class DashboardLogic {
     int colorIdx = 0;
 
     for (final item in items) {
+      if (item.arquivado) continue;
+      if (item.tipo == 'tarefa' && item.concluida) continue;
       if (item.tarefasHabitosQtd.isEmpty) {
         const catName = 'Sem Categoria';
         final catColor = defaultColors[colorIdx % defaultColors.length];
@@ -489,12 +498,12 @@ class DashboardLogic {
 
       for (final qtd in item.tarefasHabitosQtd) {
         final cat = qtd.categoriasTarefasHabitos;
-        final catName = cat?.nome ?? 'Sem Categoria';
+        final catName = _resolveCategoryName(cat);
         final catColor =
             cat?.cor ?? defaultColors[colorIdx % defaultColors.length];
 
-        final double itemVal =
-            (qtd.valor != 0 ? qtd.valor.abs() : 1.0).toDouble();
+        final double itemVal = (qtd.valor != 0 ? qtd.valor.abs() : 1.0)
+            .toDouble();
 
         if (!map.containsKey(catName)) {
           map[catName] = CategoryAttentionData(
@@ -514,7 +523,7 @@ class DashboardLogic {
       }
     }
 
-    return map.values.toList();
+    return map.values.where((c) => c.totalValue > 0).toList();
   }
 
   /// Legacy helper returning `Map<String, double>`
@@ -545,17 +554,17 @@ class DashboardLogic {
       int totalHabits = 0;
 
       for (final item in items) {
+        if (item.arquivado) continue;
         if (item.tipo == 'habito' && item.tarefasHabitosQtd.isNotEmpty) {
           totalHabits++;
-          final bool wasCompletedOnDate = historico.any(
-            (h) {
-              final hDate = h.createdAt.toLocal();
-              return h.tarefasEHabitos.id == item.id &&
-                  hDate.year == date.year &&
-                  hDate.month == date.month &&
-                  hDate.day == date.day;
-            },
-          );
+          final bool wasCompletedOnDate = historico.any((h) {
+            if (h.tarefasEHabitos.arquivado) return false;
+            final hDate = h.createdAt.toLocal();
+            return h.tarefasEHabitos.id == item.id &&
+                hDate.year == date.year &&
+                hDate.month == date.month &&
+                hDate.day == date.day;
+          });
 
           if (wasCompletedOnDate) {
             completedOnDate++;
@@ -600,6 +609,7 @@ class DashboardLogic {
     int tasks = 0;
 
     for (final item in items) {
+      if (item.arquivado) continue;
       if (item.concluida) continue;
 
       if (item.tipo == 'habito') {

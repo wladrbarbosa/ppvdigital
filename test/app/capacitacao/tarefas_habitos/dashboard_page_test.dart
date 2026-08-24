@@ -18,13 +18,41 @@ class DummyRepo implements TarefaHabitoRepository {
   dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
   
   @override
-  Future<List<HistoricoItemModel>> getHistorico({String? usuarioId, bool forceLocal = false, DateTime? lastSyncedAt}) async {
+  Future<List<TarefaHabitoModel>> getTarefasEHabitos({
+    required String usuarioId,
+    bool forceLocal = false,
+    DateTime? lastSyncedAt,
+  }) async {
     return [];
   }
+
+  @override
+  Future<List<HistoricoItemModel>> getHistorico({
+    required String usuarioId,
+    bool forceLocal = false,
+    DateTime? lastSyncedAt,
+  }) async {
+    return [];
+  }
+
+  @override
+  Stream<List<HistoricoItemModel>> watchHistorico({
+    required String usuarioId,
+  }) => const Stream.empty();
+
+  @override
+  Stream<List<TarefaHabitoModel>> watchTarefasEHabitos({
+    required String usuarioId,
+  }) => const Stream.empty();
 }
 
 class MockTarefasHabitosController extends TarefasHabitosController {
   MockTarefasHabitosController() : super(DummyRepo());
+
+  @override
+  Future<List<TarefaHabitoModel>> loadDocuments({bool forceSync = false}) async {
+    return tarefasHabitosList;
+  }
 
   @override
   Future<void> loadCustomColors() async {}
@@ -71,7 +99,7 @@ class MockTarefasHabitosController extends TarefasHabitosController {
             cor: Colors.green,
             usuario: 'user_123',
           ),
-          valor: 0,
+          valor: 1.0,
           reiniciaEmQtd: 1,
           reiniciaEmTipo: 'dias',
           vezesPraticado: 1,
@@ -108,8 +136,6 @@ void main() {
   testWidgets('DashboardPage exibe os cards e gráficos corretamente', (WidgetTester tester) async {
     await tester.pumpWidget(const MaterialApp(home: DashboardPage()));
     await tester.pumpAndSettle();
-    
-    debugDumpApp();
 
     // Verifica se os textos de título dos gráficos aparecem
     expect(find.text('Taxa de Conclusão (7 dias)'), findsOneWidget);

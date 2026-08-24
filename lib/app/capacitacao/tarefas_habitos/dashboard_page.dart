@@ -5,7 +5,6 @@ import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:ppvdigital/app/capacitacao/tarefas_habitos/dashboard_logic.dart';
-import 'package:ppvdigital/app/capacitacao/tarefas_habitos/tarefas_habitos_controller.dart';
 import 'package:ppvdigital/core.dart';
 import 'package:ppvdigital/models/historico_item_model.dart';
 import 'package:ppvdigital/models/tarefas_habitos_model.dart';
@@ -112,10 +111,7 @@ class _DashboardPageState extends State<DashboardPage> {
 
   Future<void> _initData() async {
     try {
-      TarefasHabitosController.tarefasHabitosFuture ??= Core.tarefasHabitosController.loadDocuments();
-      if (TarefasHabitosController.tarefasHabitosFuture != null) {
-        await TarefasHabitosController.tarefasHabitosFuture;
-      }
+      await Core.tarefasHabitosController.loadDocuments();
       final userId = Core.loginController.currentUser?.$id ?? '';
       if (userId.isNotEmpty) {
         _historicoSub?.cancel();
@@ -171,16 +167,20 @@ class _DashboardPageState extends State<DashboardPage> {
             return const Center(child: Text('Nenhum dado para mostrar no momento.'));
           }
 
+          final activeHistorico = _historico
+              .where((h) => !h.tarefasEHabitos.arquivado)
+              .toList();
+
           return SingleChildScrollView(
             padding: const EdgeInsets.all(16.0),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                _buildCommitmentTimeChart(context, items, _historico),
+                _buildCommitmentTimeChart(context, items, activeHistorico),
                 const SizedBox(height: 24),
-                _buildCategoryGoalProgressBars(context, items, _historico),
+                _buildCategoryGoalProgressBars(context, items, activeHistorico),
                 const SizedBox(height: 24),
-                _buildCompletionRateChart(context, items, _historico),
+                _buildCompletionRateChart(context, items, activeHistorico),
                 const SizedBox(height: 24),
                 _buildCategoryAttentionPieChart(context, items),
                 const SizedBox(height: 48),

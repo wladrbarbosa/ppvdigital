@@ -885,7 +885,7 @@ class DriftTarefaHabitoRepository implements TarefaHabitoRepository {
             toCompanion(
               model.copyWith(
                 duration: model.duration ?? existing.duration,
-                arquivado: model.arquivado || existing.arquivado,
+                arquivado: model.arquivado,
                 tarefaHabitoQtd: mergedMetas,
               ),
             ),

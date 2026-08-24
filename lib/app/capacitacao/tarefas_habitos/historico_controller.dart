@@ -10,13 +10,24 @@ import 'package:ppvdigital/models/tarefas_habitos_model.dart';
 
 extension HistoricoTransformMap on Map<String, dynamic> {
   TarefaHabitoModel toTarefasHabitosModel() {
+    final rawConcluida = this['concluida'];
+    final bool isConcluida = rawConcluida is bool
+        ? rawConcluida
+        : (rawConcluida == 1 || rawConcluida == 'true' || rawConcluida == '1');
+
+    final rawArquivado = this['arquivado'];
+    final bool isArquivado = rawArquivado is bool
+        ? rawArquivado
+        : (rawArquivado == 1 || rawArquivado == 'true' || rawArquivado == '1');
+
     return TarefaHabitoModel(
       id: (this[r'$id'] ?? this['id'] ?? '') as String,
       nome: (this['nome'] as String?) ?? '',
       usuario: (this['usuario'] as String?) ?? '',
       tipo: (this['tipo'] as String?) ?? '',
       agendamento: DateTime.tryParse((this['agendamento'] as String?) ?? ''),
-      concluida: (this['concluida'] as bool?) ?? false,
+      concluida: isConcluida,
+      arquivado: isArquivado,
       tarefasHabitosQtd: (this['tarefasHabitosQtds'] as List<dynamic>?)
           .toTarefaHabitoQtdModelList(),
       duration: this['duration'] is num

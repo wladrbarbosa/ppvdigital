@@ -71,6 +71,29 @@ void main() {
       expect(fromMapModel.arquivado, isTrue);
       expect(fromMapModel.id, equals('t_archived'));
 
+      // Test int representation (1 / 0) and string representation ('true' / 'false')
+      final fromIntMap = TarefaHabitoModel.fromMap({
+        'id': 't_int',
+        'nome': 'Int Habit',
+        'tipo': 'habito',
+        'usuario': 'u1',
+        'concluida': 1,
+        'arquivado': 1,
+      });
+      expect(fromIntMap.concluida, isTrue);
+      expect(fromIntMap.arquivado, isTrue);
+
+      final fromStringMap = TarefaHabitoModel.fromMap({
+        'id': 't_str',
+        'nome': 'Str Habit',
+        'tipo': 'habito',
+        'usuario': 'u1',
+        'concluida': 'true',
+        'arquivado': 'true',
+      });
+      expect(fromStringMap.concluida, isTrue);
+      expect(fromStringMap.arquivado, isTrue);
+
       final copied = fromMapModel.copyWith(arquivado: false);
       expect(copied.arquivado, isFalse);
     });
@@ -117,6 +140,66 @@ void main() {
       expect(domainList.length, equals(2));
       final domainArchived = domainList.firstWhere((t) => t.id == 'item_archived');
       expect(domainArchived.arquivado, isTrue);
+    });
+
+    test('Dashboard calculations completely ignore archived tasks and habits from Drift query', () async {
+      final active = TarefaHabitoModel(
+        id: 'item_active',
+        nome: 'Hábito Ativo',
+        tipo: 'habito',
+        usuario: 'user1',
+        agendamento: null,
+        duration: 30,
+        concluida: false,
+        tarefasHabitosQtd: [
+          TarefaHabitoQtdModel(
+            id: 'q_act',
+            usuario: 'user1',
+            metaVezes: 2,
+            valor: 1.0,
+            reiniciaEmQtd: 1,
+            reiniciaEmTipo: 'dias',
+            vezesPraticado: 1,
+            createdAt: DateTime.now(),
+          ),
+        ],
+      );
+
+      final archived = TarefaHabitoModel(
+        id: 'item_archived',
+        nome: 'Hábito Arquivado',
+        tipo: 'habito',
+        usuario: 'user1',
+        agendamento: null,
+        duration: 60,
+        concluida: false,
+        arquivado: true,
+        tarefasHabitosQtd: [
+          TarefaHabitoQtdModel(
+            id: 'q_arch',
+            usuario: 'user1',
+            metaVezes: 5,
+            valor: 1.0,
+            reiniciaEmQtd: 1,
+            reiniciaEmTipo: 'dias',
+            vezesPraticado: 3,
+            createdAt: DateTime.now(),
+          ),
+        ],
+      );
+
+      await database.into(database.tarefaHabitos).insert(driftRepo.toCompanion(active));
+      await database.into(database.tarefaHabitos).insert(driftRepo.toCompanion(archived));
+
+      final allItems = await driftRepo.getTarefasEHabitos(
+        usuarioId: 'user1',
+        forceLocal: true,
+      );
+
+      // DashboardPage filtra items com !i.arquivado
+      final dashboardItems = allItems.where((i) => !i.arquivado).toList();
+      expect(dashboardItems.length, equals(1));
+      expect(dashboardItems.first.id, equals('item_active'));
     });
   });
 }

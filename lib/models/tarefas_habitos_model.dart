@@ -19,7 +19,8 @@ class TarefaHabitoModel {
 
   factory TarefaHabitoModel.fromMap(Map<String, dynamic> map) {
     final String docId = (map[r'$id'] ?? map['id'] ?? '') as String;
-    final dynamic rawMetas = map['metas'] ??
+    final dynamic rawMetas =
+        map['metas'] ??
         map['tarefaHabitoQtd'] ??
         map['tarefasHabitosQtds'] ??
         map['tarefasHabitosQtd'];
@@ -32,13 +33,23 @@ class TarefaHabitoModel {
           )
           .toList();
     }
+    final rawConcluida = map['concluida'];
+    final bool isConcluida = rawConcluida is bool
+        ? rawConcluida
+        : (rawConcluida == 1 || rawConcluida == 'true' || rawConcluida == '1');
+
+    final rawArquivado = map['arquivado'];
+    final bool isArquivado = rawArquivado is bool
+        ? rawArquivado
+        : (rawArquivado == 1 || rawArquivado == 'true' || rawArquivado == '1');
+
     return TarefaHabitoModel(
       id: docId,
       nome: (map['nome'] ?? '') as String,
       tipo: (map['tipo'] ?? 'tarefa') as String,
       usuario: (map['usuario'] ?? '') as String,
-      concluida: map['concluida'] is bool && map['concluida'] as bool,
-      arquivado: map['arquivado'] is bool && map['arquivado'] as bool,
+      concluida: isConcluida,
+      arquivado: isArquivado,
       agendamento: map['agendamento'] != null
           ? (map['agendamento'] is int
                 ? DateTime.fromMillisecondsSinceEpoch(map['agendamento'] as int)
@@ -66,7 +77,8 @@ class TarefaHabitoModel {
 
   TipoItem get tipoEnum => TipoItem.fromString(tipo);
   bool get isHabitoNegativo => tarefasHabitosQtd.any((q) => q.valor < 0);
-  TipoHabito get tipoHabitoEnum => isHabitoNegativo ? TipoHabito.negativo : TipoHabito.positivo;
+  TipoHabito get tipoHabitoEnum =>
+      isHabitoNegativo ? TipoHabito.negativo : TipoHabito.positivo;
 
   TarefaHabitoModel copyWith({
     String? id,

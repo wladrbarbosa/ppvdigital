@@ -136,6 +136,16 @@ extension TarefasHabitosTransformDocumentList on List<Row> {
           .where((item) => item.tarefasEHabitos.id == e1.$id)
           .toList();
 
+      final rawConcluida = e1.data['concluida'];
+      final bool isConcluida = rawConcluida is bool
+          ? rawConcluida
+          : (rawConcluida == 1 || rawConcluida == 'true' || rawConcluida == '1');
+
+      final rawArquivado = e1.data['arquivado'];
+      final bool isArquivado = rawArquivado is bool
+          ? rawArquivado
+          : (rawArquivado == 1 || rawArquivado == 'true' || rawArquivado == '1');
+
       temp.add(
         TarefaHabitoModel(
           id: e1.$id,
@@ -145,8 +155,8 @@ extension TarefasHabitosTransformDocumentList on List<Row> {
           agendamento: DateTime.tryParse(
             (e1.data['agendamento'] as String?) ?? '',
           ),
-          concluida: (e1.data['concluida'] as bool?) ?? false,
-          arquivado: (e1.data['arquivado'] as bool?) ?? false,
+          concluida: isConcluida,
+          arquivado: isArquivado,
           tarefasHabitosQtd: (e1.data['tarefasHabitosQtds'] as List<dynamic>?)
               .toTarefaHabitoQtdModelList(tarefaHabitoQtdList),
           duration: e1.data['duration'] is num
