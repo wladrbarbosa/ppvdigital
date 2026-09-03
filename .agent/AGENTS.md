@@ -11,6 +11,7 @@ This profile adapts Superpowers workflows for Antigravity with strict single-flo
 3. Use `browser_subagent` only for browser automation tasks.
 4. Track checklist progress in `<project-root>/docs/plans/task.md` (table-only live tracker).
 5. Keep changes scoped to the requested task and verify before completion claims.
+6. Design System & Leveza: Always consult `docs/design_system.md` and use tokens from `lib/design_system/` (`AppColors`, `AppSpacing`, `AppRadius`, `AppShadows`, `AppDecorations`, `AppTypography`) for any UI or layout changes; hardcoded raw colors and ad-hoc spacing are strictly forbidden.
 
 ## Tool Translation Contract
 

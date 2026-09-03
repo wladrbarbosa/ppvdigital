@@ -95,6 +95,12 @@ Welcome agent! This file contains project-specific guidelines, technical rules, 
   * **Rule:** Ao criar ou modificar novas funcionalidades, serviços de domínio, repositórios, controllers, modelos ou métodos utilitários, sempre implemente e expanda testes unitários e de integração abrangendo todos os caminhos lógicos (sucesso, exceções, bordas, valores nulos e limites), buscando manter a cobertura de testes o mais próxima possível de 100%.
   * **Rule:** Execute regularmente `fvm flutter test --coverage` para verificar a cobertura do código e assegurar que novos códigos ou refatorações nunca reduzam os índices de cobertura do projeto.
 
+---
 
-
+## 11. Design System Pastel & Leveza (Consulta Obrigatória)
+* **Adesão Contínua aos Tokens de Design e Leveza Visual:**
+  Para manter a identidade serena, acolhedora e moderna do aplicativo, bem como a consistência visual em todos os módulos:
+  * **Rule:** Ao criar ou modificar telas, widgets, diálogos ou componentes visuais, SEMPRE consulte `docs/design_system.md` e utilize os tokens definidos em `lib/design_system/` (`AppColors`, `AppSpacing`, `AppRadius`, `AppShadows`, `AppDecorations`, `AppTypography`).
+  * **Rule:** É terminantemente proibido utilizar cores saturadas duras inline (ex.: `Colors.red`, `Colors.amber`, `Colors.blue`, `Colors.deepPurple` ou códigos hexadecimais arbitrários). Utilize sempre as cores pastéis semânticas (`AppColors.pastelSuccess`, `AppColors.pastelError`, `AppColors.pastelWarning`, etc.) ou a cartela `AppColors.customizablePastelColors` (24 cores) quando a cor for personalizável pelo usuário.
+  * **Rule:** Mantenha a tipografia com `Plus Jakarta Sans`, curvaturas suaves (`AppRadius.roundedMd` / `AppRadius.roundedLg` / `AppRadius.roundedXl`) e sombras difusas de baixa opacidade (`AppShadows.card` / `AppShadows.soft`).
 

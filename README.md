@@ -5,7 +5,8 @@
 ![MobX](https://img.shields.io/badge/State-MobX-orange)
 ![Drift](https://img.shields.io/badge/Database-Drift%20SQLite%20(v6)-lightgrey)
 ![Appwrite](https://img.shields.io/badge/Backend-Appwrite-FD366E?logo=appwrite)
-![Tests](https://img.shields.io/badge/Tests-112%2F112%20Passed-brightgreen)
+![Design System](https://img.shields.io/badge/Design%20System-Pastel%20%26%20Leveza-7CB9A8)
+![Tests](https://img.shields.io/badge/Tests-135%2F135%20Passed-brightgreen)
 
 O **PPVDigital** é uma plataforma completa desenvolvida em Flutter (Web/Mobile) para planejamento pessoal, acompanhamento de hábitos, gestão de tarefas e controle financeiro pessoal e compartilhado. O projeto traz para o formato digital o conceito do **Projeto Pessoal de Vida (PPV)**, com foco em capacitação, acompanhamento de métricas e funcionamento offline transparente.
 
@@ -20,6 +21,7 @@ A aplicação adota uma arquitetura reativa, offline-first e modularizada por co
 ### Principais Tecnologias e Bibliotecas
 
 - **Framework**: [Flutter](https://flutter.dev) (gerenciado via **FVM** - Flutter Version Manager).
+- **Design System Pastel & Leveza**: Arquitetura centralizada de tokens de design (`lib/design_system/`) com paleta pastel serena (Menta, Lavanda, Pêssego), tipografia geométrica humanista ([Plus Jakarta Sans](https://fonts.google.com/specimen/Plus+Jakarta+Sans)), cartela de 24 cores suaves personalizáveis (`AppColors.customizablePastelColors`), curvaturas acolhedoras (`AppRadius`) e sombras difusas (`AppShadows`), com governança documentada em [docs/design_system.md](docs/design_system.md).
 - **Gerenciamento de Estado**: [MobX](https://pub.dev/packages/mobx) e `flutter_mobx` utilizando reatividade com instanciações manuais (`mobx.Observable`), getters com baixa alocação e mutações seguras via `mobx.runInAction()`.
 - **Banco de Dados Local & Cache Offline**: [Drift](https://drift.simonbinder.eu/) (SQLite reativo **Schema v6** com índices compostos em colunas críticas como `remoteId`, `usuarioId`, `dataCompetencia`, `agendamento`), permitindo consultas ultrarrápidas sem dependência imediata de rede e isolamento atômico de dados por usuário (`clearAllUserData()`).
 - **Backend & Backend-as-a-Service (BaaS)**: [Appwrite SDK](https://appwrite.io), gerenciando autenticação, sessões, persistência remota e **Appwrite Realtime (WebSockets)** escopado por usuário para sincronização instantânea inter-dispositivos.
@@ -114,7 +116,21 @@ Acompanhamento do desenvolvimento pessoal através da criação e monitoramento 
 
 ---
 
-### 🔑 3. Módulo de Autenticação e Isolamento de Sessão
+### 🎨 3. Design System & Identidade Visual (Pastel & Leveza)
+
+O PPVDigital adota um Design System proprietário com foco em leveza visual, conforto cognitivo e elegância através de tons pastéis suaves. A especificação completa encontra-se em [docs/design_system.md](docs/design_system.md).
+
+#### Princípios e Tokens Principais (`lib/design_system/`)
+- **Cores Pastéis (`AppColors`)**: Menta Pastel (`#7CB9A8`), Lavanda (`#9B9CD6`), Pêssego/Coral (`#F5B1A2`) e fundos arejados (`#F9FAFC` Light e `#16191F` Dark).
+- **Cartela de Cores Personalizáveis (`AppColors.customizablePastelColors`)**: 24 tons pastéis exclusivos e balanceados para seleção do usuário ao criar ou editar categorias, hábitos, tarefas e contas financeiras.
+- **Tipografia Geométrica Moderna**: Migração para a fonte [Plus Jakarta Sans](https://fonts.google.com/specimen/Plus+Jakarta+Sans) em títulos e corpos de texto.
+- **Espaçamento e Curvaturas (`AppSpacing` & `AppRadius`)**: Grade proporcional de espaçamento (de 2 a 48 dp) e curvaturas generosas (`roundedMd`: 12 dp, `roundedLg`: 16 dp, `roundedXl`: 24 dp, `roundedFull`: 999 dp) para cartões, pílulas e modais.
+- **Sombras Difusas de Baixa Opacidade (`AppShadows`)**: Sombras ultra-suaves (4% a 8% de opacidade) que eliminam o peso visual escuro e proporcionam sensação de flutuação natural.
+- **Decorações Padronizadas (`AppDecorations`)**: Helpers para estilização consistente de cartões (`AppDecorations.card`), badges (`AppDecorations.badge`) e campos de entrada (`AppDecorations.input`).
+
+---
+
+### 🔑 4. Módulo de Autenticação e Isolamento de Sessão
 
 - Gerenciamento de sessão via `LoginController` integrado ao Appwrite `Account`.
 - Persistência e restauração offline do perfil do usuário em `Drift SQLite` (`AppSettings`) para acesso sem conexão à internet.
@@ -146,6 +162,8 @@ Para garantir consistência e alto desempenho, a codebase obedece às seguintes 
    - Consultas leves (*lightweight*) ou parciais não podem sobrescrever dados completos já armazenados nas tabelas do Drift.
 4. **Sincronização Não-Bloqueante (UI/UX)**:
    - A sincronização em segundo plano exibe um indicativo discreto (`LinearProgressIndicator`) no topo da tela, sem bloquear a interação do usuário com overlays de carregamento.
+5. **Governança do Design System Pastel & Leveza**:
+   - Qualquer modificação de tela, widget ou novo componente deve consultar [docs/design_system.md](docs/design_system.md) e aplicar os tokens de `lib/design_system/`. Cores saturadas duras inline são estritamente proibidas.
 
 ---
 
@@ -163,6 +181,8 @@ fvm flutter test
 
 ### Estrutura dos Arquivos de Teste (`test/`)
 
+- `test/design_system/design_system_test.dart`: Testes unitários dos tokens de cores pastéis, espaçamentos, curvaturas, sombras e decorações visuais.
+- `test/design_system/theme_test.dart`: Testes de integração do ThemeData com MaterialTheme (light e dark) e tipografia Plus Jakarta Sans.
 - `test/business_logic/financas_business_test.dart`: Testes de cálculo de divisão por pesos, geração de datas recorrentes, transferências e resumos de saldo mensal.
 - `test/business_logic/tarefas_habitos_business_test.dart`: Testes de janelas de reinício de hábitos, progresso de metas e matriz de calendário.
 - `test/business_logic/login_business_test.dart`: Testes de validação de formulários e estados da sessão de autenticação.
