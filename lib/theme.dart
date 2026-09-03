@@ -339,18 +339,19 @@ class MaterialTheme {
 
   ThemeData theme(ColorScheme colorScheme) {
     final isDark = colorScheme.brightness == Brightness.dark;
-    final surfaceColor = isDark ? AppColors.surfaceDark : AppColors.surfaceLight;
+    final surfaceColor = isDark
+        ? AppColors.surfaceDark
+        : AppColors.surfaceLight;
     final borderColor = isDark ? AppColors.borderDark : AppColors.borderLight;
-    final textColor = isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight;
+    final textColor = isDark
+        ? AppColors.textPrimaryDark
+        : AppColors.textPrimaryLight;
 
     return ThemeData(
       useMaterial3: true,
       brightness: colorScheme.brightness,
       colorScheme: colorScheme,
-      textTheme: textTheme.apply(
-        bodyColor: textColor,
-        displayColor: textColor,
-      ),
+      textTheme: textTheme.apply(bodyColor: textColor, displayColor: textColor),
       scaffoldBackgroundColor: colorScheme.surface,
       canvasColor: colorScheme.surface,
       cardTheme: CardThemeData(
@@ -385,9 +386,7 @@ class MaterialTheme {
           elevation: 0,
           backgroundColor: colorScheme.primary,
           foregroundColor: colorScheme.onPrimary,
-          shape: RoundedRectangleBorder(
-            borderRadius: AppRadius.roundedMd,
-          ),
+          shape: RoundedRectangleBorder(borderRadius: AppRadius.roundedMd),
           padding: const EdgeInsets.symmetric(
             horizontal: AppSpacing.md,
             vertical: AppSpacing.sm,
@@ -398,9 +397,7 @@ class MaterialTheme {
         style: OutlinedButton.styleFrom(
           foregroundColor: colorScheme.primary,
           side: BorderSide(color: borderColor),
-          shape: RoundedRectangleBorder(
-            borderRadius: AppRadius.roundedMd,
-          ),
+          shape: RoundedRectangleBorder(borderRadius: AppRadius.roundedMd),
           padding: const EdgeInsets.symmetric(
             horizontal: AppSpacing.md,
             vertical: AppSpacing.sm,
