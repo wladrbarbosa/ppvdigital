@@ -87,11 +87,14 @@ class _LoginPageState extends State<LoginPage> {
                     ),
                     const SizedBox(height: 16.0),
                     SizedBox(
-                      height: 330,
+                      height: 350,
                       child: TabBarView(
+                        clipBehavior: Clip.none,
                         children: [
                           // Tab 1: Entrar
                           SingleChildScrollView(
+                            clipBehavior: Clip.none,
+                            padding: const EdgeInsets.only(top: 12.0, bottom: 8.0),
                             child: Column(
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
@@ -180,6 +183,8 @@ class _LoginPageState extends State<LoginPage> {
 
                           // Tab 2: Cadastrar
                           SingleChildScrollView(
+                            clipBehavior: Clip.none,
+                            padding: const EdgeInsets.only(top: 12.0, bottom: 8.0),
                             child: Column(
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [

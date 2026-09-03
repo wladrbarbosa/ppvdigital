@@ -1,3 +1,4 @@
+import 'package:ppvdigital/models/categorias_tarefas_habitos_model.dart';
 import 'package:ppvdigital/models/historico_item_model.dart';
 import 'package:ppvdigital/models/tarefas_habitos_model.dart';
 
@@ -70,4 +71,7 @@ abstract class TarefaHabitoRepository {
   Stream<List<HistoricoItemModel>> watchHistorico({
     required String usuarioId,
   });
+
+  Future<void> updateCategoryInMetas(CategoriasTarefasHabitosModel updatedCategory);
+  Future<void> removeCategoryFromMetas(String categoryId);
 }

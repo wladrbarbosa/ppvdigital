@@ -1,6 +1,5 @@
 import 'dart:convert';
 import 'dart:developer';
-import 'dart:ui' show Color;
 
 import 'package:appwrite/appwrite.dart';
 import 'package:drift/drift.dart';
@@ -35,6 +34,20 @@ class DriftTarefaHabitoRepository implements TarefaHabitoRepository {
   }
 
   TarefaHabitoModel toDomain(TarefaHabito row) {
+    final liveCategories = Core.maybeCategoriasController?.categoriasList;
+    final resolvedMetas = row.metas.map((qtd) {
+      final catId = qtd.categoriasTarefasHabitos?.id;
+      if (catId != null && catId.isNotEmpty && liveCategories != null) {
+        final liveCat = liveCategories
+            .cast<CategoriasTarefasHabitosModel?>()
+            .firstWhere((c) => c?.id == catId, orElse: () => null);
+        if (liveCat != null) {
+          return qtd.copyWith(categoriasTarefasHabitos: liveCat);
+        }
+      }
+      return qtd;
+    }).toList();
+
     return TarefaHabitoModel(
       id: row.remoteId,
       nome: row.nome,
@@ -44,7 +57,7 @@ class DriftTarefaHabitoRepository implements TarefaHabitoRepository {
       arquivado: row.arquivado,
       agendamento: row.agendamento,
       duration: row.duration,
-      tarefasHabitosQtd: row.metas,
+      tarefasHabitosQtd: resolvedMetas,
     );
   }
 
@@ -216,9 +229,9 @@ class DriftTarefaHabitoRepository implements TarefaHabitoRepository {
         for (final row in localRows) {
           if (!remoteIds.contains(row.remoteId) &&
               !pendingIds.contains(row.remoteId)) {
-            await (database.delete(database.tarefaHabitos)
-                  ..where((t) => t.remoteId.equals(row.remoteId)))
-                .go();
+            await (database.delete(
+              database.tarefaHabitos,
+            )..where((t) => t.remoteId.equals(row.remoteId))).go();
           }
         }
       }
@@ -261,8 +274,9 @@ class DriftTarefaHabitoRepository implements TarefaHabitoRepository {
 
     final habits = await database.select(database.tarefaHabitos).get();
     final habitsMap = {for (final h in habits) h.remoteId: toDomain(h)};
-    final localList =
-        localRows.map((r) => toHistoricoDomain(r, habitsMap)).toList();
+    final localList = localRows
+        .map((r) => toHistoricoDomain(r, habitsMap))
+        .toList();
 
     if (forceLocal) {
       return localList;
@@ -293,16 +307,18 @@ class DriftTarefaHabitoRepository implements TarefaHabitoRepository {
         for (final row in currentLocalRows) {
           if (!remoteIds.contains(row.remoteId) &&
               !pendingIds.contains(row.remoteId)) {
-            await (database.delete(database.historicoTarefasHabitos)
-                  ..where((h) => h.remoteId.equals(row.remoteId)))
-                .go();
+            await (database.delete(
+              database.historicoTarefasHabitos,
+            )..where((h) => h.remoteId.equals(row.remoteId))).go();
           }
         }
       }
 
       final updatedLocalRows = await localQuery.get();
       final updatedHabits = await database.select(database.tarefaHabitos).get();
-      final updatedHabitsMap = {for (final h in updatedHabits) h.remoteId: toDomain(h)};
+      final updatedHabitsMap = {
+        for (final h in updatedHabits) h.remoteId: toDomain(h),
+      };
       return updatedLocalRows
           .map((r) => toHistoricoDomain(r, updatedHabitsMap))
           .toList();
@@ -313,13 +329,9 @@ class DriftTarefaHabitoRepository implements TarefaHabitoRepository {
   }
 
   @override
-  Future<Set<String>> getActiveHistoricoIds({
-    required String usuarioId,
-  }) async {
+  Future<Set<String>> getActiveHistoricoIds({required String usuarioId}) async {
     try {
-      return await remoteRepository.getActiveHistoricoIds(
-        usuarioId: usuarioId,
-      );
+      return await remoteRepository.getActiveHistoricoIds(usuarioId: usuarioId);
     } catch (_) {
       return {};
     }
@@ -346,9 +358,9 @@ class DriftTarefaHabitoRepository implements TarefaHabitoRepository {
         );
 
     // 2. Directly update the habit's meta in SQLite cache
-    final habitRow = await (database.select(database.tarefaHabitos)
-          ..where((t) => t.remoteId.equals(foundId)))
-        .getSingleOrNull();
+    final habitRow = await (database.select(
+      database.tarefaHabitos,
+    )..where((t) => t.remoteId.equals(foundId))).getSingleOrNull();
     if (habitRow != null) {
       final updatedMetas = habitRow.metas.map((m) {
         if (m.valor < 0) {
@@ -490,21 +502,27 @@ class DriftTarefaHabitoRepository implements TarefaHabitoRepository {
       final DateTime metaCreatedAt = createdAtRaw is int
           ? DateTime.fromMillisecondsSinceEpoch(createdAtRaw)
           : (createdAtRaw is String
-              ? DateTime.tryParse(createdAtRaw) ?? DateTime.now()
-              : (createdAtRaw is DateTime ? createdAtRaw : DateTime.now()));
+                ? DateTime.tryParse(createdAtRaw) ?? DateTime.now()
+                : (createdAtRaw is DateTime ? createdAtRaw : DateTime.now()));
       CategoriasTarefasHabitosModel? categoryModel;
-      final String? catId = m['categoriaId'] as String?;
-      if (catId != null && catId.isNotEmpty) {
-        final foundCat = Core.categoriasController.categoriasList
+      String? catId = m['categoriaId'] as String?;
+      if (m['categoriasTarefasHabitos'] is Map) {
+        categoryModel = CategoriasTarefasHabitosModel.fromMap(
+          Map<String, dynamic>.from(m['categoriasTarefasHabitos'] as Map),
+        );
+        catId ??= categoryModel.id;
+      } else if (m['categoriasTarefasHabitos'] is String) {
+        catId ??= m['categoriasTarefasHabitos'] as String;
+      }
+
+      final liveCategories = Core.maybeCategoriasController?.categoriasList;
+      if (catId != null && catId.isNotEmpty && liveCategories != null) {
+        final foundCat = liveCategories
             .cast<CategoriasTarefasHabitosModel?>()
             .firstWhere((c) => c?.id == catId, orElse: () => null);
-        categoryModel = foundCat ??
-            CategoriasTarefasHabitosModel(
-              id: catId,
-              nome: '',
-              cor: const Color(0xFF2196F3),
-              usuario: usuarioId,
-            );
+        if (foundCat != null) {
+          categoryModel = foundCat;
+        }
       }
 
       return TarefaHabitoQtdModel(
@@ -582,9 +600,9 @@ class DriftTarefaHabitoRepository implements TarefaHabitoRepository {
     bool? arquivado,
     required String usuarioId,
   }) async {
-    final existingRow = await (database.select(database.tarefaHabitos)
-          ..where((t) => t.remoteId.equals(id)))
-        .getSingleOrNull();
+    final existingRow = await (database.select(
+      database.tarefaHabitos,
+    )..where((t) => t.remoteId.equals(id))).getSingleOrNull();
 
     final Map<String, TarefaHabitoQtdModel> existingMetasMap = {
       if (existingRow != null)
@@ -605,29 +623,30 @@ class DriftTarefaHabitoRepository implements TarefaHabitoRepository {
         metaCreatedAt = existingMeta.createdAt;
       }
 
-      final num vezesPraticado = (m['vezesPraticado'] as num?) ??
-          existingMeta?.vezesPraticado ??
-          0;
+      final num vezesPraticado =
+          (m['vezesPraticado'] as num?) ?? existingMeta?.vezesPraticado ?? 0;
 
       CategoriasTarefasHabitosModel? categoryModel;
-      final String? catId = m['categoriaId'] as String?;
-      if (catId != null && catId.isNotEmpty) {
-        if (existingMeta?.categoriasTarefasHabitos?.id == catId &&
-            existingMeta?.categoriasTarefasHabitos?.cor != null &&
-            (existingMeta?.categoriasTarefasHabitos?.cor.a ?? 0) > 0 &&
-            existingMeta?.categoriasTarefasHabitos?.cor != const Color(0x00000000)) {
-          categoryModel = existingMeta!.categoriasTarefasHabitos;
-        } else {
-          final foundCat = Core.categoriasController.categoriasList
-              .cast<CategoriasTarefasHabitosModel?>()
-              .firstWhere((c) => c?.id == catId, orElse: () => null);
-          categoryModel = foundCat ??
-              CategoriasTarefasHabitosModel(
-                id: catId,
-                nome: '',
-                cor: const Color(0xFF2196F3),
-                usuario: usuarioId,
-              );
+      String? catId = m['categoriaId'] as String?;
+      if (m['categoriasTarefasHabitos'] is Map) {
+        categoryModel = CategoriasTarefasHabitosModel.fromMap(
+          Map<String, dynamic>.from(m['categoriasTarefasHabitos'] as Map),
+        );
+        catId ??= categoryModel.id;
+      } else if (m['categoriasTarefasHabitos'] is String) {
+        catId ??= m['categoriasTarefasHabitos'] as String;
+      } else if (existingMeta?.categoriasTarefasHabitos != null) {
+        categoryModel = existingMeta!.categoriasTarefasHabitos;
+        catId ??= categoryModel?.id;
+      }
+
+      final liveCategories = Core.maybeCategoriasController?.categoriasList;
+      if (catId != null && catId.isNotEmpty && liveCategories != null) {
+        final foundCat = liveCategories
+            .cast<CategoriasTarefasHabitosModel?>()
+            .firstWhere((c) => c?.id == catId, orElse: () => null);
+        if (foundCat != null) {
+          categoryModel = foundCat;
         }
       }
 
@@ -747,18 +766,14 @@ class DriftTarefaHabitoRepository implements TarefaHabitoRepository {
   }
 
   @override
-  Stream<List<HistoricoItemModel>> watchHistorico({
-    required String usuarioId,
-  }) {
+  Stream<List<HistoricoItemModel>> watchHistorico({required String usuarioId}) {
     return database
         .customSelect(
           'SELECT 1',
           readsFrom: {database.historicoTarefasHabitos, database.tarefaHabitos},
         )
         .watch()
-        .asyncMap(
-          (_) => getHistorico(usuarioId: usuarioId, forceLocal: true),
-        );
+        .asyncMap((_) => getHistorico(usuarioId: usuarioId, forceLocal: true));
   }
 
   Future<List<TarefaHabitoModel>> _populatePeriodVezesPraticado(
@@ -795,8 +810,15 @@ class DriftTarefaHabitoRepository implements TarefaHabitoRepository {
           } else {
             lastDate = meta.createdAt.toLocal();
           }
-          final DateTime lastDay = DateTime(lastDate.year, lastDate.month, lastDate.day);
-          final int daysWithoutPracticing = today.difference(lastDay).inDays.clamp(0, 999999);
+          final DateTime lastDay = DateTime(
+            lastDate.year,
+            lastDate.month,
+            lastDate.day,
+          );
+          final int daysWithoutPracticing = today
+              .difference(lastDay)
+              .inDays
+              .clamp(0, 999999);
           return meta.copyWith(vezesPraticado: daysWithoutPracticing);
         }
 
@@ -844,7 +866,8 @@ class DriftTarefaHabitoRepository implements TarefaHabitoRepository {
     final syncs = await _getPendingSyncs();
     final Set<String> ids = {};
     for (final item in syncs) {
-      final rowId = item['id'] as String? ??
+      final rowId =
+          item['id'] as String? ??
           item['rowId'] as String? ??
           item['tempId'] as String? ??
           item['tempHistoryId'] as String? ??
@@ -855,9 +878,9 @@ class DriftTarefaHabitoRepository implements TarefaHabitoRepository {
   }
 
   Future<void> _upsertTarefaHabito(TarefaHabitoModel model) async {
-    final existing = await (database.select(database.tarefaHabitos)
-          ..where((t) => t.remoteId.equals(model.id)))
-        .getSingleOrNull();
+    final existing = await (database.select(
+      database.tarefaHabitos,
+    )..where((t) => t.remoteId.equals(model.id))).getSingleOrNull();
     if (existing != null) {
       List<TarefaHabitoQtdModel> mergedMetas = model.tarefasHabitosQtd;
       if (mergedMetas.isEmpty && existing.metas.isNotEmpty) {
@@ -879,39 +902,41 @@ class DriftTarefaHabitoRepository implements TarefaHabitoRepository {
         }).toList();
       }
 
-      await (database.update(database.tarefaHabitos)
-            ..where((t) => t.remoteId.equals(model.id)))
-          .write(
-            toCompanion(
-              model.copyWith(
-                duration: model.duration ?? existing.duration,
-                arquivado: model.arquivado,
-                tarefaHabitoQtd: mergedMetas,
-              ),
-            ),
-          );
+      await (database.update(
+        database.tarefaHabitos,
+      )..where((t) => t.remoteId.equals(model.id))).write(
+        toCompanion(
+          model.copyWith(
+            duration: model.duration ?? existing.duration,
+            arquivado: model.arquivado,
+            tarefaHabitoQtd: mergedMetas,
+          ),
+        ),
+      );
     } else {
       await database.into(database.tarefaHabitos).insert(toCompanion(model));
     }
   }
 
   Future<void> _upsertHistoricoItem(HistoricoItemModel model) async {
-    final existing = await (database.select(database.historicoTarefasHabitos)
-          ..where((h) => h.remoteId.equals(model.id)))
-        .getSingleOrNull();
+    final existing = await (database.select(
+      database.historicoTarefasHabitos,
+    )..where((h) => h.remoteId.equals(model.id))).getSingleOrNull();
     if (existing != null) {
-      await (database.update(database.historicoTarefasHabitos)
-            ..where((h) => h.remoteId.equals(model.id)))
-          .write(
-            HistoricoTarefasHabitosCompanion(
-              remoteId: Value(model.id),
-              usuario: Value(model.usuario),
-              createdAt: Value(model.createdAt),
-              tarefaHabitoId: Value(model.tarefasEHabitos.id),
-            ),
-          );
+      await (database.update(
+        database.historicoTarefasHabitos,
+      )..where((h) => h.remoteId.equals(model.id))).write(
+        HistoricoTarefasHabitosCompanion(
+          remoteId: Value(model.id),
+          usuario: Value(model.usuario),
+          createdAt: Value(model.createdAt),
+          tarefaHabitoId: Value(model.tarefasEHabitos.id),
+        ),
+      );
     } else {
-      await database.into(database.historicoTarefasHabitos).insert(
+      await database
+          .into(database.historicoTarefasHabitos)
+          .insert(
             HistoricoTarefasHabitosCompanion.insert(
               remoteId: model.id,
               usuario: model.usuario,
@@ -929,7 +954,9 @@ class DriftTarefaHabitoRepository implements TarefaHabitoRepository {
 
     final String usuario = payload['usuario'] as String? ?? '';
     final String createdAtStr =
-        payload[r'$createdAt'] as String? ?? payload['createdAt'] as String? ?? '';
+        payload[r'$createdAt'] as String? ??
+        payload['createdAt'] as String? ??
+        '';
     final DateTime createdAt =
         DateTime.tryParse(createdAtStr) ?? DateTime.now();
 
@@ -941,23 +968,25 @@ class DriftTarefaHabitoRepository implements TarefaHabitoRepository {
       tarefaId = rawTarefa;
     }
 
-    final existing = await (database.select(database.historicoTarefasHabitos)
-          ..where((h) => h.remoteId.equals(rowId)))
-        .getSingleOrNull();
+    final existing = await (database.select(
+      database.historicoTarefasHabitos,
+    )..where((h) => h.remoteId.equals(rowId))).getSingleOrNull();
 
     if (existing != null) {
-      await (database.update(database.historicoTarefasHabitos)
-            ..where((h) => h.remoteId.equals(rowId)))
-          .write(
-            HistoricoTarefasHabitosCompanion(
-              remoteId: Value(rowId),
-              usuario: Value(usuario),
-              createdAt: Value(createdAt),
-              tarefaHabitoId: Value(tarefaId),
-            ),
-          );
+      await (database.update(
+        database.historicoTarefasHabitos,
+      )..where((h) => h.remoteId.equals(rowId))).write(
+        HistoricoTarefasHabitosCompanion(
+          remoteId: Value(rowId),
+          usuario: Value(usuario),
+          createdAt: Value(createdAt),
+          tarefaHabitoId: Value(tarefaId),
+        ),
+      );
     } else {
-      await database.into(database.historicoTarefasHabitos).insert(
+      await database
+          .into(database.historicoTarefasHabitos)
+          .insert(
             HistoricoTarefasHabitosCompanion.insert(
               remoteId: rowId,
               usuario: usuario,
@@ -980,13 +1009,16 @@ class DriftTarefaHabitoRepository implements TarefaHabitoRepository {
     await database.transaction(() async {
       if (action == 'delete') {
         if (tableId == Core.tableTarefasEHabitos) {
-          await (database.delete(database.tarefaHabitos)
-                ..where((t) => t.remoteId.equals(rowId)))
-              .go();
+          await (database.delete(
+            database.tarefaHabitos,
+          )..where((t) => t.remoteId.equals(rowId))).go();
         } else if (tableId == Core.tableHistoricoTarefasHabitos) {
-          await (database.delete(database.historicoTarefasHabitos)
-                ..where((h) => h.remoteId.equals(rowId)))
-              .go();
+          await (database.delete(
+            database.historicoTarefasHabitos,
+          )..where((h) => h.remoteId.equals(rowId))).go();
+        } else if (tableId == Core.tableCategoriasTarefasHabitos) {
+          await removeCategoryFromMetas(rowId);
+          Core.tarefasHabitosController.removeCategoryFromLoadedTasks(rowId);
         }
       } else if (action == 'create' || action == 'update') {
         if (tableId == Core.tableTarefasEHabitos) {
@@ -994,8 +1026,56 @@ class DriftTarefaHabitoRepository implements TarefaHabitoRepository {
           await _upsertTarefaHabito(model);
         } else if (tableId == Core.tableHistoricoTarefasHabitos) {
           await _upsertHistoricoPayload(payload);
+        } else if (tableId == Core.tableCategoriasTarefasHabitos) {
+          final catModel = CategoriasTarefasHabitosModel.fromMap(payload);
+          await updateCategoryInMetas(catModel);
+          Core.tarefasHabitosController.updateCategoryInLoadedTasks(catModel);
         }
       }
     });
+  }
+
+  @override
+  Future<void> updateCategoryInMetas(
+    CategoriasTarefasHabitosModel updatedCategory,
+  ) async {
+    final allRows = await database.select(database.tarefaHabitos).get();
+    for (final row in allRows) {
+      bool changed = false;
+      final newMetas = row.metas.map((qtd) {
+        if (qtd.categoriasTarefasHabitos?.id == updatedCategory.id) {
+          changed = true;
+          return qtd.copyWith(categoriasTarefasHabitos: updatedCategory);
+        }
+        return qtd;
+      }).toList();
+
+      if (changed) {
+        await (database.update(database.tarefaHabitos)
+              ..where((t) => t.remoteId.equals(row.remoteId)))
+            .write(TarefaHabitosCompanion(metas: Value(newMetas)));
+      }
+    }
+  }
+
+  @override
+  Future<void> removeCategoryFromMetas(String categoryId) async {
+    final allRows = await database.select(database.tarefaHabitos).get();
+    for (final row in allRows) {
+      bool changed = false;
+      final newMetas = row.metas.map((qtd) {
+        if (qtd.categoriasTarefasHabitos?.id == categoryId) {
+          changed = true;
+          return qtd.copyWith(clearCategoria: true);
+        }
+        return qtd;
+      }).toList();
+
+      if (changed) {
+        await (database.update(database.tarefaHabitos)
+              ..where((t) => t.remoteId.equals(row.remoteId)))
+            .write(TarefaHabitosCompanion(metas: Value(newMetas)));
+      }
+    }
   }
 }

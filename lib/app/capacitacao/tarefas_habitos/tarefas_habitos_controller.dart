@@ -372,6 +372,48 @@ class TarefasHabitosController {
     tarefasHabitosFuture = null;
   }
 
+  void updateCategoryInLoadedTasks(
+    CategoriasTarefasHabitosModel updatedCategory,
+  ) {
+    mobx.runInAction(() {
+      for (int i = 0; i < _tarefasHabitosList.length; i++) {
+        final task = _tarefasHabitosList[i];
+        bool changed = false;
+        final newMetas = task.tarefasHabitosQtd.map((qtd) {
+          if (qtd.categoriasTarefasHabitos?.id == updatedCategory.id) {
+            changed = true;
+            return qtd.copyWith(categoriasTarefasHabitos: updatedCategory);
+          }
+          return qtd;
+        }).toList();
+
+        if (changed) {
+          _tarefasHabitosList[i] = task.copyWith(tarefaHabitoQtd: newMetas);
+        }
+      }
+    });
+  }
+
+  void removeCategoryFromLoadedTasks(String categoryId) {
+    mobx.runInAction(() {
+      for (int i = 0; i < _tarefasHabitosList.length; i++) {
+        final task = _tarefasHabitosList[i];
+        bool changed = false;
+        final newMetas = task.tarefasHabitosQtd.map((qtd) {
+          if (qtd.categoriasTarefasHabitos?.id == categoryId) {
+            changed = true;
+            return qtd.copyWith(clearCategoria: true);
+          }
+          return qtd;
+        }).toList();
+
+        if (changed) {
+          _tarefasHabitosList[i] = task.copyWith(tarefaHabitoQtd: newMetas);
+        }
+      }
+    });
+  }
+
   Future<void> addQtdHabito(String documentId) async {
     try {
       if (Core.loginController.currentUser == null) {

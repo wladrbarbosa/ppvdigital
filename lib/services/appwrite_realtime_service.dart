@@ -31,6 +31,7 @@ class AppwriteRealtimeService {
         'databases.$db.collections.${Core.tableDivisaoTransacoes}.documents',
         'databases.$db.collections.${Core.tableTarefasEHabitos}.documents',
         'databases.$db.collections.${Core.tableHistoricoTarefasHabitos}.documents',
+        'databases.$db.collections.${Core.tableCategoriasTarefasHabitos}.documents',
       ];
 
       log('Starting Appwrite Realtime subscription for user: $userId');
@@ -71,6 +72,12 @@ class AppwriteRealtimeService {
           if (tarefaRepo is DriftTarefaHabitoRepository) {
             tarefaRepo.handleRealtimeEvent(
               tableId: tableId,
+              action: action,
+              payload: payload,
+            );
+          }
+          if (tableId == Core.tableCategoriasTarefasHabitos) {
+            Core.categoriasController.handleRealtimeEvent(
               action: action,
               payload: payload,
             );

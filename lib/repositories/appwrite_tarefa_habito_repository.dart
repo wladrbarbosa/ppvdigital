@@ -5,6 +5,7 @@ import 'package:appwrite/models.dart';
 import 'package:ppvdigital/app/capacitacao/tarefas_habitos/historico_controller.dart';
 import 'package:ppvdigital/app/capacitacao/tarefas_habitos/tarefas_habitos_controller.dart';
 import 'package:ppvdigital/core.dart';
+import 'package:ppvdigital/models/categorias_tarefas_habitos_model.dart';
 import 'package:ppvdigital/models/historico_item_model.dart';
 import 'package:ppvdigital/models/tarefas_habitos_model.dart';
 import 'package:ppvdigital/repositories/tarefa_habito_repository.dart';
@@ -337,4 +338,10 @@ class AppwriteTarefaHabitoRepository implements TarefaHabitoRepository {
   }) {
     return const Stream.empty();
   }
+
+  @override
+  Future<void> updateCategoryInMetas(CategoriasTarefasHabitosModel updatedCategory) async {}
+
+  @override
+  Future<void> removeCategoryFromMetas(String categoryId) async {}
 }

@@ -32,6 +32,7 @@ class TarefaHabitoQtdModel {
     int? metaVezes,
     String? usuario,
     CategoriasTarefasHabitosModel? categoriasTarefasHabitos,
+    bool clearCategoria = false,
     num? valor,
     int? reiniciaEmQtd,
     String? reiniciaEmTipo,
@@ -42,8 +43,9 @@ class TarefaHabitoQtdModel {
       id: id ?? this.id,
       metaVezes: metaVezes ?? this.metaVezes,
       usuario: usuario ?? this.usuario,
-      categoriasTarefasHabitos:
-          categoriasTarefasHabitos ?? this.categoriasTarefasHabitos,
+      categoriasTarefasHabitos: clearCategoria
+          ? null
+          : (categoriasTarefasHabitos ?? this.categoriasTarefasHabitos),
       valor: valor ?? this.valor,
       reiniciaEmQtd: reiniciaEmQtd ?? this.reiniciaEmQtd,
       reiniciaEmTipo: reiniciaEmTipo ?? this.reiniciaEmTipo,

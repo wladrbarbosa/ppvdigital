@@ -31,13 +31,19 @@ class CategoriasController {
       mobx.ObservableList<CategoriasTarefasHabitosModel>(
         name: 'categoriasList',
       );
-  List<CategoriasTarefasHabitosModel> get categoriasList =>
-      _categoriasList.toList();
+  List<CategoriasTarefasHabitosModel> get categoriasList => _categoriasList;
 
   static Future<void>? categoriasFuture;
 
   void init() {
     databases = Databases(Core.client);
+    _loadCache();
+  }
+
+  Future<void> loadCacheIfNeeded() async {
+    if (_categoriasList.isEmpty) {
+      await _loadCache();
+    }
   }
 
   Future<void> _saveCache() async {
@@ -138,6 +144,11 @@ class CategoriasController {
           now.toIso8601String(),
         );
 
+        for (final item in remoteItems) {
+          Core.tarefasHabitosController.updateCategoryInLoadedTasks(item);
+          await Core.tarefaHabitoRepository.updateCategoryInMetas(item);
+        }
+
         return true;
       } on AppwriteException catch (e) {
         log(e.toString());
@@ -229,19 +240,26 @@ class CategoriasController {
         },
       );
 
+      final updatedCategory = CategoriasTarefasHabitosModel(
+        id: id,
+        nome: nome,
+        cor: cor,
+        pai: pai,
+        usuario: Core.loginController.currentUser?.$id ?? '',
+      );
+
       mobx.runInAction(() {
         final index = _categoriasList.indexWhere((el) => el.id == id);
         if (index != -1) {
-          _categoriasList[index] = CategoriasTarefasHabitosModel(
-            id: id,
-            nome: nome,
-            cor: cor,
-            pai: pai,
-            usuario: Core.loginController.currentUser?.$id ?? '',
-          );
+          _categoriasList[index] = updatedCategory;
         }
       });
       await _saveCache();
+
+      // Propagate category changes to loaded tasks in memory and local SQLite database
+      Core.tarefasHabitosController.updateCategoryInLoadedTasks(updatedCategory);
+      await Core.tarefaHabitoRepository.updateCategoryInMetas(updatedCategory);
+
       return true;
     } on AppwriteException catch (e) {
       log(e.toString());
@@ -265,6 +283,11 @@ class CategoriasController {
         _categoriasList.removeWhere((el) => el.id == documentId);
       });
       await _saveCache();
+
+      // Propagate category deletion to loaded tasks in memory and local SQLite database
+      Core.tarefasHabitosController.removeCategoryFromLoadedTasks(documentId);
+      await Core.tarefaHabitoRepository.removeCategoryFromMetas(documentId);
+
       return true;
     } on AppwriteException catch (e) {
       log(e.toString());
@@ -272,6 +295,36 @@ class CategoriasController {
     } catch (e) {
       log(e.toString());
       return false;
+    }
+  }
+
+  Future<void> handleRealtimeEvent({
+    required String action,
+    required Map<String, dynamic> payload,
+  }) async {
+    final rowId = (payload[r'$id'] ?? payload['id'] ?? '') as String;
+    if (rowId.isEmpty) return;
+
+    if (action == 'delete') {
+      mobx.runInAction(() {
+        _categoriasList.removeWhere((el) => el.id == rowId);
+      });
+      await _saveCache();
+      Core.tarefasHabitosController.removeCategoryFromLoadedTasks(rowId);
+      await Core.tarefaHabitoRepository.removeCategoryFromMetas(rowId);
+    } else if (action == 'create' || action == 'update') {
+      final item = CategoriasTarefasHabitosModel.fromMap(payload);
+      mobx.runInAction(() {
+        final idx = _categoriasList.indexWhere((c) => c.id == item.id);
+        if (idx != -1) {
+          _categoriasList[idx] = item;
+        } else {
+          _categoriasList.add(item);
+        }
+      });
+      await _saveCache();
+      Core.tarefasHabitosController.updateCategoryInLoadedTasks(item);
+      await Core.tarefaHabitoRepository.updateCategoryInMetas(item);
     }
   }
 }

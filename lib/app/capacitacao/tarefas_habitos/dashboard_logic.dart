@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:ppvdigital/core.dart';
+import 'package:ppvdigital/design_system/design_system.dart';
 import 'package:ppvdigital/models/categorias_tarefas_habitos_model.dart';
 import 'package:ppvdigital/models/historico_item_model.dart';
 import 'package:ppvdigital/models/tarefas_habitos_model.dart';
@@ -242,15 +244,7 @@ class DashboardLogic {
   ]) {
     final Map<String, CategoryProgressData> map = {};
 
-    final defaultColors = [
-      Colors.indigo,
-      Colors.teal,
-      Colors.orange,
-      Colors.purple,
-      Colors.pink,
-      Colors.blue,
-      Colors.amber,
-    ];
+    const defaultColors = AppColors.customizablePastelColors;
 
     int colorIdx = 0;
     final DateTime now = DateTime.now();
@@ -281,7 +275,14 @@ class DashboardLogic {
         if (item.tarefasHabitosQtd.isEmpty) continue;
 
         for (final qtd in item.tarefasHabitosQtd) {
-          final cat = qtd.categoriasTarefasHabitos;
+          final catId = qtd.categoriasTarefasHabitos?.id;
+          final liveCategories = Core.maybeCategoriasController?.categoriasList;
+          final liveCat = (catId != null && catId.isNotEmpty && liveCategories != null)
+              ? liveCategories
+                  .cast<CategoriasTarefasHabitosModel?>()
+                  .firstWhere((c) => c?.id == catId, orElse: () => null)
+              : null;
+          final cat = liveCat ?? qtd.categoriasTarefasHabitos;
           final catName = _resolveCategoryName(cat);
           final catColor =
               cat?.cor ?? defaultColors[colorIdx % defaultColors.length];
@@ -458,15 +459,7 @@ class DashboardLogic {
   ) {
     final Map<String, CategoryAttentionData> map = {};
 
-    final defaultColors = [
-      Colors.indigo,
-      Colors.teal,
-      Colors.orange,
-      Colors.purple,
-      Colors.pink,
-      Colors.blue,
-      Colors.amber,
-    ];
+    const defaultColors = AppColors.customizablePastelColors;
 
     int colorIdx = 0;
 
@@ -497,7 +490,14 @@ class DashboardLogic {
       }
 
       for (final qtd in item.tarefasHabitosQtd) {
-        final cat = qtd.categoriasTarefasHabitos;
+        final catId = qtd.categoriasTarefasHabitos?.id;
+        final liveCategories = Core.maybeCategoriasController?.categoriasList;
+        final liveCat = (catId != null && catId.isNotEmpty && liveCategories != null)
+            ? liveCategories
+                .cast<CategoriasTarefasHabitosModel?>()
+                .firstWhere((c) => c?.id == catId, orElse: () => null)
+            : null;
+        final cat = liveCat ?? qtd.categoriasTarefasHabitos;
         final catName = _resolveCategoryName(cat);
         final catColor =
             cat?.cor ?? defaultColors[colorIdx % defaultColors.length];

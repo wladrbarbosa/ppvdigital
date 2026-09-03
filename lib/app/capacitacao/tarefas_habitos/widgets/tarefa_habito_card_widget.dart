@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
+import 'package:ppvdigital/core.dart';
 import 'package:ppvdigital/design_system/design_system.dart';
+import 'package:ppvdigital/models/categorias_tarefas_habitos_model.dart';
 import 'package:ppvdigital/models/tarefas_habitos_model.dart';
 import 'package:ppvdigital/util.dart';
 
@@ -47,16 +49,25 @@ class TarefaHabitoCardWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final categoria =
-        item.tarefasHabitosQtd.firstOrNull?.categoriasTarefasHabitos;
-    final bool isNegativeHabit =
-        item.tipo == 'habito' && item.tarefasHabitosQtd.any((q) => q.valor < 0);
-
-    final Color effectiveHabitColor =
-        isNegativeHabit ? AppColors.pastelError : habitColor;
-
     return Observer(
       builder: (context) {
+        final rawCat =
+            item.tarefasHabitosQtd.firstOrNull?.categoriasTarefasHabitos;
+        final catId = rawCat?.id;
+        final liveCategories = Core.maybeCategoriasController?.categoriasList;
+        final liveCat = (catId != null && catId.isNotEmpty && liveCategories != null)
+            ? liveCategories
+                .cast<CategoriasTarefasHabitosModel?>()
+                .firstWhere((c) => c?.id == catId, orElse: () => null)
+            : null;
+        final categoria = liveCat ?? rawCat;
+
+        final bool isNegativeHabit =
+            item.tipo == 'habito' && item.tarefasHabitosQtd.any((q) => q.valor < 0);
+
+        final Color effectiveHabitColor =
+            isNegativeHabit ? AppColors.pastelError : habitColor;
+
         return Card(
           clipBehavior: Clip.hardEdge,
           margin: EdgeInsets.zero,

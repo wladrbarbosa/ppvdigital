@@ -421,7 +421,7 @@ class MaterialTheme {
         ),
         contentPadding: const EdgeInsets.symmetric(
           horizontal: AppSpacing.md,
-          vertical: AppSpacing.sm,
+          vertical: AppSpacing.mdSm,
         ),
       ),
     );

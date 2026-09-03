@@ -84,6 +84,20 @@ class Core {
       getIt<CalendarioController>();
   static CategoriasController get categoriasController =>
       getIt<CategoriasController>();
+  static CategoriasController? get maybeCategoriasController =>
+      getIt.isRegistered<CategoriasController>()
+          ? getIt<CategoriasController>()
+          : null;
+
+  static TarefasHabitosController? get maybeTarefasHabitosController =>
+      getIt.isRegistered<TarefasHabitosController>()
+          ? getIt<TarefasHabitosController>()
+          : null;
+
+  static TarefaHabitoRepository? get maybeTarefaHabitoRepository =>
+      getIt.isRegistered<TarefaHabitoRepository>()
+          ? getIt<TarefaHabitoRepository>()
+          : null;
   static AppwriteRealtimeService get realtimeService =>
       getIt<AppwriteRealtimeService>();
 
@@ -144,5 +158,5 @@ class Core {
   }
 
   static GlobalKey<TarefasPageState> globalKey = GlobalKey<TarefasPageState>();
-  static const String appVersion = 'b0.27.3+1';
+  static const String appVersion = 'b0.28.0+1';
 }

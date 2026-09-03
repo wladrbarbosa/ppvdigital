@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
-
 import 'package:ppvdigital/core.dart';
+import 'package:ppvdigital/design_system/design_system.dart';
+import 'package:ppvdigital/models/categorias_tarefas_habitos_model.dart';
 import 'package:ppvdigital/models/historico_item_model.dart';
 import 'package:syncfusion_flutter_calendar/calendar.dart';
 
@@ -181,13 +182,22 @@ class _CalendarioPageState extends State<CalendarioPage> {
 class _HistoricoDataSource extends CalendarDataSource {
   _HistoricoDataSource(List<HistoricoItemModel> source) {
     appointments = source.map((item) {
-      final category = item.tarefasEHabitos.tarefasHabitosQtd.isNotEmpty
+      final rawCategory = item.tarefasEHabitos.tarefasHabitosQtd.isNotEmpty
           ? item
                 .tarefasEHabitos
                 .tarefasHabitosQtd
                 .first
                 .categoriasTarefasHabitos
           : null;
+      final catId = rawCategory?.id;
+      final liveCategories = Core.maybeCategoriasController?.categoriasList;
+      final liveCategory = (catId != null && catId.isNotEmpty && liveCategories != null)
+          ? liveCategories
+              .cast<CategoriasTarefasHabitosModel?>()
+              .firstWhere((c) => c?.id == catId, orElse: () => null)
+          : null;
+      final category = liveCategory ?? rawCategory;
+
       final bool isNegativo = item.tarefasEHabitos.tarefasHabitosQtd
           .any((q) => q.valor < 0);
       final String prefix = isNegativo ? '[Recaída] ' : '';
@@ -204,11 +214,11 @@ class _HistoricoDataSource extends CalendarDataSource {
         endTime: item.createdAt.toLocal().add(Duration(minutes: duration)),
         subject: subject,
         color: isNegativo
-            ? (category?.cor ?? Colors.deepOrange)
+            ? (category?.cor ?? AppColors.pastelError)
             : (category?.cor ??
                 (item.tarefasEHabitos.tipo == 'habito'
-                    ? Colors.blue
-                    : Colors.teal)),
+                    ? AppColors.primaryLight
+                    : AppColors.secondaryLight)),
         notes: item.id,
       );
     }).toList();
