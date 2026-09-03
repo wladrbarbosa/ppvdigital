@@ -51,7 +51,35 @@ Além dos componentes em código, o Design System estabelece **governança obrig
   - **Warning:** `#F8D882` / Container `#FDF6DE` / onContainer `#664D00`
   - **Error:** `#F49E9E` / Container `#FDEAEA` / onContainer `#6B1F1F`
   - **Info:** `#8EC7EB` / Container `#E5F4FD` / onContainer `#134B6E`
-- **Neutros & Superfícies:**
+
+### 3.1.1. Cores Personalizáveis pelo Usuário (`AppColors.customizablePastelColors`)
+Para preservar a liberdade do usuário de customizar cores de hábitos, tarefas e categorias, disponibilizamos uma ampla cartela (24 opções ricas e equilibradas) estritamente aderentes à estética pastel de leveza:
+1. Menta Pastel (`#7CB9A8`)
+2. Salvia Pastel (`#95B8A2`)
+3. Pistache Pastel (`#A8D5BA`)
+4. Espuma do Mar / Seafoam (`#94D2BD`)
+5. Turquesa Suave (`#80CED7`)
+6. Gelo / Ice Blue (`#A2D2DF`)
+7. Céu Sereno (`#97C8EB`)
+8. Azul Bebê Pastel (`#A8D8EA`)
+9. Hortênsia / Periwinkle (`#9FB1D9`)
+10. Lavanda Suave (`#A5A6D6`)
+11. Lilás Pastel (`#B8A7EA`)
+12. Ametista Claro (`#CDB4DB`)
+13. Ameixa Suave / Plum (`#D8A7CA`)
+14. Rosa Pastel / Blush (`#F4ACB7`)
+15. Algodão Doce (`#FFCAD4`)
+16. Salmão Pastel (`#F7A399`)
+17. Pêssego Pastel (`#F5B1A2`)
+18. Coral Suave (`#F8B195`)
+19. Damasco Suave (`#FDC5A1`)
+20. Manteiga Pastel (`#FBE29D`)
+21. Baunilha / Creme Quente (`#F6E7B0`)
+22. Chá de Camomila (`#E8DAB2`)
+23. Areia Suave (`#D8D4D0`)
+24. Ardósia Pastel (`#A0AEC0`)
+
+Todas as telas com seletor de cores (`tarefas_habitos_layout.dart`, `criar_editar_categoria_page.dart`, `criar_editar_categoria_transacao_page.dart`) passam a consumir diretamente `AppColors.customizablePastelColors`.
   - `backgroundLight`: `#F9FAFC`
   - `surfaceLight`: `#FFFFFF`
   - `borderLight`: `#E8EDF2`
