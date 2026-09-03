@@ -36,8 +36,8 @@ class _RootAppWidgetState extends State<RootAppWidget>
     if (_materialTheme == null) {
       final TextTheme textTheme = createTextTheme(
         context,
-        'Acme',
-        'Akaya Kanadaka',
+        'Plus Jakarta Sans',
+        'Plus Jakarta Sans',
       );
       _materialTheme = MaterialTheme(textTheme);
     }
@@ -120,8 +120,8 @@ class _RootAppWidgetState extends State<RootAppWidget>
         MaterialTheme(
           createTextTheme(
             context,
-            'Acme',
-            'Akaya Kanadaka',
+            'Plus Jakarta Sans',
+            'Plus Jakarta Sans',
           ),
         );
 
