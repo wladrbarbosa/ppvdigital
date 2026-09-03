@@ -2,6 +2,7 @@ import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:ppvdigital/core.dart';
+import 'package:ppvdigital/design_system/design_system.dart';
 import 'package:ppvdigital/services/pwa_update_service.dart';
 import 'package:routefly/routefly.dart';
 
@@ -44,7 +45,7 @@ class _HomePageState extends State<HomePage> {
           children: [
             Icon(
               _updateAvailable ? Icons.system_update : Icons.refresh,
-              color: _updateAvailable ? Colors.green : Colors.amber,
+              color: _updateAvailable ? AppColors.pastelSuccess : AppColors.pastelWarning,
             ),
             const SizedBox(width: 8),
             Text(_updateAvailable ? 'Nova Versão Disponível!' : 'Atualizar Aplicativo'),
@@ -62,7 +63,7 @@ class _HomePageState extends State<HomePage> {
           ),
           ElevatedButton.icon(
             style: ElevatedButton.styleFrom(
-              backgroundColor: _updateAvailable ? Colors.green : Colors.amber.shade800,
+              backgroundColor: _updateAvailable ? AppColors.pastelSuccess : AppColors.pastelWarning,
               foregroundColor: Colors.white,
             ),
             icon: const Icon(Icons.bolt),
@@ -80,29 +81,29 @@ class _HomePageState extends State<HomePage> {
   final List<Map<String, dynamic>> categories = [
     {
       'title': 'Eu com Deus',
-      'color': Colors.amber,
+      'color': AppColors.pastelWarning,
       'description': 'Espiritualidade, fé e propósito de vida.',
     },
     {
       'title': 'Eu com a Sociedade',
-      'color': Colors.red,
+      'color': AppColors.pastelError,
       'description': 'Relações sociais, comunidade e impacto no mundo.',
     },
     {
       'title': 'Eu com a Capacitação Técnica',
-      'color': Colors.deepPurple,
+      'color': AppColors.secondaryLight,
       'description': 'Gestão de tarefas, hábitos e finanças pessoais.',
       'available': true,
       'route': '/capacitacao',
     },
     {
       'title': 'Eu Comigo',
-      'color': Colors.blue,
+      'color': AppColors.primaryLight,
       'description': 'Autoconhecimento, saúde mental e crescimento pessoal.',
     },
     {
       'title': 'Eu com o Outro',
-      'color': Colors.green,
+      'color': AppColors.pastelSuccess,
       'description': 'Família, amizades e relacionamentos mais próximos.',
     },
   ];

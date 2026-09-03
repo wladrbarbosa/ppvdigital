@@ -358,7 +358,7 @@ class MaterialTheme {
         elevation: 0,
         shape: RoundedRectangleBorder(
           borderRadius: AppRadius.roundedLg,
-          side: BorderSide(color: borderColor, width: 1.0),
+          side: BorderSide(color: borderColor),
         ),
         margin: const EdgeInsets.symmetric(
           horizontal: AppSpacing.md,
@@ -370,7 +370,7 @@ class MaterialTheme {
         elevation: 0,
         shape: RoundedRectangleBorder(
           borderRadius: AppRadius.roundedXl,
-          side: BorderSide(color: borderColor, width: 1.0),
+          side: BorderSide(color: borderColor),
         ),
       ),
       appBarTheme: AppBarTheme(
@@ -397,7 +397,7 @@ class MaterialTheme {
       outlinedButtonTheme: OutlinedButtonThemeData(
         style: OutlinedButton.styleFrom(
           foregroundColor: colorScheme.primary,
-          side: BorderSide(color: borderColor, width: 1.0),
+          side: BorderSide(color: borderColor),
           shape: RoundedRectangleBorder(
             borderRadius: AppRadius.roundedMd,
           ),
@@ -412,11 +412,11 @@ class MaterialTheme {
         fillColor: surfaceColor,
         border: OutlineInputBorder(
           borderRadius: AppRadius.roundedMd,
-          borderSide: BorderSide(color: borderColor, width: 1.0),
+          borderSide: BorderSide(color: borderColor),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: AppRadius.roundedMd,
-          borderSide: BorderSide(color: borderColor, width: 1.0),
+          borderSide: BorderSide(color: borderColor),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: AppRadius.roundedMd,

@@ -3,6 +3,7 @@ import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:ppvdigital/app/capacitacao/tarefas_habitos/dashboard_page.dart';
 import 'package:ppvdigital/core.dart';
+import 'package:ppvdigital/design_system/design_system.dart';
 import 'package:ppvdigital/routes.g.dart';
 import 'package:routefly/routefly.dart';
 
@@ -29,28 +30,7 @@ class TarefasPageState extends State<TarefasPage>
   static TabController? tabController;
   static bool fromTabClick = false;
 
-  static const List<Color> _presetColors = [
-    Colors.teal,
-    Colors.tealAccent,
-    Colors.blue,
-    Colors.blueAccent,
-    Colors.purple,
-    Colors.purpleAccent,
-    Colors.orange,
-    Colors.orangeAccent,
-    Colors.pink,
-    Colors.pinkAccent,
-    Colors.green,
-    Colors.greenAccent,
-    Colors.amber,
-    Colors.amberAccent,
-    Colors.red,
-    Colors.redAccent,
-    Colors.indigo,
-    Colors.indigoAccent,
-    Colors.cyan,
-    Colors.cyanAccent,
-  ];
+  static const List<Color> _presetColors = AppColors.customizablePastelColors;
 
   void updateTabIndex(int index) {
     setState(() {
@@ -164,24 +144,26 @@ class TarefasPageState extends State<TarefasPage>
                               color: color,
                               shape: BoxShape.circle,
                               border: isSelected
-                                  ? Border.all(color: Colors.white, width: 3)
+                                  ? Border.all(color: Colors.white, width: 2.5)
                                   : Border.all(
-                                      color: Colors.grey.withValues(alpha: 0.3),
+                                      color: Colors.grey.withValues(alpha: 0.2),
                                     ),
                               boxShadow: isSelected
                                   ? [
                                       BoxShadow(
-                                        color: color.withValues(alpha: 0.6),
-                                        blurRadius: 6,
-                                        spreadRadius: 2,
+                                        color: color.withValues(alpha: 0.4),
+                                        blurRadius: 8,
+                                        spreadRadius: 1,
                                       ),
                                     ]
                                   : null,
                             ),
                             child: isSelected
-                                ? const Icon(
+                                ? Icon(
                                     Icons.check,
-                                    color: Colors.white,
+                                    color: color.computeLuminance() > 0.55
+                                        ? AppColors.textPrimaryLight
+                                        : Colors.white,
                                     size: 20,
                                   )
                                 : null,

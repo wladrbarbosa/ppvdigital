@@ -1,7 +1,8 @@
 | Task | Status | Description |
 |---|---|---|
-| 1. Brainstorming: Explorar contexto do projeto | COMPLETED | Analisar temas existentes, paleta atual, tipografia e componentes UI |
-| 2. Brainstorming: Alinhamento de requisitos e abordagem | COMPLETED | Apresentar perguntas/abordagens de design system com paleta pastel e leveza |
-| 3. Brainstorming: Validação incremental do design | COMPLETED | Apresentar estrutura de tokens, componentes, documentação e diretrizes de agentes |
-| 4. Brainstorming: Registro do Design Doc | IN_PROGRESS | Salvar `docs/plans/2026-09-02-design-system-design.md` |
-| 5. Planejamento de Implementação | PENDING | Elaborar plano de execução com escrita dos tokens, temas, docs e ajustes em componentes |
+| 1. Criar Módulo de Tokens do Design System (`lib/design_system/`) | COMPLETED | Tokens de cores pastéis (24 cores personalizáveis), espaçamento, raios, sombras, tipografia e decorações com 9 testes unitários aprovados |
+| 2. Integrar Design System ao ThemeData Global e Tipografia | COMPLETED | `lib/theme.dart` (MaterialTheme light/dark com componentes padrão) e `lib/root_app_widget.dart` (Plus Jakarta Sans) integrados com testes aprovados |
+| 3. Adequar Componentes Existentes e Seletores de Cores Personalizáveis | COMPLETED | Seletores de cores em tarefas_habitos, categorias e transações atualizados para 24 tons pastéis; cards, badges e seletor de mês adequados aos tokens |
+| 4. Governança, Regras no AGENTS.md e Documentação | IN_PROGRESS | Criar `docs/design_system.md`, adicionar regras de consulta obrigatória em `.agents/AGENTS.md` e `.agent/AGENTS.md`, e atualizar `README.md` |
+| 5. Verificação Global de Cobertura e Análise Estática | NOT_STARTED | Executar `fvm flutter test --coverage` e `fvm flutter analyze` garantindo cobertura ~100% e integridade |
+

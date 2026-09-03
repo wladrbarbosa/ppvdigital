@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:ppvdigital/core.dart';
+import 'package:ppvdigital/design_system/design_system.dart';
 import 'package:ppvdigital/models/categoria_transacao_model.dart';
 import 'package:routefly/routefly.dart';
 
@@ -60,21 +61,10 @@ class _CriarEditarCategoriaTransacaoPageState
   final _nomeController = TextEditingController();
   bool _isLoading = false;
 
-  Color _selectedColor = Colors.blue;
+  Color _selectedColor = AppColors.primaryLight;
   String _selectedIcon = 'monetization_on';
 
-  final List<Color> _presetColors = [
-    Colors.red,
-    Colors.pink,
-    Colors.orange,
-    Colors.amber,
-    Colors.green,
-    Colors.teal,
-    Colors.blue,
-    Colors.indigo,
-    Colors.purple,
-    Colors.blueGrey,
-  ];
+  final List<Color> _presetColors = AppColors.customizablePastelColors;
 
   final Map<String, IconData> _presetIcons = {
     'monetization_on': Icons.monetization_on,
@@ -279,20 +269,26 @@ class _CriarEditarCategoriaTransacaoPageState
                       color: color,
                       shape: BoxShape.circle,
                       border: isSelected
-                          ? Border.all(color: Colors.white, width: 3)
-                          : null,
+                          ? Border.all(color: Colors.white, width: 2.5)
+                          : Border.all(color: AppColors.borderLight),
                       boxShadow: isSelected
                           ? [
-                              const BoxShadow(
-                                color: Colors.black26,
-                                blurRadius: 4,
-                                offset: Offset(0, 2),
+                              BoxShadow(
+                                color: color.withValues(alpha: 0.4),
+                                blurRadius: 8,
+                                offset: const Offset(0, 2),
                               ),
                             ]
                           : null,
                     ),
                     child: isSelected
-                        ? const Icon(Icons.check, color: Colors.white, size: 20)
+                        ? Icon(
+                            Icons.check,
+                            color: color.computeLuminance() > 0.55
+                                ? AppColors.textPrimaryLight
+                                : Colors.white,
+                            size: 20,
+                          )
                         : null,
                   ),
                 );

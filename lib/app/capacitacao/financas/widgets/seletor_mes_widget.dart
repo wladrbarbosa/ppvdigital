@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:ppvdigital/design_system/design_system.dart';
 
 class SeletorMesWidget extends StatelessWidget {
   const SeletorMesWidget({
@@ -16,9 +17,15 @@ class SeletorMesWidget extends StatelessWidget {
     final capitalized = monthName[0].toUpperCase() + monthName.substring(1);
 
     return Card(
-      margin: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+      margin: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.md,
+        vertical: AppSpacing.sm,
+      ),
       child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 4.0, horizontal: 8.0),
+        padding: const EdgeInsets.symmetric(
+          vertical: AppSpacing.xs,
+          horizontal: AppSpacing.sm,
+        ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
@@ -35,7 +42,10 @@ class SeletorMesWidget extends StatelessWidget {
                 ),
                 IconButton(
                   tooltip: 'Mês atual',
-                  icon: const Icon(Icons.today, color: Colors.blue),
+                  icon: Icon(
+                    Icons.today,
+                    color: Theme.of(context).colorScheme.primary,
+                  ),
                   onPressed: () {
                     onMonthChanged(DateTime.now());
                   },
@@ -44,7 +54,7 @@ class SeletorMesWidget extends StatelessWidget {
             ),
             InkWell(
               onTap: () => _mostrarSeletorMesAno(context),
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: AppRadius.roundedSm,
               child: Padding(
                 padding: const EdgeInsets.symmetric(
                   horizontal: 12.0,
@@ -150,18 +160,18 @@ class SeletorMesWidget extends StatelessWidget {
                         onMonthChanged(DateTime(tempYear, monthIndex));
                         Navigator.of(context).pop();
                       },
-                      borderRadius: BorderRadius.circular(8),
+                      borderRadius: AppRadius.roundedMd,
                       child: Container(
                         decoration: BoxDecoration(
                           color: isSelected
-                              ? Theme.of(context).primaryColor
+                              ? Theme.of(context).colorScheme.primaryContainer
                               : Colors.transparent,
                           border: Border.all(
                             color: isSelected
-                                ? Theme.of(context).primaryColor
-                                : Colors.grey.withValues(alpha: 0.3),
+                                ? Theme.of(context).colorScheme.primary
+                                : AppColors.borderLight,
                           ),
-                          borderRadius: BorderRadius.circular(8),
+                          borderRadius: AppRadius.roundedMd,
                         ),
                         alignment: Alignment.center,
                         child: Text(
@@ -170,7 +180,9 @@ class SeletorMesWidget extends StatelessWidget {
                             fontWeight: isSelected
                                 ? FontWeight.bold
                                 : FontWeight.normal,
-                            color: isSelected ? Colors.white : null,
+                            color: isSelected
+                                ? Theme.of(context).colorScheme.onPrimaryContainer
+                                : null,
                           ),
                         ),
                       ),

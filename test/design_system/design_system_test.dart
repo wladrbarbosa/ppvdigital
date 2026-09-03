@@ -88,7 +88,7 @@ void main() {
     });
 
     test('AppDecorations cria decorações de cards e badges com leveza', () {
-      final cardDeco = AppDecorations.card(isDark: false);
+      final cardDeco = AppDecorations.card();
       expect(cardDeco.color, equals(AppColors.surfaceLight));
       expect(cardDeco.borderRadius, equals(AppRadius.roundedLg));
       expect(cardDeco.border, isNotNull);

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:ppvdigital/core.dart';
+import 'package:ppvdigital/design_system/design_system.dart';
 import 'package:ppvdigital/models/categorias_tarefas_habitos_model.dart';
 import 'package:routefly/routefly.dart';
 
@@ -15,20 +16,10 @@ class _CriarEditarCategoriaPageState extends State<CriarEditarCategoriaPage> {
   final _formKey = GlobalKey<FormState>();
   final _nomeController = TextEditingController();
 
-  Color _selectedColor = const Color(0xFF4FC3F7); // Default light blue
+  Color _selectedColor = AppColors.primaryLight;
   String? _parentCategoryId;
 
-  final List<Color> _presetColors = const [
-    Color(0xFFE57373), // Red
-    Color(0xFFF06292), // Pink
-    Color(0xFFBA68C8), // Purple
-    Color(0xFF7986CB), // Indigo
-    Color(0xFF4FC3F7), // Light Blue
-    Color(0xFF4DB6AC), // Teal
-    Color(0xFF81C784), // Green
-    Color(0xFFFFB74D), // Orange
-    Color(0xFF90A4AE), // Grey-blue
-  ];
+  final List<Color> _presetColors = AppColors.customizablePastelColors;
 
   CategoriasTarefasHabitosModel? _editingCategory;
   String? _lastRoute;
@@ -163,18 +154,25 @@ class _CriarEditarCategoriaPageState extends State<CriarEditarCategoriaPage> {
                         decoration: BoxDecoration(
                           color: color,
                           shape: BoxShape.circle,
-                          border: isSelected ? Border.all(width: 3) : null,
+                          border: isSelected
+                              ? Border.all(color: Colors.white, width: 2.5)
+                              : Border.all(color: AppColors.borderLight),
                           boxShadow: [
                             if (isSelected)
-                              const BoxShadow(
-                                color: Colors.black26,
-                                blurRadius: 4,
-                                offset: Offset(0, 2),
+                              BoxShadow(
+                                color: color.withValues(alpha: 0.4),
+                                blurRadius: 8,
+                                offset: const Offset(0, 2),
                               ),
                           ],
                         ),
                         child: isSelected
-                            ? const Icon(Icons.check, color: Colors.white)
+                            ? Icon(
+                                Icons.check,
+                                color: color.computeLuminance() > 0.55
+                                    ? AppColors.textPrimaryLight
+                                    : Colors.white,
+                              )
                             : null,
                       ),
                     );

@@ -19,7 +19,6 @@ abstract final class AppDecorations {
       borderRadius: borderRadius ?? AppRadius.roundedLg,
       border: Border.all(
         color: borderColor ?? (isDark ? AppColors.borderDark : AppColors.borderLight),
-        width: 1.0,
       ),
       boxShadow: shadows ?? AppShadows.card,
     );
@@ -35,7 +34,7 @@ abstract final class AppDecorations {
       color: backgroundColor,
       borderRadius: borderRadius ?? AppRadius.roundedFull,
       border: borderColor != null
-          ? Border.all(color: borderColor.withValues(alpha: 0.5), width: 1.0)
+          ? Border.all(color: borderColor.withValues(alpha: 0.5))
           : null,
     );
   }

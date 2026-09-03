@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
+import 'package:ppvdigital/design_system/design_system.dart';
 import 'package:ppvdigital/models/tarefas_habitos_model.dart';
 import 'package:ppvdigital/util.dart';
 
@@ -52,29 +53,30 @@ class TarefaHabitoCardWidget extends StatelessWidget {
         item.tipo == 'habito' && item.tarefasHabitosQtd.any((q) => q.valor < 0);
 
     final Color effectiveHabitColor =
-        isNegativeHabit ? Colors.redAccent : habitColor;
+        isNegativeHabit ? AppColors.pastelError : habitColor;
 
     return Observer(
       builder: (context) {
         return Card(
           clipBehavior: Clip.hardEdge,
           margin: EdgeInsets.zero,
+          elevation: 0,
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(22),
+            borderRadius: AppRadius.roundedLg,
             side: BorderSide(
               color: item.tipo == 'habito'
-                  ? effectiveHabitColor.withValues(alpha: 0.4)
-                  : taskColor.withValues(alpha: 0.4),
-              width: 1.5,
+                  ? effectiveHabitColor.withValues(alpha: 0.35)
+                  : taskColor.withValues(alpha: 0.35),
+              width: 1.2,
             ),
           ),
-          color: Colors.transparent,
+          color: Theme.of(context).cardTheme.color,
           child: InkWell(
             onTap: onTap,
             child: Padding(
               padding: const EdgeInsets.symmetric(
-                horizontal: 12.0,
-                vertical: 10.0,
+                horizontal: AppSpacing.mdSm,
+                vertical: AppSpacing.sm,
               ),
               child: Row(
                 children: [
@@ -93,7 +95,7 @@ class TarefaHabitoCardWidget extends StatelessWidget {
                                     const Icon(
                                       Icons.archive_outlined,
                                       size: 13.0,
-                                      color: Colors.amber,
+                                      color: AppColors.pastelWarning,
                                     ),
                                     const SizedBox(width: 4.0),
                                   ],
@@ -119,10 +121,10 @@ class TarefaHabitoCardWidget extends StatelessWidget {
                                   vertical: 2.0,
                                 ),
                                 decoration: BoxDecoration(
-                                  color: Colors.redAccent.withValues(alpha: 0.15),
-                                  borderRadius: BorderRadius.circular(8.0),
+                                  color: AppColors.pastelErrorContainer,
+                                  borderRadius: AppRadius.roundedSm,
                                   border: Border.all(
-                                    color: Colors.redAccent.withValues(alpha: 0.4),
+                                    color: AppColors.pastelError.withValues(alpha: 0.4),
                                   ),
                                 ),
                                 child: const Text(
@@ -130,7 +132,7 @@ class TarefaHabitoCardWidget extends StatelessWidget {
                                   style: TextStyle(
                                     fontSize: 9.0,
                                     fontWeight: FontWeight.bold,
-                                    color: Colors.redAccent,
+                                    color: AppColors.onPastelErrorContainer,
                                   ),
                                 ),
                               ),
@@ -214,17 +216,17 @@ class TarefaHabitoCardWidget extends StatelessWidget {
                             item.agendamento != null) ...[
                           Row(
                             children: [
-                              const Icon(
+                              Icon(
                                 Icons.calendar_today,
                                 size: 11.0,
-                                color: Colors.black54,
+                                color: Theme.of(context).colorScheme.onSurfaceVariant,
                               ),
                               const SizedBox(width: 4.0),
                               Text(
                                 '${item.agendamento!.day.toString().padLeft(2, '0')}/${item.agendamento!.month.toString().padLeft(2, '0')} ${item.agendamento!.hour.toString().padLeft(2, '0')}:${item.agendamento!.minute.toString().padLeft(2, '0')}',
-                                style: const TextStyle(
+                                style: TextStyle(
                                   fontSize: 10.0,
-                                  color: Colors.white54,
+                                  color: Theme.of(context).colorScheme.onSurfaceVariant,
                                 ),
                               ),
                             ],
@@ -234,10 +236,10 @@ class TarefaHabitoCardWidget extends StatelessWidget {
                         if (item.tipo == 'habito')
                           Text(
                             _getProgressText(item),
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 11.5,
                               fontWeight: FontWeight.w500,
-                              color: Colors.white70,
+                              color: Theme.of(context).colorScheme.onSurfaceVariant,
                             ),
                           ),
                       ],

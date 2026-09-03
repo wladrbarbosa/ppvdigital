@@ -9,7 +9,6 @@ abstract final class AppShadows {
     BoxShadow(
       color: Color(0x0A1A202C), // ~4% de opacidade
       blurRadius: 10,
-      spreadRadius: 0,
       offset: Offset(0, 4),
     ),
   ];
@@ -19,7 +18,6 @@ abstract final class AppShadows {
     BoxShadow(
       color: Color(0x0D1A202C), // ~5% de opacidade
       blurRadius: 16,
-      spreadRadius: 0,
       offset: Offset(0, 6),
     ),
   ];
@@ -29,7 +27,6 @@ abstract final class AppShadows {
     BoxShadow(
       color: Color(0x141A202C), // ~8% de opacidade
       blurRadius: 24,
-      spreadRadius: 0,
       offset: Offset(0, 10),
     ),
   ];

@@ -36,13 +36,13 @@ void main() {
       // CardTheme deve ter borda sutil e curvatura suave
       final cardTheme = lightTheme.cardTheme;
       expect(cardTheme.shape, isA<RoundedRectangleBorder>());
-      final cardShape = cardTheme.shape as RoundedRectangleBorder;
+      final cardShape = cardTheme.shape! as RoundedRectangleBorder;
       expect(cardShape.borderRadius, AppRadius.roundedLg);
 
       // DialogTheme deve ter cantos generosos
       final dialogTheme = lightTheme.dialogTheme;
       expect(dialogTheme.shape, isA<RoundedRectangleBorder>());
-      final dialogShape = dialogTheme.shape as RoundedRectangleBorder;
+      final dialogShape = dialogTheme.shape! as RoundedRectangleBorder;
       expect(dialogShape.borderRadius, AppRadius.roundedXl);
     });
 
