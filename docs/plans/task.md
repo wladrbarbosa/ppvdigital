@@ -1,8 +1,6 @@
 | Task | Status | Description |
 |---|---|---|
-| 1. Criar Módulo de Tokens do Design System (`lib/design_system/`) | COMPLETED | Tokens de cores pastéis (24 cores personalizáveis), espaçamento, raios, sombras, tipografia e decorações com 9 testes unitários aprovados |
-| 2. Integrar Design System ao ThemeData Global e Tipografia | COMPLETED | `lib/theme.dart` (MaterialTheme light/dark com componentes padrão) e `lib/root_app_widget.dart` (Plus Jakarta Sans) integrados com testes aprovados |
-| 3. Adequar Componentes Existentes e Seletores de Cores Personalizáveis | COMPLETED | Seletores de cores em tarefas_habitos, categorias e transações atualizados para 24 tons pastéis; cards, badges e seletor de mês adequados aos tokens |
-| 4. Governança, Regras no AGENTS.md e Documentação | COMPLETED | `docs/design_system.md` criado, regras de consulta obrigatória adicionadas em `.agents/AGENTS.md` e `.agent/AGENTS.md`, e `README.md` atualizado |
-| 5. Verificação Global de Cobertura e Análise Estática | COMPLETED | `fvm flutter test --coverage` (135/135 testes aprovados) e `fvm flutter analyze` (0 issues) executados com sucesso |
-
+| 1. Implementar suporte a expansão e redução de parcelas em `FinancasController.updateTransacao` | COMPLETED | Suporte a criação de parcelas faltantes e exclusão de parcelas excedentes em `current_and_future` e `all` |
+| 2. Aprimorar `CriarEditarTransacaoPage` | COMPLETED | Limpeza de sufixo `(Parcela X/Y)`, preenchimento de `Parcela Atual` e label dinâmico |
+| 3. Implementar testes unitários para expansão, redução e desassociação de parcelas | COMPLETED | Testes cobrindo criação de novas parcelas, redução, e o cenário relatado pelo usuário |
+| 4. Verificação Global e Análise Estática | COMPLETED | `fvm flutter test` (148 passaram) e `fvm flutter analyze` sem erros |

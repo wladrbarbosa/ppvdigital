@@ -58,7 +58,7 @@ O módulo financeiro permite controlar contas, categorias, lançamentos individu
 - Suporta frequências **diária**, **semanal**, **mensal** e **anual** calculadas pelo serviço desacoplado de domínio `RecorrenciaService`.
 - Cálculo automático das datas de competência de cada parcela com tratamento para anos bissextos e bordas de meses.
 - Permite número fixo de parcelas (`totalParcelas`) ou recorrência indeterminada (`fimRecorrencia`).
-- Atualizações em série permitem propagação em lote para transações futuras da mesma recorrência.
+- Atualizações em série (`current_and_future` e `all`) suportam expansão dinâmica de parcelamento (criando automaticamente parcelas faltantes nos meses subsequentes) e redução (removendo parcelas excedentes), mantendo a integridade de datas, descrições, categorias, contas e divisões.
 
 #### Métricas Mensais e Consolidação
 - **`saldoAnterior`**: Soma das transações consolidadas ocorridas estritamente antes do mês selecionado.

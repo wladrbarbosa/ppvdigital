@@ -129,6 +129,22 @@ class _CriarEditarTransacaoPageState extends State<CriarEditarTransacaoPage> {
         _parcelaInicioController.text = (t.recorrencia!.parcelaInicio ?? 1)
             .toString();
         _tipoRecorrencia = t.recorrencia!.tipoRecorrencia;
+
+        // Parse (Parcela X/Y) se presente na descrição
+        final match = RegExp(
+          r'^(.*?)\s*\(Parcela\s+(\d+)/(\d+)\)$',
+        ).firstMatch(t.descricao);
+        if (match != null) {
+          _descricaoController.text = match.group(1)!.trim();
+          final int? currentParcelFromDesc = int.tryParse(match.group(2)!);
+          final int? totalParcelsFromDesc = int.tryParse(match.group(3)!);
+          if (currentParcelFromDesc != null) {
+            _parcelaInicioController.text = currentParcelFromDesc.toString();
+          }
+          if (totalParcelsFromDesc != null && !_recorrenciaIndeterminada) {
+            _totalParcelasController.text = totalParcelsFromDesc.toString();
+          }
+        }
       }
 
       // Divisions
@@ -1221,15 +1237,23 @@ class _CriarEditarTransacaoPageState extends State<CriarEditarTransacaoPage> {
                 child: TextFormField(
                   controller: _parcelaInicioController,
                   keyboardType: TextInputType.number,
-                  decoration: const InputDecoration(
-                    labelText: 'Parcela Inicial',
-                    border: OutlineInputBorder(),
+                  decoration: InputDecoration(
+                    labelText: widget.editingItem != null
+                        ? 'Parcela Atual'
+                        : 'Parcela Inicial',
+                    border: const OutlineInputBorder(),
                   ),
                   validator: (value) {
-                    if (_recorrente &&
-                        !_recorrenciaIndeterminada &&
-                        (value == null || int.tryParse(value) == null)) {
-                      return 'Parcela inicial inválida.';
+                    if (_recorrente && !_recorrenciaIndeterminada) {
+                      if (value == null || int.tryParse(value) == null) {
+                        return widget.editingItem != null
+                            ? 'Parcela atual inválida.'
+                            : 'Parcela inicial inválida.';
+                      }
+                      final parsed = int.tryParse(value)!;
+                      if (parsed < 1) {
+                        return 'Deve ser no mínimo 1.';
+                      }
                     }
                     return null;
                   },
@@ -1245,10 +1269,21 @@ class _CriarEditarTransacaoPageState extends State<CriarEditarTransacaoPage> {
                     border: OutlineInputBorder(),
                   ),
                   validator: (value) {
-                    if (_recorrente &&
-                        !_recorrenciaIndeterminada &&
-                        (value == null || int.tryParse(value) == null)) {
-                      return 'Parcelas inválidas.';
+                    if (_recorrente && !_recorrenciaIndeterminada) {
+                      if (value == null || int.tryParse(value) == null) {
+                        return 'Parcelas inválidas.';
+                      }
+                      final total = int.tryParse(value)!;
+                      final start =
+                          int.tryParse(_parcelaInicioController.text) ?? 1;
+                      if (total < 1) {
+                        return 'Deve ser no mínimo 1.';
+                      }
+                      if (total < start) {
+                        return widget.editingItem != null
+                            ? 'Total não pode ser menor que a parcela atual.'
+                            : 'Total não pode ser menor que a parcela inicial.';
+                      }
                     }
                     return null;
                   },

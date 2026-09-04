@@ -832,10 +832,18 @@ class FinancasController {
         );
         updatedRecId = newRecId;
 
+        String baseDesc = descricao;
+        final matchClean = RegExp(
+          r'^(.*?)\s*\(Parcela\s+\d+/\d+\)$',
+        ).firstMatch(descricao);
+        if (matchClean != null) {
+          baseDesc = matchClean.group(1)!;
+        }
+
         final int startParcel = parcelaInicio ?? 1;
         newMainDesc = totalParcelas == null
-            ? descricao
-            : '$descricao (Parcela $startParcel/$totalParcelas)';
+            ? baseDesc
+            : '$baseDesc (Parcela $startParcel/$totalParcelas)';
 
         final int remainingParcels =
             totalParcelas != null ? (totalParcelas - startParcel + 1) : 1;
@@ -850,8 +858,8 @@ class FinancasController {
           );
           final int nextParcel = startParcel + i - 1;
           final String descFinal = totalParcelas == null
-              ? descricao
-              : '$descricao (Parcela $nextParcel/$totalParcelas)';
+              ? baseDesc
+              : '$baseDesc (Parcela $nextParcel/$totalParcelas)';
           final String newTxId = ID.unique();
 
           ops.add({
@@ -927,13 +935,39 @@ class FinancasController {
           );
 
           if (optionRecorrencia == 'current_and_future') {
-            // create new recurrence row
             final originalRec = original.recorrencia!;
+
+            // Rebuild description base without (Parcela X/Y)
+            String baseDesc = descricao;
+            final matchDescClean = RegExp(
+              r'^(.*?)\s*\(Parcela\s+\d+/\d+\)$',
+            ).firstMatch(descricao);
+            if (matchDescClean != null) {
+              baseDesc = matchDescClean.group(1)!;
+            }
+
+            // Detect current installment number
+            final matchOrigDesc = RegExp(
+              r'\(Parcela\s+(\d+)/(\d+)\)',
+            ).firstMatch(original.descricao);
+            final int? origParcelFromDesc = matchOrigDesc != null
+                ? int.tryParse(matchOrigDesc.group(1)!)
+                : null;
+            final int currentParcel = parcelaInicio ??
+                origParcelFromDesc ??
+                originalRec.parcelaInicio ??
+                1;
+
+            final String finalPeriod =
+                tipoRecorrencia ?? originalRec.tipoRecorrencia;
+            final int finalFreq = frequencia ?? originalRec.frequencia ?? 1;
+
+            // Create new recurrence row for current and future
             final newRecId = await repository.createRecorrenciaRow(
-              tipoRecorrencia: tipoRecorrencia ?? originalRec.tipoRecorrencia,
-              frequencia: frequencia ?? originalRec.frequencia ?? 0,
+              tipoRecorrencia: finalPeriod,
+              frequencia: finalFreq,
               totalParcelas: totalParcelas,
-              parcelaInicio: parcelaInicio ?? originalRec.parcelaInicio,
+              parcelaInicio: currentParcel,
               fimRecorrencia: originalRec.fimRecorrencia,
             );
             updatedRecId = newRecId;
@@ -950,25 +984,25 @@ class FinancasController {
               (a, b) => a.dataCompetencia.compareTo(b.dataCompetencia),
             );
 
-            final String finalPeriod =
-                tipoRecorrencia ?? originalRec.tipoRecorrencia;
-            final int finalFreq = frequencia ?? originalRec.frequencia ?? 1;
-
-            // Rebuild description for the current edited transaction
-            String baseDesc = descricao;
-            final match = RegExp(
-              r'^(.*)\s\(Parcela\s\d+/\d+\)$',
-            ).firstMatch(descricao);
-            if (match != null) {
-              baseDesc = match.group(1)!;
-            }
-            final int currentParcel =
-                parcelaInicio ?? originalRec.parcelaInicio ?? 1;
             newMainDesc = totalParcelas == null
                 ? baseDesc
                 : '$baseDesc (Parcela $currentParcel/$totalParcelas)';
 
-            for (int j = 0; j < futureTrans.length; j++) {
+            final int neededFutureCount;
+            if (totalParcelas != null) {
+              neededFutureCount = (totalParcelas - currentParcel).clamp(0, 999);
+            } else {
+              neededFutureCount =
+                  futureTrans.isNotEmpty ? futureTrans.length : 23;
+            }
+
+            final int existingCount = futureTrans.length;
+            final int updateCount = existingCount < neededFutureCount
+                ? existingCount
+                : neededFutureCount;
+
+            // 1. Update existing future transactions up to updateCount
+            for (int j = 0; j < updateCount; j++) {
               final t = futureTrans[j];
               // Revert balance if consolidated
               if (t.consolidada) {
@@ -997,7 +1031,6 @@ class FinancasController {
                   ? baseDesc
                   : '$baseDesc (Parcela $nextParcel/$totalParcelas)';
 
-              // Stage transaction update
               ops.add({
                 'action': 'update',
                 'databaseId': Core.databaseId,
@@ -1057,21 +1090,96 @@ class FinancasController {
                 });
               }
             }
-          } else if (optionRecorrencia == 'all') {
-            // Update the recurrence row itself
-            await repository.updateRow(
-              tableId: Core.tableTransacaoRecorrencias,
-              rowId: original.recorrencia!.id,
-              data: {
-                if (tipoRecorrencia != null) 'tipoRecorrencia': tipoRecorrencia,
-                if (frequencia != null) 'frequencia': frequencia,
-                'totalParcelas': totalParcelas,
-                if (parcelaInicio != null) 'parcelaInicio': parcelaInicio,
-              },
-            );
 
-            // Sort all transactions chronologically
+            // 2. Delete excess future transactions if needed
+            for (int j = neededFutureCount; j < existingCount; j++) {
+              final t = futureTrans[j];
+              if (t.consolidada) {
+                if (t.tipo == 'despesa' && t.conta != null) {
+                  addAccountDelta(t.conta!.id, t.valor);
+                } else if (t.tipo == 'receita' && t.conta != null) {
+                  addAccountDelta(t.conta!.id, -t.valor);
+                } else if (t.tipo == 'transferencia' &&
+                    t.conta != null &&
+                    t.contaDestino != null) {
+                  addAccountDelta(t.conta!.id, t.valor);
+                  addAccountDelta(t.contaDestino!.id, -t.valor);
+                }
+              }
+
+              for (final oldDiv in t.divisoes) {
+                ops.add({
+                  'action': 'delete',
+                  'databaseId': Core.databaseId,
+                  'tableId': Core.tableDivisaoTransacoes,
+                  'rowId': oldDiv.id,
+                });
+              }
+
+              ops.add({
+                'action': 'delete',
+                'databaseId': Core.databaseId,
+                'tableId': Core.tableTransacoes,
+                'rowId': t.id,
+              });
+            }
+
+            // 3. Create missing future transactions if needed
+            for (int j = existingCount; j < neededFutureCount; j++) {
+              final newDate = RecorrenciaService.calcularDataParcela(
+                dataBase: dataCompetencia,
+                tipoRecorrencia: finalPeriod,
+                frequencia: finalFreq,
+                stepIndex: j + 1,
+              );
+
+              final int nextParcel = currentParcel + j + 1;
+              final String newDesc = totalParcelas == null
+                  ? baseDesc
+                  : '$baseDesc (Parcela $nextParcel/$totalParcelas)';
+              final String newTxId = ID.unique();
+
+              ops.add({
+                'action': 'create',
+                'databaseId': Core.databaseId,
+                'tableId': Core.tableTransacoes,
+                'rowId': newTxId,
+                'data': {
+                  'descricao': newDesc,
+                  'valor': valor,
+                  'tipo': tipo,
+                  'dataCompetencia': newDate.toIso8601String(),
+                  'conta': contaId,
+                  'contaDestino': contaDestinoId,
+                  'consolidada': false,
+                  'categoria': categoriaId,
+                  'recorrencia': updatedRecId,
+                  'devedorContato': devedorContatoId,
+                  'credorContato': credorContatoId,
+                },
+              });
+
+              for (final divItem in divisao) {
+                final String rContato = divItem['contatoResponsavel'] as String;
+                final double rPeso = (divItem['peso'] as num).toDouble();
+                ops.add({
+                  'action': 'create',
+                  'databaseId': Core.databaseId,
+                  'tableId': Core.tableDivisaoTransacoes,
+                  'rowId': ID.unique(),
+                  'data': {
+                    'transacao': newTxId,
+                    'contatoResponsavel': rContato,
+                    'peso': rPeso,
+                  },
+                });
+              }
+            }
+          } else if (optionRecorrencia == 'all') {
             final allSeriesTrans = List<TransacaoModel>.from(allRecTrans);
+            if (!allSeriesTrans.any((t) => t.id == original.id)) {
+              allSeriesTrans.add(original);
+            }
             allSeriesTrans.sort(
               (a, b) => a.dataCompetencia.compareTo(b.dataCompetencia),
             );
@@ -1087,17 +1195,64 @@ class FinancasController {
 
             // Rebuild base description
             String baseDesc = descricao;
-            final match = RegExp(
-              r'^(.*)\s\(Parcela\s\d+/\d+\)$',
+            final matchClean = RegExp(
+              r'^(.*?)\s*\(Parcela\s+\d+/\d+\)$',
             ).firstMatch(descricao);
-            if (match != null) {
-              baseDesc = match.group(1)!;
+            if (matchClean != null) {
+              baseDesc = matchClean.group(1)!;
             }
+
+            // Identify start parcel of the series
+            final matchFirst = RegExp(
+              r'\(Parcela\s+(\d+)/(\d+)\)',
+            ).firstMatch(allSeriesTrans.first.descricao);
+            final int? firstDescParcel = matchFirst != null
+                ? int.tryParse(matchFirst.group(1)!)
+                : null;
+
+            final int startParcel;
+            if (firstDescParcel != null) {
+              startParcel = firstDescParcel;
+            } else if (parcelaInicio != null && idxEdit != -1) {
+              startParcel = (parcelaInicio - idxEdit).clamp(1, 999);
+            } else {
+              startParcel = original.recorrencia?.parcelaInicio ?? 1;
+            }
+
+            // Update recurrence row
+            await repository.updateRow(
+              tableId: Core.tableTransacaoRecorrencias,
+              rowId: original.recorrencia!.id,
+              data: {
+                if (tipoRecorrencia != null) 'tipoRecorrencia': tipoRecorrencia,
+                if (frequencia != null) 'frequencia': frequencia,
+                'totalParcelas': totalParcelas,
+                'parcelaInicio': startParcel,
+              },
+            );
+
+            final int neededTotalCount;
+            if (totalParcelas != null) {
+              neededTotalCount =
+                  (totalParcelas - startParcel + 1).clamp(1, 999);
+            } else {
+              neededTotalCount =
+                  allSeriesTrans.isNotEmpty ? allSeriesTrans.length : 24;
+            }
+
+            final int existingCount = allSeriesTrans.length;
+            final int updateCount = existingCount < neededTotalCount
+                ? existingCount
+                : neededTotalCount;
+
+            final int currentParcel =
+                startParcel + (idxEdit != -1 ? idxEdit : 0);
             newMainDesc = totalParcelas == null
                 ? baseDesc
-                : '$baseDesc (Parcela ${idxEdit != -1 ? idxEdit + 1 : 1}/$totalParcelas)';
+                : '$baseDesc (Parcela $currentParcel/$totalParcelas)';
 
-            for (int j = 0; j < allSeriesTrans.length; j++) {
+            // 1. Update existing transactions
+            for (int j = 0; j < updateCount; j++) {
               final t = allSeriesTrans[j];
               if (t.id == original.id) continue;
 
@@ -1124,12 +1279,11 @@ class FinancasController {
                 stepIndex: offset,
               );
 
-              final int nextParcel = j + 1;
+              final int nextParcel = startParcel + j;
               final String newDesc = totalParcelas == null
                   ? baseDesc
                   : '$baseDesc (Parcela $nextParcel/$totalParcelas)';
 
-              // Stage transaction update
               ops.add({
                 'action': 'update',
                 'databaseId': Core.databaseId,
@@ -1149,7 +1303,6 @@ class FinancasController {
                 },
               });
 
-              // Apply new balance
               if (consolidada) {
                 if (tipo == 'despesa' && contaId != null) {
                   addAccountDelta(contaId, -valor);
@@ -1163,7 +1316,6 @@ class FinancasController {
                 }
               }
 
-              // Stage division deletes and creates
               for (final oldDiv in t.divisoes) {
                 ops.add({
                   'action': 'delete',
@@ -1182,6 +1334,94 @@ class FinancasController {
                   'rowId': ID.unique(),
                   'data': {
                     'transacao': t.id,
+                    'contatoResponsavel': rContato,
+                    'peso': rPeso,
+                  },
+                });
+              }
+            }
+
+            // 2. Delete excess transactions if series was shortened
+            for (int j = neededTotalCount; j < existingCount; j++) {
+              final t = allSeriesTrans[j];
+              if (t.id == original.id) continue;
+
+              if (t.consolidada) {
+                if (t.tipo == 'despesa' && t.conta != null) {
+                  addAccountDelta(t.conta!.id, t.valor);
+                } else if (t.tipo == 'receita' && t.conta != null) {
+                  addAccountDelta(t.conta!.id, -t.valor);
+                } else if (t.tipo == 'transferencia' &&
+                    t.conta != null &&
+                    t.contaDestino != null) {
+                  addAccountDelta(t.conta!.id, t.valor);
+                  addAccountDelta(t.contaDestino!.id, -t.valor);
+                }
+              }
+
+              for (final oldDiv in t.divisoes) {
+                ops.add({
+                  'action': 'delete',
+                  'databaseId': Core.databaseId,
+                  'tableId': Core.tableDivisaoTransacoes,
+                  'rowId': oldDiv.id,
+                });
+              }
+
+              ops.add({
+                'action': 'delete',
+                'databaseId': Core.databaseId,
+                'tableId': Core.tableTransacoes,
+                'rowId': t.id,
+              });
+            }
+
+            // 3. Create missing transactions if series was expanded
+            for (int j = existingCount; j < neededTotalCount; j++) {
+              final int offset = j - idxEdit;
+              final newDate = RecorrenciaService.calcularDataParcela(
+                dataBase: dataCompetencia,
+                tipoRecorrencia: finalPeriod,
+                frequencia: finalFreq,
+                stepIndex: offset,
+              );
+
+              final int nextParcel = startParcel + j;
+              final String newDesc = totalParcelas == null
+                  ? baseDesc
+                  : '$baseDesc (Parcela $nextParcel/$totalParcelas)';
+              final String newTxId = ID.unique();
+
+              ops.add({
+                'action': 'create',
+                'databaseId': Core.databaseId,
+                'tableId': Core.tableTransacoes,
+                'rowId': newTxId,
+                'data': {
+                  'descricao': newDesc,
+                  'valor': valor,
+                  'tipo': tipo,
+                  'dataCompetencia': newDate.toIso8601String(),
+                  'conta': contaId,
+                  'contaDestino': contaDestinoId,
+                  'consolidada': false,
+                  'categoria': categoriaId,
+                  'recorrencia': original.recorrencia!.id,
+                  'devedorContato': devedorContatoId,
+                  'credorContato': credorContatoId,
+                },
+              });
+
+              for (final divItem in divisao) {
+                final String rContato = divItem['contatoResponsavel'] as String;
+                final double rPeso = (divItem['peso'] as num).toDouble();
+                ops.add({
+                  'action': 'create',
+                  'databaseId': Core.databaseId,
+                  'tableId': Core.tableDivisaoTransacoes,
+                  'rowId': ID.unique(),
+                  'data': {
+                    'transacao': newTxId,
                     'contatoResponsavel': rContato,
                     'peso': rPeso,
                   },
