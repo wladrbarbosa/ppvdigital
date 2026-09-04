@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:ppvdigital/app/capacitacao/tarefas_habitos/dashboard_logic.dart';
 import 'package:ppvdigital/core.dart';
+import 'package:ppvdigital/design_system/design_system.dart';
 import 'package:ppvdigital/models/historico_item_model.dart';
 import 'package:ppvdigital/models/tarefas_habitos_model.dart';
 
@@ -192,6 +193,15 @@ class _DashboardPageState extends State<DashboardPage> {
     );
   }
 
+  String _formatCommitmentMinutes(int minutes) {
+    if (minutes <= 0) return '0 min';
+    final hours = minutes ~/ 60;
+    final mins = minutes % 60;
+    if (hours == 0) return '$mins min';
+    if (mins == 0) return '${hours}h';
+    return '${hours}h ${mins}min';
+  }
+
   Widget _buildCommitmentTimeChart(
       BuildContext context, List<TarefaHabitoModel> items, List<HistoricoItemModel> historico) {
     final plannedMap = DashboardLogic.getPlannedCommitmentTime(items);
@@ -202,7 +212,7 @@ class _DashboardPageState extends State<DashboardPage> {
     final labels = ['Dia', 'Semana', 'Mês', 'Ano'];
 
     final colorPlanned = Theme.of(context).colorScheme.primary;
-    const colorExecuted = Colors.teal;
+    const colorExecuted = AppColors.pastelSuccess;
 
     return Card(
       elevation: 4,
@@ -221,6 +231,21 @@ class _DashboardPageState extends State<DashboardPage> {
               'Toque na legenda para ocultar/exibir',
               style: TextStyle(fontSize: 11, color: Theme.of(context).colorScheme.outline),
             ),
+            if (plannedMap['dias'] == 0 && items.any((i) => i.tipo == 'habito' && !i.isHabitoNegativo)) ...[
+              const SizedBox(height: 6),
+              Row(
+                children: [
+                  Icon(Icons.info_outline, size: 14, color: Theme.of(context).colorScheme.outline),
+                  const SizedBox(width: 4),
+                  Expanded(
+                    child: Text(
+                      'Defina a duração estimada nos seus hábitos para calcular o tempo previsto.',
+                      style: TextStyle(fontSize: 11, color: Theme.of(context).colorScheme.outline),
+                    ),
+                  ),
+                ],
+              ),
+            ],
             const SizedBox(height: 8),
             Row(
               children: [
@@ -307,11 +332,11 @@ class _DashboardPageState extends State<DashboardPage> {
 
                         final isPlannedRod = _showPlanned && (rodIndex == 0 || !_showExecuted);
                         final labelText = isPlannedRod
-                            ? 'Previsto: $plannedMin min ($plannedPct%)'
-                            : 'Executado: $executedMin min ($executedPct%)';
+                            ? 'Previsto: ${_formatCommitmentMinutes(plannedMin)} ($plannedPct%)'
+                            : 'Executado: ${_formatCommitmentMinutes(executedMin)} ($executedPct%)';
 
                         return BarTooltipItem(
-                          '${labels[group.x]}\n$labelText\nDisponível: $availMin min',
+                          '${labels[group.x]}\n$labelText\nDisponível: ${_formatCommitmentMinutes(availMin)}',
                           const TextStyle(color: Colors.white, fontSize: 12),
                         );
                       },

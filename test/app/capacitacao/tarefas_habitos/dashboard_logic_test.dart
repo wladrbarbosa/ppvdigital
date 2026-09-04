@@ -821,5 +821,252 @@ void main() {
         expect(progressList.first.name, 'Saúde');
       });
     });
+
+    group('Commitment Time Accuracy & Edge Cases Tests', () {
+      final now = DateTime.now();
+
+      test('getPlannedCommitmentTime ignores habits without duration (duration == null or <= 0)', () {
+        final items = <TarefaHabitoModel>[
+          TarefaHabitoModel(
+            id: 'h1',
+            usuario: 'u1',
+            nome: 'Leitura',
+            tipo: 'habito',
+            duration: 30,
+            concluida: false,
+            agendamento: null,
+            tarefasHabitosQtd: [
+              TarefaHabitoQtdModel(
+                id: 'q1',
+                usuario: 'u1',
+                metaVezes: 1,
+                valor: 1.0,
+                reiniciaEmTipo: 'dias',
+                reiniciaEmQtd: 1,
+                vezesPraticado: 0,
+                createdAt: now,
+              ),
+            ],
+          ),
+          TarefaHabitoModel(
+            id: 'h2',
+            usuario: 'u1',
+            nome: 'Beber Água',
+            tipo: 'habito',
+            concluida: false,
+            agendamento: null,
+            tarefasHabitosQtd: [
+              TarefaHabitoQtdModel(
+                id: 'q2',
+                usuario: 'u1',
+                metaVezes: 8,
+                valor: 1.0,
+                reiniciaEmTipo: 'dias',
+                reiniciaEmQtd: 1,
+                vezesPraticado: 0,
+                createdAt: now,
+              ),
+            ],
+          ),
+          TarefaHabitoModel(
+            id: 'h3',
+            usuario: 'u1',
+            nome: 'Alongar',
+            tipo: 'habito',
+            duration: 0, // duração zerada
+            concluida: false,
+            agendamento: null,
+            tarefasHabitosQtd: [
+              TarefaHabitoQtdModel(
+                id: 'q3',
+                usuario: 'u1',
+                metaVezes: 1,
+                valor: 1.0,
+                reiniciaEmTipo: 'dias',
+                reiniciaEmQtd: 1,
+                vezesPraticado: 0,
+                createdAt: now,
+              ),
+            ],
+          ),
+        ];
+
+        final planned = DashboardLogic.getPlannedCommitmentTime(items);
+        // Apenas h1 (30 min) deve contar. h2 (null) e h3 (0) NÃO devem gerar 30min default cada
+        expect(planned['dias'], equals(30));
+      });
+
+      test('getPlannedCommitmentTime ignores negative habits (valor < 0)', () {
+        final items = <TarefaHabitoModel>[
+          TarefaHabitoModel(
+            id: 'h1',
+            usuario: 'u1',
+            nome: 'Estudo',
+            tipo: 'habito',
+            duration: 40,
+            concluida: false,
+            agendamento: null,
+            tarefasHabitosQtd: [
+              TarefaHabitoQtdModel(
+                id: 'q1',
+                usuario: 'u1',
+                metaVezes: 1,
+                valor: 1.0,
+                reiniciaEmTipo: 'dias',
+                reiniciaEmQtd: 1,
+                vezesPraticado: 0,
+                createdAt: now,
+              ),
+            ],
+          ),
+          TarefaHabitoModel(
+            id: 'h_neg',
+            usuario: 'u1',
+            nome: 'Não Fumar',
+            tipo: 'habito',
+            concluida: false,
+            agendamento: null,
+            tarefasHabitosQtd: [
+              TarefaHabitoQtdModel(
+                id: 'q_neg',
+                usuario: 'u1',
+                metaVezes: 30, // Meta de 30 dias de abstinência
+                valor: -1.0,   // Hábito negativo
+                reiniciaEmTipo: 'dias',
+                reiniciaEmQtd: 1,
+                vezesPraticado: 0,
+                createdAt: now,
+              ),
+            ],
+          ),
+        ];
+
+        final planned = DashboardLogic.getPlannedCommitmentTime(items);
+        // Hábito negativo com meta de 30 dias NÃO pode somar 30*30 = 900 min
+        expect(planned['dias'], equals(40));
+      });
+
+      test('getPlannedCommitmentTime does not duplicate duration when habit has multiple categories', () {
+        final catSaude = CategoriasTarefasHabitosModel(id: 'c1', nome: 'Saúde', cor: Colors.green, usuario: 'u1');
+        final catFoco = CategoriasTarefasHabitosModel(id: 'c2', nome: 'Foco', cor: Colors.blue, usuario: 'u1');
+
+        final items = <TarefaHabitoModel>[
+          TarefaHabitoModel(
+            id: 'h_multi',
+            usuario: 'u1',
+            nome: 'Treino',
+            tipo: 'habito',
+            duration: 60,
+            concluida: false,
+            agendamento: null,
+            tarefasHabitosQtd: [
+              TarefaHabitoQtdModel(
+                id: 'q1',
+                usuario: 'u1',
+                metaVezes: 1,
+                valor: 1.0,
+                reiniciaEmTipo: 'dias',
+                reiniciaEmQtd: 1,
+                vezesPraticado: 0,
+                categoriasTarefasHabitos: catSaude,
+                createdAt: now,
+              ),
+              TarefaHabitoQtdModel(
+                id: 'q2',
+                usuario: 'u1',
+                metaVezes: 1,
+                valor: 1.0,
+                reiniciaEmTipo: 'dias',
+                reiniciaEmQtd: 1,
+                vezesPraticado: 0,
+                categoriasTarefasHabitos: catFoco,
+                createdAt: now,
+              ),
+            ],
+          ),
+        ];
+
+        final planned = DashboardLogic.getPlannedCommitmentTime(items);
+        // 60 minutos devem ser contabilizados apenas uma vez, e não duplicados para 120 min
+        expect(planned['dias'], equals(60));
+      });
+
+      test('getExecutedCommitmentTime ignores negative habit relapses and items without duration', () {
+        final habitPositivo = TarefaHabitoModel(
+          id: 'h1',
+          usuario: 'u1',
+          nome: 'Meditar',
+          tipo: 'habito',
+          duration: 20,
+          concluida: false,
+          agendamento: null,
+          tarefasHabitosQtd: [
+            TarefaHabitoQtdModel(
+              id: 'q1',
+              usuario: 'u1',
+              metaVezes: 1,
+              valor: 1.0,
+              reiniciaEmTipo: 'dias',
+              reiniciaEmQtd: 1,
+              vezesPraticado: 1,
+              createdAt: now,
+            ),
+          ],
+        );
+
+        final habitSemDuracao = TarefaHabitoModel(
+          id: 'h2',
+          usuario: 'u1',
+          nome: 'Tomar Vitamina',
+          tipo: 'habito',
+          concluida: false,
+          agendamento: null,
+          tarefasHabitosQtd: [
+            TarefaHabitoQtdModel(
+              id: 'q2',
+              usuario: 'u1',
+              metaVezes: 1,
+              valor: 1.0,
+              reiniciaEmTipo: 'dias',
+              reiniciaEmQtd: 1,
+              vezesPraticado: 1,
+              createdAt: now,
+            ),
+          ],
+        );
+
+        final habitNegativo = TarefaHabitoModel(
+          id: 'h3',
+          usuario: 'u1',
+          nome: 'Fumar',
+          tipo: 'habito',
+          duration: 15,
+          concluida: false,
+          agendamento: null,
+          tarefasHabitosQtd: [
+            TarefaHabitoQtdModel(
+              id: 'q3',
+              usuario: 'u1',
+              metaVezes: 30,
+              valor: -1.0,
+              reiniciaEmTipo: 'dias',
+              reiniciaEmQtd: 1,
+              vezesPraticado: 1,
+              createdAt: now,
+            ),
+          ],
+        );
+
+        final historico = [
+          HistoricoItemModel(id: 'hist1', usuario: 'u1', tarefasEHabitos: habitPositivo, createdAt: now),
+          HistoricoItemModel(id: 'hist2', usuario: 'u1', tarefasEHabitos: habitSemDuracao, createdAt: now),
+          HistoricoItemModel(id: 'hist3', usuario: 'u1', tarefasEHabitos: habitNegativo, createdAt: now), // Relapso não é tempo produtivo
+        ];
+
+        final executed = DashboardLogic.getExecutedCommitmentTime([habitPositivo, habitSemDuracao, habitNegativo], historico);
+        // Apenas meditar (20 min) deve contar como tempo executado.
+        expect(executed['dias'], equals(20));
+      });
+    });
   });
 }

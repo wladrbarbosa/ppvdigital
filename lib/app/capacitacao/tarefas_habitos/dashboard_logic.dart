@@ -94,49 +94,56 @@ class DashboardLogic {
       if (item.tipo != 'habito') {
         continue;
       }
+      // Hábitos negativos (abstetismo) não possuem comprometimento de tempo
+      if (item.isHabitoNegativo) continue;
+      // Hábitos sem duração explicitamente estimada não pontuam tempo planejado
+      if (item.duration == null || item.duration! <= 0) continue;
       if (item.tarefasHabitosQtd.isEmpty) continue;
 
-      final int duration = (item.duration != null && item.duration! > 0)
-          ? item.duration!
-          : 30;
+      // Filtrar metas positivas para evitar contabilizar hábitos negativos ou metas nulas
+      final positiveMetas =
+          item.tarefasHabitosQtd.where((q) => q.valor >= 0).toList();
+      if (positiveMetas.isEmpty) continue;
 
-      for (final qtd in item.tarefasHabitosQtd) {
-        final int reiniciaQtd = qtd.reiniciaEmQtd > 0 ? qtd.reiniciaEmQtd : 1;
-        final double baseMinutes = (duration * qtd.metaVezes) / reiniciaQtd;
-        final String cycle = qtd.reiniciaEmTipo;
+      // Cada hábito representa uma única atividade real; usamos a primeira meta positiva
+      // para evitar duplicar a duração caso o hábito esteja vinculado a múltiplas categorias
+      final qtd = positiveMetas.first;
+      final int duration = item.duration!;
+      final int reiniciaQtd = qtd.reiniciaEmQtd > 0 ? qtd.reiniciaEmQtd : 1;
+      final double baseMinutes = (duration * qtd.metaVezes) / reiniciaQtd;
+      final String cycle = qtd.reiniciaEmTipo;
 
-        switch (cycle) {
-          case 'dias':
-            planned['dias'] = planned['dias']! + baseMinutes.round();
-            planned['semanas'] =
-                planned['semanas']! + (baseMinutes * 7).round();
-            planned['meses'] =
-                planned['meses']! + (baseMinutes * daysInMonth).round();
-            planned['anos'] =
-                planned['anos']! + (baseMinutes * daysInYear).round();
+      switch (cycle) {
+        case 'dias':
+          planned['dias'] = planned['dias']! + baseMinutes.round();
+          planned['semanas'] =
+              planned['semanas']! + (baseMinutes * 7).round();
+          planned['meses'] =
+              planned['meses']! + (baseMinutes * daysInMonth).round();
+          planned['anos'] =
+              planned['anos']! + (baseMinutes * daysInYear).round();
 
-          case 'semanas':
-            planned['dias'] = planned['dias']! + (baseMinutes / 7).round();
-            planned['semanas'] = planned['semanas']! + baseMinutes.round();
-            planned['meses'] = planned['meses']! + (baseMinutes * 4).round();
-            planned['anos'] = planned['anos']! + (baseMinutes * 52).round();
+        case 'semanas':
+          planned['dias'] = planned['dias']! + (baseMinutes / 7).round();
+          planned['semanas'] = planned['semanas']! + baseMinutes.round();
+          planned['meses'] = planned['meses']! + (baseMinutes * 4).round();
+          planned['anos'] = planned['anos']! + (baseMinutes * 52).round();
 
-          case 'meses':
-            planned['dias'] =
-                planned['dias']! + (baseMinutes / daysInMonth).round();
-            planned['semanas'] =
-                planned['semanas']! + (baseMinutes / 4).round();
-            planned['meses'] = planned['meses']! + baseMinutes.round();
-            planned['anos'] = planned['anos']! + (baseMinutes * 12).round();
+        case 'meses':
+          planned['dias'] =
+              planned['dias']! + (baseMinutes / daysInMonth).round();
+          planned['semanas'] =
+              planned['semanas']! + (baseMinutes / 4).round();
+          planned['meses'] = planned['meses']! + baseMinutes.round();
+          planned['anos'] = planned['anos']! + (baseMinutes * 12).round();
 
-          case 'anos':
-            planned['dias'] =
-                planned['dias']! + (baseMinutes / daysInYear).round();
-            planned['semanas'] =
-                planned['semanas']! + (baseMinutes / 52).round();
-            planned['meses'] = planned['meses']! + (baseMinutes / 12).round();
-            planned['anos'] = planned['anos']! + baseMinutes.round();
-        }
+        case 'anos':
+          planned['dias'] =
+              planned['dias']! + (baseMinutes / daysInYear).round();
+          planned['semanas'] =
+              planned['semanas']! + (baseMinutes / 52).round();
+          planned['meses'] = planned['meses']! + (baseMinutes / 12).round();
+          planned['anos'] = planned['anos']! + baseMinutes.round();
       }
     }
 
@@ -174,9 +181,13 @@ class DashboardLogic {
         );
         for (final h in historico) {
           if (h.tarefasEHabitos.arquivado) continue;
+          if (h.tarefasEHabitos.isHabitoNegativo) continue;
           final DateTime hDate = h.createdAt.toLocal();
           if (hDate.isAfter(minStart) && hDate.isBefore(end)) {
-            total += h.tarefasEHabitos.duration ?? 30;
+            final dur = h.tarefasEHabitos.duration;
+            if (dur != null && dur > 0) {
+              total += dur;
+            }
           }
         }
         return total;
@@ -185,9 +196,14 @@ class DashboardLogic {
       int total = 0;
       for (final item in items) {
         if (item.arquivado) continue;
-        final int dur = item.duration ?? 30;
+        if (item.isHabitoNegativo) continue;
+        final int dur = item.duration ?? 0;
+        if (dur <= 0) continue;
         if (item.tipo == 'habito') {
-          for (final qtd in item.tarefasHabitosQtd) {
+          final positiveMetas =
+              item.tarefasHabitosQtd.where((q) => q.valor >= 0).toList();
+          if (positiveMetas.isNotEmpty) {
+            final qtd = positiveMetas.first;
             total += (dur * qtd.vezesPraticado).toInt();
           }
         } else if (item.tipo == 'tarefa' && item.concluida) {

@@ -122,14 +122,18 @@ class MockLoginController extends LoginController {
 }
 
 void main() {
+  late AppDatabase db;
+
   setUp(() {
-    GetIt.I.registerSingleton<AppDatabase>(AppDatabase(NativeDatabase.memory()));
+    db = AppDatabase(NativeDatabase.memory());
+    GetIt.I.registerSingleton<AppDatabase>(db);
     GetIt.I.registerSingleton<TarefaHabitoRepository>(DummyRepo());
     GetIt.I.registerSingleton<TarefasHabitosController>(MockTarefasHabitosController());
     GetIt.I.registerSingleton<LoginController>(MockLoginController());
   });
 
-  tearDown(() {
+  tearDown(() async {
+    await db.close();
     GetIt.I.reset();
   });
 
@@ -149,4 +153,53 @@ void main() {
     expect(find.byType(LinearProgressIndicator), findsWidgets); // Progress bars por Categoria
     expect(find.byType(LineChart), findsOneWidget);
   });
+
+  testWidgets('DashboardPage exibe dica visual quando hábitos não possuem duração definida', (WidgetTester tester) async {
+    GetIt.I.unregister<TarefasHabitosController>();
+    GetIt.I.registerSingleton<TarefasHabitosController>(MockTarefasHabitosSemDuracaoController());
+
+    await tester.pumpWidget(const MaterialApp(home: DashboardPage()));
+    await tester.pumpAndSettle();
+
+    expect(
+      find.text('Defina a duração estimada nos seus hábitos para calcular o tempo previsto.'),
+      findsOneWidget,
+    );
+  });
+}
+
+class MockTarefasHabitosSemDuracaoController extends TarefasHabitosController {
+  MockTarefasHabitosSemDuracaoController() : super(DummyRepo());
+
+  @override
+  Future<List<TarefaHabitoModel>> loadDocuments({bool forceSync = false}) async {
+    return tarefasHabitosList;
+  }
+
+  @override
+  Future<void> loadCustomColors() async {}
+
+  @override
+  List<TarefaHabitoModel> get tarefasHabitosList => [
+    TarefaHabitoModel(
+      id: 'h1',
+      nome: 'Habito Sem Duracao',
+      tipo: 'habito',
+      usuario: 'user_123',
+      concluida: false,
+      agendamento: null,
+      tarefasHabitosQtd: [
+        TarefaHabitoQtdModel(
+          id: 'q1',
+          metaVezes: 1,
+          usuario: 'user_123',
+          valor: 1.0,
+          reiniciaEmQtd: 1,
+          reiniciaEmTipo: 'dias',
+          vezesPraticado: 0,
+          createdAt: DateTime.now(),
+        ),
+      ],
+    ),
+  ];
 }
