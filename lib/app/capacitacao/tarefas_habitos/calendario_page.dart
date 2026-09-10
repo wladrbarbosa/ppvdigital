@@ -29,6 +29,289 @@ class _CalendarioPageState extends State<CalendarioPage> {
     super.dispose();
   }
 
+  Future<void> _handleAppointmentDragEnd(
+    AppointmentDragEndDetails details,
+  ) async {
+    final dynamic appointment = details.appointment;
+    final DateTime? dropTime = details.droppingTime;
+    if (appointment is! Appointment || dropTime == null) return;
+
+    final String? itemId = appointment.id as String?;
+    if (itemId == null) return;
+
+    final historyList = Core.historicoController.historicoList;
+    final item = historyList.cast<HistoricoItemModel?>().firstWhere(
+          (el) => el?.id == itemId,
+          orElse: () => null,
+        );
+    if (item == null) return;
+
+    final DateTime originalLocal = item.createdAt.toLocal();
+    if (originalLocal.year == dropTime.year &&
+        originalLocal.month == dropTime.month &&
+        originalLocal.day == dropTime.day &&
+        originalLocal.hour == dropTime.hour &&
+        originalLocal.minute == dropTime.minute) {
+      return;
+    }
+
+    final success = await Core.historicoController.updateHistoricoDate(
+      itemId,
+      dropTime,
+    );
+
+    if (mounted) {
+      final formattedDate =
+          '${dropTime.day.toString().padLeft(2, '0')}/${dropTime.month.toString().padLeft(2, '0')} às ${dropTime.hour.toString().padLeft(2, '0')}:${dropTime.minute.toString().padLeft(2, '0')}';
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            success
+                ? 'Execução reagendada para $formattedDate'
+                : 'Erro ao reagendar execução.',
+          ),
+          backgroundColor:
+              success ? AppColors.pastelSuccess : AppColors.pastelError,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(AppRadius.md),
+          ),
+        ),
+      );
+    }
+  }
+
+  Future<void> _handlePickNewDateTime(
+    BuildContext context,
+    HistoricoItemModel item,
+  ) async {
+    final DateTime initialDate = item.createdAt.toLocal();
+    final DateTime? pickedDate = await showDatePicker(
+      context: context,
+      initialDate: initialDate,
+      firstDate: DateTime(2000),
+      lastDate: DateTime(2100),
+    );
+
+    if (pickedDate == null || !context.mounted) return;
+
+    final TimeOfDay initialTime = TimeOfDay.fromDateTime(initialDate);
+    final TimeOfDay? pickedTime = await showTimePicker(
+      context: context,
+      initialTime: initialTime,
+    );
+
+    if (pickedTime == null || !context.mounted) return;
+
+    final DateTime newDateTime = DateTime(
+      pickedDate.year,
+      pickedDate.month,
+      pickedDate.day,
+      pickedTime.hour,
+      pickedTime.minute,
+    );
+
+    if (newDateTime.isAtSameMomentAs(initialDate)) return;
+
+    final success = await Core.historicoController.updateHistoricoDate(
+      item.id,
+      newDateTime,
+    );
+
+    if (context.mounted) {
+      final formattedDate =
+          '${newDateTime.day.toString().padLeft(2, '0')}/${newDateTime.month.toString().padLeft(2, '0')} às ${newDateTime.hour.toString().padLeft(2, '0')}:${newDateTime.minute.toString().padLeft(2, '0')}';
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            success
+                ? 'Data da execução alterada para $formattedDate'
+                : 'Erro ao alterar data da execução.',
+          ),
+          backgroundColor:
+              success ? AppColors.pastelSuccess : AppColors.pastelError,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(AppRadius.md),
+          ),
+        ),
+      );
+    }
+  }
+
+  void _showHistoricoDetailsModal(
+    BuildContext context,
+    HistoricoItemModel item,
+  ) {
+    final dateStr =
+        '${item.createdAt.day.toString().padLeft(2, '0')}/${item.createdAt.month.toString().padLeft(2, '0')}/${item.createdAt.year} às ${item.createdAt.hour.toString().padLeft(2, '0')}:${item.createdAt.minute.toString().padLeft(2, '0')}';
+    final bool isNegativo =
+        item.tarefasEHabitos.tarefasHabitosQtd.any((q) => q.valor < 0);
+    final String tipoLabel = item.tarefasEHabitos.tipo == 'habito'
+        ? (isNegativo ? 'Hábito Negativo (Recaída)' : 'Hábito')
+        : 'Tarefa';
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Theme.of(context).brightness == Brightness.dark
+          ? AppColors.surfaceDark
+          : AppColors.surfaceLight,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(
+          top: Radius.circular(AppRadius.xl),
+        ),
+      ),
+      builder: (modalContext) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(
+              horizontal: AppSpacing.lg,
+              vertical: AppSpacing.md,
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Center(
+                  child: Container(
+                    width: 40,
+                    height: 4,
+                    margin: const EdgeInsets.only(bottom: AppSpacing.md),
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).brightness == Brightness.dark
+                          ? AppColors.borderDark
+                          : AppColors.borderLight,
+                      borderRadius: BorderRadius.circular(AppRadius.full),
+                    ),
+                  ),
+                ),
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        item.tarefasEHabitos.nome.isNotEmpty
+                            ? item.tarefasEHabitos.nome
+                            : tipoLabel,
+                        style: (Theme.of(context).textTheme.titleMedium ??
+                                const TextStyle())
+                            .copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: AppSpacing.sm,
+                        vertical: AppSpacing.xs,
+                      ),
+                      decoration: BoxDecoration(
+                        color: isNegativo
+                            ? AppColors.pastelErrorContainer
+                            : (item.tarefasEHabitos.tipo == 'habito'
+                                ? AppColors.primaryContainerLight
+                                : AppColors.secondaryContainerLight),
+                        borderRadius: BorderRadius.circular(AppRadius.md),
+                      ),
+                      child: Text(
+                        tipoLabel,
+                        style: (Theme.of(context).textTheme.labelSmall ??
+                                const TextStyle())
+                            .copyWith(
+                          color: isNegativo
+                              ? AppColors.onPastelErrorContainer
+                              : AppColors.textPrimaryLight,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: AppSpacing.md),
+                Container(
+                  padding: const EdgeInsets.all(AppSpacing.md),
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).brightness == Brightness.dark
+                        ? AppColors.backgroundDark
+                        : AppColors.backgroundLight,
+                    borderRadius: BorderRadius.circular(AppRadius.lg),
+                    border: Border.all(
+                      color: Theme.of(context).brightness == Brightness.dark
+                          ? AppColors.borderDark
+                          : AppColors.borderLight,
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(
+                        Icons.access_time_rounded,
+                        size: 20,
+                        color: Theme.of(context).brightness == Brightness.dark
+                            ? AppColors.textSecondaryDark
+                            : AppColors.textSecondaryLight,
+                      ),
+                      const SizedBox(width: AppSpacing.sm),
+                      Expanded(
+                        child: Text(
+                          isNegativo
+                              ? 'Recaída em: $dateStr'
+                              : 'Executado em: $dateStr',
+                          style: Theme.of(context).textTheme.bodyMedium,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: AppSpacing.lg),
+                ElevatedButton.icon(
+                  onPressed: () async {
+                    Navigator.of(modalContext).pop();
+                    await _handlePickNewDateTime(context, item);
+                  },
+                  icon: const Icon(Icons.calendar_month_rounded, size: 18),
+                  label: const Text('Alterar data e horário'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primaryLight,
+                    foregroundColor: Colors.white,
+                    elevation: 0,
+                    padding: const EdgeInsets.symmetric(vertical: AppSpacing.md),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(AppRadius.md),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: AppSpacing.sm),
+                OutlinedButton.icon(
+                  onPressed: () {
+                    Navigator.of(modalContext).pop();
+                    _showDeleteDialog(context, item);
+                  },
+                  icon: const Icon(
+                    Icons.delete_outline_rounded,
+                    size: 18,
+                    color: AppColors.pastelError,
+                  ),
+                  label: const Text(
+                    'Excluir registro',
+                    style: TextStyle(color: AppColors.pastelError),
+                  ),
+                  style: OutlinedButton.styleFrom(
+                    side: const BorderSide(color: AppColors.pastelError),
+                    padding: const EdgeInsets.symmetric(vertical: AppSpacing.md),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(AppRadius.md),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: AppSpacing.xs),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
   void _showDeleteDialog(BuildContext context, HistoricoItemModel item) {
     final dateStr =
         '${item.createdAt.day.toString().padLeft(2, '0')}/${item.createdAt.month.toString().padLeft(2, '0')}/${item.createdAt.year} às ${item.createdAt.hour.toString().padLeft(2, '0')}:${item.createdAt.minute.toString().padLeft(2, '0')}';
@@ -76,13 +359,18 @@ class _CalendarioPageState extends State<CalendarioPage> {
                     .deleteHistoricoItem(item.id);
                 if (success && context.mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Registro removido com sucesso!'),
+                    SnackBar(
+                      content: const Text('Registro removido com sucesso!'),
+                      backgroundColor: AppColors.pastelSuccess,
+                      behavior: SnackBarBehavior.floating,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(AppRadius.md),
+                      ),
                     ),
                   );
                 }
               },
-              child: const Text('Remover', style: TextStyle(color: Colors.red)),
+              child: const Text('Remover', style: TextStyle(color: AppColors.pastelError)),
             ),
           ],
         );
@@ -109,6 +397,8 @@ class _CalendarioPageState extends State<CalendarioPage> {
                   final calendarWidget = SfCalendar(
                     controller: _calendarController,
                     dataSource: dataSource,
+                    allowDragAndDrop: true,
+                    onDragEnd: _handleAppointmentDragEnd,
                     showDatePickerButton: true,
                     timeSlotViewSettings: const TimeSlotViewSettings(
                       minimumAppointmentDuration: Duration(minutes: 30),
@@ -129,10 +419,13 @@ class _CalendarioPageState extends State<CalendarioPage> {
                             details.appointments!.first as Appointment;
                         final itemId = appt.id as String?;
                         if (itemId != null) {
-                          final item = historyList.firstWhere(
-                            (el) => el.id == itemId,
+                          final item = historyList.cast<HistoricoItemModel?>().firstWhere(
+                            (el) => el?.id == itemId,
+                            orElse: () => null,
                           );
-                          _showDeleteDialog(context, item);
+                          if (item != null) {
+                            _showHistoricoDetailsModal(context, item);
+                          }
                         }
                       }
                     },
