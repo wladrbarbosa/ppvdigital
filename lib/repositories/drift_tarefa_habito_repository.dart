@@ -172,6 +172,11 @@ class DriftTarefaHabitoRepository implements TarefaHabitoRepository {
           );
         } else if (actionType == 'deleteHistoricoItem') {
           await remoteRepository.deleteHistoricoItem(id: item['id'] as String);
+        } else if (actionType == 'updateHistoricoDate') {
+          await remoteRepository.updateHistoricoItemDate(
+            id: item['id'] as String,
+            newDate: DateTime.parse(item['newDate'] as String),
+          );
         }
         remainingSyncs.remove(item);
       } catch (e) {
@@ -424,6 +429,44 @@ class DriftTarefaHabitoRepository implements TarefaHabitoRepository {
     } catch (e) {
       log(
         'Failed to delete history item remotely: $e. Saved to offline queue.',
+      );
+      return true;
+    }
+  }
+
+  @override
+  Future<bool> updateHistoricoItemDate({
+    required String id,
+    required DateTime newDate,
+  }) async {
+    // 1. Optimistic Update: Update locally in SQLite Drift first
+    final updateQuery = database.update(database.historicoTarefasHabitos)
+      ..where((h) => h.remoteId.equals(id));
+    await updateQuery.write(
+      HistoricoTarefasHabitosCompanion(createdAt: Value(newDate)),
+    );
+
+    // 2. Add to pending sync queue
+    final syncItem = {
+      'actionType': 'updateHistoricoDate',
+      'id': id,
+      'newDate': newDate.toIso8601String(),
+    };
+    await _addPendingSync(syncItem);
+
+    // 3. Attempt remote update immediately
+    try {
+      await remoteRepository.updateHistoricoItemDate(id: id, newDate: newDate);
+      final syncs = await _getPendingSyncs();
+      syncs.removeWhere(
+        (item) =>
+            item['actionType'] == 'updateHistoricoDate' && item['id'] == id,
+      );
+      await _savePendingSyncs(syncs);
+      return true;
+    } catch (e) {
+      log(
+        'Failed to update history date remotely: $e. Saved to offline queue.',
       );
       return true;
     }
@@ -954,6 +997,7 @@ class DriftTarefaHabitoRepository implements TarefaHabitoRepository {
 
     final String usuario = payload['usuario'] as String? ?? '';
     final String createdAtStr =
+        payload['dataCriacao'] as String? ??
         payload[r'$createdAt'] as String? ??
         payload['createdAt'] as String? ??
         '';

@@ -64,6 +64,11 @@ abstract class TarefaHabitoRepository {
 
   Future<bool> deleteHistoricoItem({required String id});
 
+  Future<bool> updateHistoricoItemDate({
+    required String id,
+    required DateTime newDate,
+  });
+
   Stream<List<TarefaHabitoModel>> watchTarefasEHabitos({
     required String usuarioId,
   });

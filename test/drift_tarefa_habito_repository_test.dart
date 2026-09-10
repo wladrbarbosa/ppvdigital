@@ -72,6 +72,18 @@ class MockRemoteTarefaHabitoRepository implements TarefaHabitoRepository {
   }
 
   @override
+  Future<bool> updateHistoricoItemDate({
+    required String id,
+    required DateTime newDate,
+  }) async {
+    final index = historyItems.indexWhere((h) => h.id == id);
+    if (index != -1) {
+      historyItems[index] = historyItems[index].copyWith(createdAt: newDate);
+    }
+    return true;
+  }
+
+  @override
   dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }
 
@@ -573,5 +585,72 @@ void main() {
       forceLocal: true,
     );
     expect(habits.first.tarefasHabitosQtd.first.vezesPraticado, equals(1));
+  });
+
+  test('updateHistoricoItemDate updates createdAt locally, queues offline sync and calls remote', () async {
+    final habit = TarefaHabitoModel(
+      id: 'h_test',
+      nome: 'Meditar',
+      tipo: 'habito',
+      usuario: 'user1',
+      concluida: false,
+      agendamento: null,
+      tarefasHabitosQtd: [],
+    );
+    remoteRepository.items = [habit];
+    await database.into(database.tarefaHabitos).insert(driftRepository.toCompanion(habit));
+
+    await driftRepository.recordHistorico(foundId: 'h_test', usuarioId: 'user1');
+    final historyRow = (await database.select(database.historicoTarefasHabitos).get()).first;
+
+    final targetDate = DateTime(2026, 9, 1, 10);
+    final success = await driftRepository.updateHistoricoItemDate(
+      id: historyRow.remoteId,
+      newDate: targetDate,
+    );
+
+    expect(success, isTrue);
+
+    // Verify local SQLite updated
+    final updatedLocal = (await database.select(database.historicoTarefasHabitos).get()).first;
+    expect(updatedLocal.createdAt, equals(targetDate));
+
+    // Verify remote repository was updated
+    expect(remoteRepository.historyItems.first.createdAt, equals(targetDate));
+  });
+
+  test('flushPendingSyncs processes updateHistoricoDate offline actions', () async {
+    // Inject a pending sync action for updateHistoricoDate
+    final targetDate = DateTime(2026, 8, 15, 14, 30);
+    remoteRepository.historyItems = [
+      HistoricoItemModel(
+        id: 'hist_offline_1',
+        usuario: 'user1',
+        tarefasEHabitos: TarefaHabitoModel(
+          id: 't1',
+          nome: 'Correr',
+          tipo: 'habito',
+          usuario: 'user1',
+          concluida: false,
+          agendamento: null,
+          tarefasHabitosQtd: [],
+        ),
+        createdAt: DateTime(2026, 8, 10, 8),
+      ),
+    ];
+
+    await database.setSetting(
+      'pending_tarefas_habitos_syncs',
+      '[{"actionType":"updateHistoricoDate","id":"hist_offline_1","newDate":"${targetDate.toIso8601String()}"}]',
+    );
+
+    await driftRepository.flushPendingSyncs();
+
+    // Verify remote was updated
+    expect(remoteRepository.historyItems.first.createdAt, equals(targetDate));
+
+    // Verify pending sync queue is empty
+    final queue = await database.getSetting('pending_tarefas_habitos_syncs');
+    expect(queue, equals('[]'));
   });
 }

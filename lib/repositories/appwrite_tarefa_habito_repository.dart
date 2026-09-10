@@ -326,6 +326,21 @@ class AppwriteTarefaHabitoRepository implements TarefaHabitoRepository {
   }
 
   @override
+  Future<bool> updateHistoricoItemDate({
+    required String id,
+    required DateTime newDate,
+  }) async {
+    final TablesDB tablesDB = TablesDB(databases.client);
+    await tablesDB.updateRow(
+      databaseId: Core.databaseId,
+      tableId: Core.tableHistoricoTarefasHabitos,
+      rowId: id,
+      data: {'dataCriacao': newDate.toUtc().toIso8601String()},
+    );
+    return true;
+  }
+
+  @override
   Stream<List<TarefaHabitoModel>> watchTarefasEHabitos({
     required String usuarioId,
   }) {
