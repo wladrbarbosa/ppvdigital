@@ -40,13 +40,25 @@ class HistoricoItemModel {
   }
 
   factory HistoricoItemModel.fromMap(Map<String, dynamic> map) {
+    final rawDate = map['dataCriacao'] ?? map['createdAt'];
+    DateTime parsedDate;
+    if (rawDate is int) {
+      parsedDate = DateTime.fromMillisecondsSinceEpoch(rawDate);
+    } else if (rawDate is String) {
+      parsedDate = DateTime.tryParse(rawDate) ?? DateTime.now();
+    } else if (rawDate is DateTime) {
+      parsedDate = rawDate;
+    } else {
+      parsedDate = DateTime.now();
+    }
+
     return HistoricoItemModel(
       usuario: map['usuario'] as String,
       id: map['id'] as String,
       tarefasEHabitos: TarefaHabitoModel.fromMap(
         map['tarefasEHabitos'] as Map<String, dynamic>,
       ),
-      createdAt: DateTime.fromMillisecondsSinceEpoch(map['dataCriacao'] as int),
+      createdAt: parsedDate,
     );
   }
 

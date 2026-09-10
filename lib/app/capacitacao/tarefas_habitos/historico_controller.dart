@@ -64,7 +64,10 @@ extension HistoricoTransformDocumentList on List<Row> {
             .cast<TarefaHabitoModel?>()
             .firstWhere((el) => el?.id == tarefaId, orElse: () => null);
 
-        final String createdAtStr = e1.$createdAt;
+        final rawDataCriacao = e1.data['dataCriacao'];
+        final String createdAtStr = (rawDataCriacao is String && rawDataCriacao.isNotEmpty)
+            ? rawDataCriacao
+            : e1.$createdAt;
         final DateTime parsedCreatedAt =
             DateTime.tryParse(createdAtStr)?.toLocal() ?? DateTime.now();
 
