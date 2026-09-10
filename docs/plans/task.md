@@ -1,6 +1,8 @@
 | Task | Status | Description |
 |---|---|---|
-| 1. Analisar os traços brancos da imagem | COMPLETED | Inspecionada a estrutura de canais alpha, halos de antialiasing e ranhuras do símbolo |
-| 2. Clarificar com o usuário a abrangência da remoção | COMPLETED | Confirmado que o foco são os contornos/halos esbranquiçados nas bordas |
-| 3. Processar a imagem conforme a escolha | COMPLETED | Remoção dos pixels residuais de fundo branco e desmatagem (defringe) de antialiasing sobre [logo.png](file:///home/wladimir/Documentos/Github/ppvdigital/assets/images/logo.png) |
-| 4. Verificar resultado visual e integridade | COMPLETED | Testado em fundos escuros e claros; aprovado em `fvm flutter analyze` e `fvm flutter test` |
+| 1. Explorar contexto do projeto (calendário, hábitos, tarefas) | COMPLETED | Investigado: SfCalendar, HistoricoItemModel, Drift SQLite e Appwrite |
+| 2. Fazer perguntas de esclarecimento ao usuário | COMPLETED | Confirmado: drag & drop na grade + modal com date/time picker ao tocar |
+| 3. Propor 2-3 abordagens com prós e contras | COMPLETED | Aprovada Abordagem 1: coluna dataCriacao no Appwrite + atualização otimista no Drift |
+| 4. Apresentar design detalhado e obter aprovação | COMPLETED | Aprovadas seções de arquitetura, fluxo de UI, UX e testes |
+| 5. Escrever documento de design | IN_PROGRESS | Salvar em docs/plans/2026-09-10-calendario-troca-data-design.md |
+| 6. Transição para plano de implementação | PENDING | Invocar writing-plans para guiar execução TDD |
