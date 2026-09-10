@@ -6,7 +6,7 @@
 ![Drift](https://img.shields.io/badge/Database-Drift%20SQLite%20(v6)-lightgrey)
 ![Appwrite](https://img.shields.io/badge/Backend-Appwrite-FD366E?logo=appwrite)
 ![Design System](https://img.shields.io/badge/Design%20System-Pastel%20%26%20Leveza-7CB9A8)
-![Tests](https://img.shields.io/badge/Tests-135%2F135%20Passed-brightgreen)
+![Tests](https://img.shields.io/badge/Tests-164%2F164%20Passed-brightgreen)
 
 O **PPVDigital** é uma plataforma completa desenvolvida em Flutter (Web/Mobile) para planejamento pessoal, acompanhamento de hábitos, gestão de tarefas e controle financeiro pessoal e compartilhado. O projeto traz para o formato digital o conceito do **Projeto Pessoal de Vida (PPV)**, com foco em capacitação, acompanhamento de métricas e funcionamento offline transparente.
 
@@ -96,7 +96,8 @@ Acompanhamento do desenvolvimento pessoal através da criação e monitoramento 
 
 #### Matriz de Calendário, Histórico e Cache Reativo
 - Matriz dinâmica de dias (35 ou 42 células) gerada pelo `CalendarioController` exibindo o preenchimento dos dias vizinhos.
-- Histórico imutável de execuções (`HistoricoItemModel`) registrado no banco local e sincronizado remotamente.
+- Histórico de execuções (`HistoricoItemModel`) registrado no banco local e sincronizado remotamente.
+- **Reagendamento de Execuções no Calendário**: Suporte completo à alteração da data e horário de qualquer execução exibida na visualização de calendário (`CalendarioPage`), tanto via **arrastar e soltar (drag & drop)** diretamente na grade do `SfCalendar` quanto via **modal de detalhes** com seletores temáticos de data e horário (`showDatePicker` / `showTimePicker`), contando com atualização otimista instantânea no Drift SQLite, fila de sincronização offline e persistência remota no Appwrite via coluna `dataCriacao`.
 - **Cache-First, Delta Sync & Realtime WebSockets**: Renderização instantânea dos hábitos e tarefas diretamente do Drift SQLite, com atualização em tempo real via WebSockets (`AppwriteRealtimeService`), reconciliação de itens excluídos remotamente e sincronização incremental em segundo plano filtrando registros alterados via `$updatedAt` e timestamps salvos em `AppSettings`.
 
 #### Métricas e Gráficos do Dashboard (`DashboardLogic`)
