@@ -80,7 +80,7 @@ void main() {
       expect(freshController.palette, AppThemePalette.menta);
     });
 
-    test('Core.initialize registra e expõe ThemeController corretamente', () async {
+    test('Core.initialize registra e expõe ThemeController corretamente', () {
       Core.initialize(db);
       expect(Core.getIt.isRegistered<ThemeController>(), isTrue);
       expect(Core.themeController, isNotNull);

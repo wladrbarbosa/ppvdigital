@@ -7,14 +7,14 @@ class MaterialTheme {
   const MaterialTheme(this.textTheme);
   final TextTheme textTheme;
 
-  static ColorScheme lightScheme() {
-    return const ColorScheme(
+  static ColorScheme lightScheme([AppThemePalette palette = AppThemePalette.menta]) {
+    return ColorScheme(
       brightness: Brightness.light,
-      primary: AppColors.primaryLight,
-      surfaceTint: AppColors.primaryLight,
-      onPrimary: AppColors.onPrimaryLight,
-      primaryContainer: AppColors.primaryContainerLight,
-      onPrimaryContainer: AppColors.onPrimaryContainerLight,
+      primary: palette.primaryLight,
+      surfaceTint: palette.primaryLight,
+      onPrimary: palette.onPrimaryLight,
+      primaryContainer: palette.primaryContainerLight,
+      onPrimaryContainer: palette.onPrimaryContainerLight,
       secondary: AppColors.secondaryLight,
       onSecondary: AppColors.onSecondaryLight,
       secondaryContainer: AppColors.secondaryContainerLight,
@@ -32,14 +32,14 @@ class MaterialTheme {
       onSurfaceVariant: AppColors.textSecondaryLight,
       outline: AppColors.borderLight,
       outlineVariant: AppColors.dividerLight,
-      shadow: Color(0x141A202C),
-      scrim: Color(0x33000000),
+      shadow: const Color(0x141A202C),
+      scrim: const Color(0x33000000),
       inverseSurface: AppColors.surfaceDark,
-      inversePrimary: AppColors.primaryDark,
-      primaryFixed: AppColors.primaryContainerLight,
-      onPrimaryFixed: AppColors.onPrimaryContainerLight,
-      primaryFixedDim: AppColors.primaryLight,
-      onPrimaryFixedVariant: AppColors.onPrimaryContainerLight,
+      inversePrimary: palette.primaryDark,
+      primaryFixed: palette.primaryContainerLight,
+      onPrimaryFixed: palette.onPrimaryContainerLight,
+      primaryFixedDim: palette.primaryLight,
+      onPrimaryFixedVariant: palette.onPrimaryContainerLight,
       secondaryFixed: AppColors.secondaryContainerLight,
       onSecondaryFixed: AppColors.onSecondaryContainerLight,
       secondaryFixedDim: AppColors.secondaryLight,
@@ -48,18 +48,18 @@ class MaterialTheme {
       onTertiaryFixed: AppColors.onTertiaryContainerLight,
       tertiaryFixedDim: AppColors.tertiaryLight,
       onTertiaryFixedVariant: AppColors.onTertiaryContainerLight,
-      surfaceDim: Color(0xFFF0F3F7),
+      surfaceDim: const Color(0xFFF0F3F7),
       surfaceBright: AppColors.backgroundLight,
       surfaceContainerLowest: AppColors.surfaceLight,
-      surfaceContainerLow: Color(0xFFF4F6F9),
-      surfaceContainer: Color(0xFFEFF2F6),
-      surfaceContainerHigh: Color(0xFFE9EDF2),
-      surfaceContainerHighest: Color(0xFFE3E8EE),
+      surfaceContainerLow: const Color(0xFFF4F6F9),
+      surfaceContainer: const Color(0xFFEFF2F6),
+      surfaceContainerHigh: const Color(0xFFE9EDF2),
+      surfaceContainerHighest: const Color(0xFFE3E8EE),
     );
   }
 
-  ThemeData light() {
-    return theme(lightScheme());
+  ThemeData light([AppThemePalette palette = AppThemePalette.menta]) {
+    return theme(lightScheme(palette));
   }
 
   static ColorScheme lightMediumContrastScheme() {
@@ -172,14 +172,14 @@ class MaterialTheme {
     return theme(lightHighContrastScheme());
   }
 
-  static ColorScheme darkScheme() {
-    return const ColorScheme(
+  static ColorScheme darkScheme([AppThemePalette palette = AppThemePalette.menta]) {
+    return ColorScheme(
       brightness: Brightness.dark,
-      primary: AppColors.primaryDark,
-      surfaceTint: AppColors.primaryDark,
-      onPrimary: AppColors.onPrimaryDark,
-      primaryContainer: AppColors.primaryContainerDark,
-      onPrimaryContainer: AppColors.onPrimaryContainerDark,
+      primary: palette.primaryDark,
+      surfaceTint: palette.primaryDark,
+      onPrimary: palette.onPrimaryDark,
+      primaryContainer: palette.primaryContainerDark,
+      onPrimaryContainer: palette.onPrimaryContainerDark,
       secondary: AppColors.secondaryDark,
       onSecondary: AppColors.onSecondaryDark,
       secondaryContainer: AppColors.secondaryContainerDark,
@@ -190,21 +190,21 @@ class MaterialTheme {
       onTertiaryContainer: AppColors.onTertiaryContainerDark,
       error: AppColors.pastelError,
       onError: AppColors.onPastelError,
-      errorContainer: Color(0xFF4E2626),
+      errorContainer: const Color(0xFF4E2626),
       onErrorContainer: AppColors.pastelErrorContainer,
       surface: AppColors.backgroundDark,
       onSurface: AppColors.textPrimaryDark,
       onSurfaceVariant: AppColors.textSecondaryDark,
       outline: AppColors.borderDark,
       outlineVariant: AppColors.dividerDark,
-      shadow: Color(0x33000000),
-      scrim: Color(0x66000000),
+      shadow: const Color(0x33000000),
+      scrim: const Color(0x66000000),
       inverseSurface: AppColors.surfaceLight,
-      inversePrimary: AppColors.primaryLight,
-      primaryFixed: AppColors.primaryContainerLight,
-      onPrimaryFixed: AppColors.onPrimaryContainerLight,
-      primaryFixedDim: AppColors.primaryLight,
-      onPrimaryFixedVariant: AppColors.onPrimaryContainerLight,
+      inversePrimary: palette.primaryLight,
+      primaryFixed: palette.primaryContainerLight,
+      onPrimaryFixed: palette.onPrimaryContainerLight,
+      primaryFixedDim: palette.primaryLight,
+      onPrimaryFixedVariant: palette.onPrimaryContainerLight,
       secondaryFixed: AppColors.secondaryContainerLight,
       onSecondaryFixed: AppColors.onSecondaryContainerLight,
       secondaryFixedDim: AppColors.secondaryLight,
@@ -213,18 +213,18 @@ class MaterialTheme {
       onTertiaryFixed: AppColors.onTertiaryContainerLight,
       tertiaryFixedDim: AppColors.tertiaryLight,
       onTertiaryFixedVariant: AppColors.onTertiaryContainerLight,
-      surfaceDim: Color(0xFF13151A),
-      surfaceBright: Color(0xFF282D38),
+      surfaceDim: const Color(0xFF13151A),
+      surfaceBright: const Color(0xFF282D38),
       surfaceContainerLowest: AppColors.surfaceDark,
-      surfaceContainerLow: Color(0xFF1B1F27),
-      surfaceContainer: Color(0xFF202530),
-      surfaceContainerHigh: Color(0xFF262B37),
-      surfaceContainerHighest: Color(0xFF2C3240),
+      surfaceContainerLow: const Color(0xFF1B1F27),
+      surfaceContainer: const Color(0xFF202530),
+      surfaceContainerHigh: const Color(0xFF262B37),
+      surfaceContainerHighest: const Color(0xFF2C3240),
     );
   }
 
-  ThemeData dark() {
-    return theme(darkScheme());
+  ThemeData dark([AppThemePalette palette = AppThemePalette.menta]) {
+    return theme(darkScheme(palette));
   }
 
   static ColorScheme darkMediumContrastScheme() {

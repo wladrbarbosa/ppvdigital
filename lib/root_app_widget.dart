@@ -3,9 +3,12 @@ import 'dart:developer';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:ppvdigital/app/capacitacao/tarefas_habitos/tarefas_habitos_layout.dart';
 import 'package:ppvdigital/app/login/auth_builder.dart';
+import 'package:ppvdigital/controllers/theme_controller.dart';
 import 'package:ppvdigital/core.dart';
+import 'package:ppvdigital/design_system/design_system.dart';
 import 'package:ppvdigital/l10n/app_localizations.dart';
 import 'package:ppvdigital/routes.g.dart';
 import 'package:ppvdigital/theme.dart';
@@ -111,10 +114,6 @@ class _RootAppWidgetState extends State<RootAppWidget>
   Widget build(BuildContext context) {
     final List<LocalizationsDelegate<dynamic>> appLocalizationDelegates =
         List.from(AppLocalizations.localizationsDelegates);
-    final brightness = View.of(context).platformDispatcher.platformBrightness;
-
-    // Retrieves the default theme for the platform
-    //TextTheme textTheme = Theme.of(context).textTheme;
 
     final MaterialTheme theme = _materialTheme ??
         MaterialTheme(
@@ -129,18 +128,31 @@ class _RootAppWidgetState extends State<RootAppWidget>
       appLocalizationDelegates.add(SfGlobalLocalizations.delegate);
     }
 
-    return MaterialApp.router(
-      localizationsDelegates: appLocalizationDelegates,
-      supportedLocales: AppLocalizations.supportedLocales,
-      builder: (context, child) => AuthBuilder(child: child!),
-      routerConfig: Routefly.routerConfig(
-        routes: routes,
-        initialPath: routePaths.path,
-        middlewares: [_guardRoute],
-      ),
-      debugShowCheckedModeBanner: false,
-      title: 'Seapruma',
-      theme: brightness == Brightness.light ? theme.light() : theme.dark(),
+    return Observer(
+      builder: (context) {
+        final currentPalette = Core.getIt.isRegistered<ThemeController>()
+            ? Core.themeController.palette
+            : AppThemePalette.menta;
+        final currentMode = Core.getIt.isRegistered<ThemeController>()
+            ? Core.themeController.themeMode
+            : ThemeMode.system;
+
+        return MaterialApp.router(
+          localizationsDelegates: appLocalizationDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          builder: (context, child) => AuthBuilder(child: child!),
+          routerConfig: Routefly.routerConfig(
+            routes: routes,
+            initialPath: routePaths.path,
+            middlewares: [_guardRoute],
+          ),
+          debugShowCheckedModeBanner: false,
+          title: 'Seapruma',
+          themeMode: currentMode,
+          theme: theme.light(currentPalette),
+          darkTheme: theme.dark(currentPalette),
+        );
+      },
     );
   }
 }
