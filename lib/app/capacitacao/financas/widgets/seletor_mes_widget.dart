@@ -7,9 +7,11 @@ class SeletorMesWidget extends StatelessWidget {
     super.key,
     required this.selectedMonth,
     required this.onMonthChanged,
+    this.onExportPressed,
   });
   final DateTime selectedMonth;
   final ValueChanged<DateTime> onMonthChanged;
+  final VoidCallback? onExportPressed;
 
   @override
   Widget build(BuildContext context) {
@@ -75,14 +77,25 @@ class SeletorMesWidget extends StatelessWidget {
                 ),
               ),
             ),
-            IconButton(
-              tooltip: 'Próximo mês',
-              icon: const Icon(Icons.chevron_right),
-              onPressed: () {
-                onMonthChanged(
-                  DateTime(selectedMonth.year, selectedMonth.month + 1),
-                );
-              },
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                IconButton(
+                  tooltip: 'Próximo mês',
+                  icon: const Icon(Icons.chevron_right),
+                  onPressed: () {
+                    onMonthChanged(
+                      DateTime(selectedMonth.year, selectedMonth.month + 1),
+                    );
+                  },
+                ),
+                if (onExportPressed != null)
+                  IconButton(
+                    tooltip: 'Exportar transações',
+                    icon: const Icon(Icons.share_outlined, size: 20),
+                    onPressed: onExportPressed,
+                  ),
+              ],
             ),
           ],
         ),
