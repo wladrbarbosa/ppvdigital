@@ -3,12 +3,18 @@
 Esta função automatiza a criação de novas transações e respectivas divisões para todas as transações com **recorrência indeterminada (infinita)** cadastradas no banco de dados.
 
 ## Como funciona
-1. A função roda periodicamente (agendada via Cron).
+1. A função roda periodicamente (agendada via Cron, recomendada mensalmente ou diária).
 2. Ela busca todas as regras de recorrência indeterminadas da tabela `transacao_recorrencia` (registros que possuem `totalParcelas` nulo).
-3. Para cada regra encontrada, ela busca a última transação gerada.
-4. Calcula a próxima data de competência baseada em `tipoRecorrencia` e `frequencia` mantendo o mesmo dia do mês.
-5. Clona a transação com a nova data (com `consolidada: false` por padrão).
-6. Clona também todas as divisões associadas à transação anterior para a nova.
+3. **Filtro de Alta Performance em Memória ($O(1)$)**: Verifica o campo `fimRecorrencia` da regra. Se ele já cobrir o horizonte móvel de 24 ocorrências no futuro (`now + 24 * ciclo`), a regra é ignorada imediatamente sem realizar consultas adicionais no banco.
+4. **Buffer Dinâmico com Autocura (24 Ocorrências)**:
+   - Suporta qualquer periodicidade (`dia`, `semana`, `quinzenal`, `mês`, `ano`).
+   - Se `fimRecorrencia` estiver ausente ou anterior ao horizonte, consulta a última transação existente (`orderDesc("dataCompetencia")`, `limit(1)`).
+   - Executa um loop de autocura gerando todas as parcelas faltantes até preencher o buffer de 24 ocorrências (ex.: se houver apenas 20, gera as 4 faltantes).
+5. **Clonagem e Divisões**:
+   - Clona a transação com a nova data de competência (com `consolidada: false` por padrão).
+   - Clona em lote todas as divisões associadas (`divisao_transacoes`).
+6. **Checkpoint**:
+   - Atualiza `fimRecorrencia` na tabela `transacao_recorrencia` com a data da última parcela gerada, garantindo que execuções subsequentes da Cron pulem a regra sem custos de leitura.
 
 ## Configuração no Console do Appwrite
 
