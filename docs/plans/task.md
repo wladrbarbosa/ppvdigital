@@ -1,8 +1,7 @@
 | Task | Status | Description |
 |---|---|---|
-| 1. Adicionar coluna dataCriacao no Appwrite e suporte a parsing no modelo/extensões | COMPLETED | Coluna criada no Appwrite, parsing implementado e testado com 100% de sucesso |
-| 2. Implementar método updateHistoricoItemDate na interface e repositórios | COMPLETED | updateHistoricoItemDate implementado com otimistic update, fila offline e testes passando |
-| 3. Implementar método updateHistoricoDate em HistoricoController | COMPLETED | updateHistoricoDate implementado com atualização otimista na lista e testes passando |
-| 4. Habilitar Drag & Drop e Modal de Edição de Data/Hora na CalendarioPage | COMPLETED | allowDragAndDrop + onDragEnd e modal com date & time picker nos tokens do Design System implementados e testados |
-| 5. Verificação Global e Documentação | COMPLETED | fvm flutter analyze (zero erros), fvm flutter test (164/164 passando) e README.md atualizado |
-| 6. Correção do Drag & Drop no Calendário (preservação de relações em Realtime e horário em MonthView) | COMPLETED | Prevenir sobrescrita de tarefaHabitoId/usuario em eventos Realtime e preservar hora/minuto em MonthView |
+| 1. Brainstorming: Explorar contexto e requisitos | COMPLETED | Temas do Design System mapeados e diagnóstico da function concluído |
+| 2. Brainstorming: Alinhamento de design com o usuário | IN_PROGRESS | Validar as 10 paletas e a proposta de correção da function de recorrência |
+| 3. Especificação do Design (`docs/plans/`) | PENDING | Documentar especificação de temas, settings modal e correção da function |
+| 4. Plano de Implementação detalhado (TDD) | PENDING | Estruturar etapas modulares de ThemeController, UI e correção do Go main.go |
+| 5. Execução e Verificação Contínua | PENDING | Implementação, testes unitários (~100%), analyze e compilação Go |
