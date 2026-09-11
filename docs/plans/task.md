@@ -1,10 +1,10 @@
 | Task | Status | Description |
 |---|---|---|
-| 1. Paletas de Cores e Preservação no SQLite | COMPLETED | Enum AppThemePalette (10 cores) criado e clearAllUserData ajustado com testes 100% passando |
-| 2. ThemeController MobX e Registro no Core | COMPLETED | ThemeController implementado com observables manuais, persistência e testes 100% passando |
-| 3. MaterialTheme Dinâmico e Reatividade no RootAppWidget | COMPLETED | MaterialTheme e RootAppWidget integrados com Observer para troca instantânea de tema e modo |
-| 4. Modal de Configurações e Ação na HomePage | COMPLETED | ConfiguracoesModalWidget e botão na AppBar da HomePage criados com testes 100% passando |
-| 5. Correção e Alta Performance na Function de Recorrência | COMPLETED | Atualizar main.go removendo restrição de hoje e implementando esteira de 24 ocorrências com fimRecorrencia |
-| 6. Verificação Global, Cobertura (~100%) e Documentação | COMPLETED | Executar fvm flutter analyze, fvm flutter test e atualizar README.md |
-| 7. Diagnóstico do Erro 500 no Upload da Function | COMPLETED | Rastreamento no Appwrite API e código-fonte: falha de comunicação com container orchestrator/executor no Docker VPS |
+| 1. Brainstorming e Validação de Requisitos | IN_PROGRESS | Explorar contexto, fazer perguntas de alinhamento e propor abordagens |
+| 2. Documento de Design e Aprovação | PENDING | Elaborar docs/plans/YYYY-MM-DD-export-transactions-design.md |
+| 3. Plano de Implementação | PENDING | Decompor tarefas com TDD, design system e testes |
+| 4. Implementação do Diálogo e Mecanismos de Exportação | PENDING | Criar widget do diálogo de exportação, formatador WhatsApp e gerador CSV |
+| 5. Integração com SeletorMesWidget e FinançasLayout | PENDING | Adicionar botão de exportar no SeletorMesWidget com filtros ativos |
+| 6. Testes Unitários e de Widget (~100% Cobertura) | PENDING | Escrever testes para formatadores, diálogo e integração |
+| 7. Verificação Final e Documentação | PENDING | Executar fvm flutter analyze, fvm flutter test e atualizar README.md |
 
