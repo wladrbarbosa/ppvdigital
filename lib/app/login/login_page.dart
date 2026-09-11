@@ -157,7 +157,7 @@ class _LoginPageState extends State<LoginPage> {
                                           if (Core.loginController.status ==
                                               AuthStatus.authenticated) {
                                             Routefly.navigate(
-                                              routePaths.capacitacao.path,
+                                              routePaths.home,
                                             );
                                           }
                                         } catch (e) {

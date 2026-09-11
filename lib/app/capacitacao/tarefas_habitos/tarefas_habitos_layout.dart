@@ -221,7 +221,7 @@ class TarefasPageState extends State<TarefasPage>
           leading: IconButton(
             icon: const Icon(Icons.arrow_back),
             onPressed: () {
-              Routefly.navigate(routePaths.capacitacao.path);
+              Routefly.navigate(routePaths.home);
             },
           ),
           actions: [

@@ -39,7 +39,7 @@ void main() {
       MaterialApp.router(
         routerConfig: Routefly.routerConfig(
           routes: routes,
-          initialPath: routePaths.capacitacao.path,
+          initialPath: routePaths.home,
         ),
       ),
     );
@@ -62,7 +62,7 @@ void main() {
       MaterialApp.router(
         routerConfig: Routefly.routerConfig(
           routes: routes,
-          initialPath: routePaths.capacitacao.path,
+          initialPath: routePaths.home,
         ),
       ),
     );
@@ -87,7 +87,7 @@ void main() {
       MaterialApp.router(
         routerConfig: Routefly.routerConfig(
           routes: routes,
-          initialPath: routePaths.capacitacao.path,
+          initialPath: routePaths.home,
         ),
       ),
     );

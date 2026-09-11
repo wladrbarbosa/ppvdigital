@@ -46,5 +46,20 @@ void main() {
       // Confirma que o modal foi aberto na tela
       expect(find.byType(ConfiguracoesModalWidget), findsOneWidget);
     });
+
+    testWidgets('HomePage exibe os cartões de Hábitos e Tarefas e Finanças', (tester) async {
+      await tester.pumpWidget(
+        const MaterialApp(
+          home: HomePage(),
+        ),
+      );
+      await tester.pump();
+
+      expect(find.text('Seapruma'), findsOneWidget);
+      expect(find.text('Início'), findsOneWidget);
+      expect(find.text('Hábitos e Tarefas'), findsOneWidget);
+      expect(find.text('Finanças'), findsOneWidget);
+      expect(find.byTooltip('Sair'), findsOneWidget);
+    });
   });
 }

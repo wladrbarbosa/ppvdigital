@@ -462,7 +462,7 @@ class _FinancasLayoutState extends State<FinancasLayout>
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
           onPressed: () {
-            Routefly.navigate(routePaths.capacitacao.path);
+            Routefly.navigate(routePaths.home);
           },
         ),
         actions: [

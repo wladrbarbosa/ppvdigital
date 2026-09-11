@@ -1,14 +1,16 @@
-import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:ppvdigital/app/capacitacao/financas/financas_controller.dart';
+import 'package:ppvdigital/app/capacitacao/tarefas_habitos/tarefas_habitos_controller.dart';
 import 'package:ppvdigital/app/home/widgets/configuracoes_modal_widget.dart';
 import 'package:ppvdigital/core.dart';
 import 'package:ppvdigital/design_system/design_system.dart';
+import 'package:ppvdigital/routes.g.dart';
 import 'package:ppvdigital/services/pwa_update_service.dart';
 import 'package:routefly/routefly.dart';
 
 class HomePage extends StatefulWidget {
-  const HomePage({super.key, this.title = 'Home'});
+  const HomePage({super.key, this.title = 'Seapruma'});
 
   final String title;
 
@@ -17,7 +19,6 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
-  int touchedIndex = -1;
   bool _updateAvailable = false;
 
   @override
@@ -28,7 +29,9 @@ class _HomePageState extends State<HomePage> {
 
   Future<void> _checkPwaUpdate() async {
     if (kIsWeb) {
-      final available = await PwaUpdateService.isUpdateAvailable(Core.appVersion);
+      final available = await PwaUpdateService.isUpdateAvailable(
+        Core.appVersion,
+      );
       if (mounted && available) {
         setState(() {
           _updateAvailable = true;
@@ -41,15 +44,21 @@ class _HomePageState extends State<HomePage> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        shape: RoundedRectangleBorder(borderRadius: AppRadius.roundedLg),
         title: Row(
           children: [
             Icon(
               _updateAvailable ? Icons.system_update : Icons.refresh,
-              color: _updateAvailable ? AppColors.pastelSuccess : AppColors.pastelWarning,
+              color: _updateAvailable
+                  ? AppColors.pastelSuccess
+                  : AppColors.pastelWarning,
             ),
             const SizedBox(width: 8),
-            Text(_updateAvailable ? 'Nova Versão Disponível!' : 'Atualizar Aplicativo'),
+            Text(
+              _updateAvailable
+                  ? 'Nova Versão Disponível!'
+                  : 'Atualizar Aplicativo',
+            ),
           ],
         ),
         content: Text(
@@ -64,7 +73,9 @@ class _HomePageState extends State<HomePage> {
           ),
           ElevatedButton.icon(
             style: ElevatedButton.styleFrom(
-              backgroundColor: _updateAvailable ? AppColors.pastelSuccess : AppColors.pastelWarning,
+              backgroundColor: _updateAvailable
+                  ? AppColors.pastelSuccess
+                  : AppColors.pastelWarning,
               foregroundColor: Colors.white,
             ),
             icon: const Icon(Icons.bolt),
@@ -79,63 +90,33 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  final List<Map<String, dynamic>> categories = [
-    {
-      'title': 'Eu com Deus',
-      'color': AppColors.pastelWarning,
-      'description': 'Espiritualidade, fé e propósito de vida.',
-    },
-    {
-      'title': 'Eu com a Sociedade',
-      'color': AppColors.pastelError,
-      'description': 'Relações sociais, comunidade e impacto no mundo.',
-    },
-    {
-      'title': 'Eu com a Capacitação Técnica',
-      'color': AppColors.secondaryLight,
-      'description': 'Gestão de tarefas, hábitos e finanças pessoais.',
-      'available': true,
-      'route': '/capacitacao',
-    },
-    {
-      'title': 'Eu Comigo',
-      'color': AppColors.primaryLight,
-      'description': 'Autoconhecimento, saúde mental e crescimento pessoal.',
-    },
-    {
-      'title': 'Eu com o Outro',
-      'color': AppColors.pastelSuccess,
-      'description': 'Família, amizades e relacionamentos mais próximos.',
-    },
-  ];
+  Future<void> _handleLogout() async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: AppRadius.roundedLg),
+        title: const Text('Confirmar Saída'),
+        content: const Text('Deseja realmente sair da sua conta?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Cancelar'),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(
+              backgroundColor: AppColors.pastelError,
+              foregroundColor: Colors.white,
+            ),
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Sair'),
+          ),
+        ],
+      ),
+    );
 
-  void _handleCategoryAction(int index) {
-    final cat = categories[index];
-    if (cat['available'] == true && cat['route'] != null) {
-      Routefly.navigate(cat['route'] as String);
-    } else {
-      ScaffoldMessenger.of(context).clearSnackBars();
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Row(
-            children: [
-              const Icon(Icons.info_outline, color: Colors.amber),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  'Módulo "${cat['title']}" está em desenvolvimento.',
-                  style: const TextStyle(fontWeight: FontWeight.w500),
-                ),
-              ),
-            ],
-          ),
-          behavior: SnackBarBehavior.floating,
-          duration: const Duration(seconds: 2),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(10),
-          ),
-        ),
-      );
+    if (confirm == true) {
+      await Core.loginController.signOut();
+      Routefly.navigate(routePaths.login);
     }
   }
 
@@ -143,19 +124,18 @@ class _HomePageState extends State<HomePage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Seapruma Dashboard'),
+        title: Text(widget.title),
         centerTitle: true,
-        elevation: 0,
         actions: [
           if (kIsWeb)
             IconButton(
-              icon: Badge(
-                isLabelVisible: _updateAvailable,
-                backgroundColor: Colors.green,
-                label: const Text('NEW', style: TextStyle(fontSize: 9, fontWeight: FontWeight.bold)),
+              icon: Tooltip(
+                message: _updateAvailable
+                    ? 'Nova versão do Seapruma disponível! Clique para recarregar.'
+                    : 'Recarregar aplicação e limpar cache',
                 child: Icon(
                   _updateAvailable ? Icons.system_update : Icons.refresh,
-                  color: _updateAvailable ? Colors.green : null,
+                  color: _updateAvailable ? AppColors.pastelSuccess : null,
                 ),
               ),
               tooltip: _updateAvailable
@@ -168,256 +148,181 @@ class _HomePageState extends State<HomePage> {
             tooltip: 'Configurações',
             onPressed: () => ConfiguracoesModalWidget.show(context),
           ),
+          IconButton(
+            icon: const Icon(Icons.logout, color: AppColors.pastelError),
+            tooltip: 'Sair',
+            onPressed: _handleLogout,
+          ),
         ],
       ),
-      body: LayoutBuilder(
-        builder: (context, constraints) {
-          final isMobile = constraints.maxWidth < 750;
+      body: Center(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppSpacing.lg,
+            vertical: AppSpacing.xl,
+          ),
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 900),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Início',
+                  style: Theme.of(context).textTheme.headlineMedium
+                      ?.copyWith(fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: AppSpacing.xs),
+                Text(
+                  'Gerencie suas atividades diárias e acompanhe sua saúde financeira.',
+                  style: TextStyle(color: Theme.of(context).hintColor),
+                ),
+                const SizedBox(height: AppSpacing.xl),
+                LayoutBuilder(
+                  builder: (context, constraints) {
+                    final isMobile = constraints.maxWidth < 600;
+                    return isMobile
+                        ? Column(
+                            children: [
+                              _buildCard(
+                                title: 'Hábitos e Tarefas',
+                                description: 'Controle a execução de suas metas diárias, crie hábitos saudáveis e agende tarefas.',
+                                icon: Icons.playlist_add_check_rounded,
+                                color: AppColors.pastelInfo,
+                                onTap: () {
+                                  TarefasHabitosController
+                                          .tarefasHabitosFuture =
+                                      null;
+                                  Routefly.navigate(
+                                    routePaths.capacitacao.tarefasHabitos.path,
+                                  );
+                                },
+                              ),
+                              const SizedBox(height: AppSpacing.md),
+                              _buildCard(
+                                title: 'Finanças',
+                                description: 'Organize suas contas, receitas, despesas, transferências e acompanhe transações divididas.',
+                                icon: Icons.account_balance_wallet_rounded,
+                                color: AppColors.pastelSuccess,
+                                onTap: () {
+                                  FinancasController.financasFuture = null;
+                                  Routefly.navigate(
+                                    routePaths.capacitacao.financas,
+                                  );
+                                },
+                              ),
+                            ],
+                          )
+                        : Row(
+                            children: [
+                              Expanded(
+                                child: _buildCard(
+                                  title: 'Hábitos e Tarefas',
+                                  description: 'Controle a execução de suas metas diárias, crie hábitos saudáveis e agende tarefas.',
+                                  icon: Icons.playlist_add_check_rounded,
+                                  color: AppColors.pastelInfo,
+                                  onTap: () {
+                                    TarefasHabitosController
+                                            .tarefasHabitosFuture =
+                                        null;
+                                    Routefly.navigate(
+                                      routePaths
+                                          .capacitacao
+                                          .tarefasHabitos
+                                          .path,
+                                    );
+                                  },
+                                ),
+                              ),
+                              const SizedBox(width: AppSpacing.lg),
+                              Expanded(
+                                child: _buildCard(
+                                  title: 'Finanças',
+                                  description: 'Organize suas contas, receitas, despesas, transferências e acompanhe transações divididas.',
+                                  icon: Icons.account_balance_wallet_rounded,
+                                  color: AppColors.pastelSuccess,
+                                  onTap: () {
+                                    FinancasController.financasFuture = null;
+                                    Routefly.navigate(
+                                      routePaths.capacitacao.financas,
+                                    );
+                                  },
+                                ),
+                              ),
+                            ],
+                          );
+                  },
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 
-          // Determine chart size and slice radius based on screen type
-          final double chartSize = isMobile ? 220.0 : 300.0;
-          final double normalRadius = isMobile ? 65.0 : 90.0;
-          final double touchedRadius = isMobile ? 80.0 : 105.0;
-
-          final List<PieChartSectionData> sliceList = List.generate(
-            categories.length,
-            (i) {
-              final isTouched = touchedIndex == i;
-              final cat = categories[i];
-              return PieChartSectionData(
-                radius: isTouched ? touchedRadius : normalRadius,
-                showTitle: false, // Clean look, title in legend/list
-                color: cat['color'] as Color,
-                value: 20.0, // Equal sections
-                badgeWidget: isTouched
-                    ? Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 4,
-                        ),
-                        decoration: BoxDecoration(
-                          color: Colors.black87,
-                          borderRadius: BorderRadius.circular(8),
-                          boxShadow: const [
-                            BoxShadow(color: Colors.black26, blurRadius: 4),
-                          ],
-                        ),
-                        child: Text(
-                          cat['title'] as String,
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 10,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      )
-                    : null,
-                badgePositionPercentageOffset: 0.9,
-              );
-            },
-          );
-
-          final chartWidget = Center(
-            child: SizedBox(
-              width: chartSize,
-              height: chartSize,
-              child: PieChart(
-                PieChartData(
-                  pieTouchData: PieTouchData(
-                    touchCallback: (FlTouchEvent event, pieTouchResponse) {
-                      setState(() {
-                        if (!event.isInterestedForInteractions ||
-                            pieTouchResponse == null ||
-                            pieTouchResponse.touchedSection == null) {
-                          touchedIndex = -1;
-                          return;
-                        }
-                        touchedIndex = pieTouchResponse
-                            .touchedSection!
-                            .touchedSectionIndex;
-
-                        if (event is FlTapUpEvent) {
-                          if (touchedIndex >= 0) {
-                            _handleCategoryAction(touchedIndex);
-                          }
-                        }
-                      });
-                    },
-                  ),
-                  sections: sliceList,
-                  sectionsSpace: 3,
-                  centerSpaceRadius: isMobile ? 35.0 : 50.0,
+  Widget _buildCard({
+    required String title,
+    required String description,
+    required IconData icon,
+    required Color color,
+    required VoidCallback onTap,
+  }) {
+    return Card(
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: AppRadius.roundedLg,
+        side: BorderSide(
+          color: Theme.of(context).dividerColor.withValues(alpha: 0.12),
+        ),
+      ),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: AppRadius.roundedLg,
+        child: Padding(
+          padding: const EdgeInsets.all(AppSpacing.lg),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(AppSpacing.sm),
+                decoration: BoxDecoration(
+                  color: color.withValues(alpha: 0.15),
+                  borderRadius: AppRadius.roundedMd,
+                ),
+                child: Icon(icon, color: color, size: 28),
+              ),
+              const SizedBox(height: AppSpacing.lg),
+              Text(
+                title,
+                style: const TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
                 ),
               ),
-            ),
-          );
-
-          final listWidget = ListView.builder(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            itemCount: categories.length,
-            itemBuilder: (context, i) {
-              final cat = categories[i];
-              final isSelected = touchedIndex == i;
-              final Color baseColor = cat['color'] as Color;
-
-              return MouseRegion(
-                onEnter: (_) => setState(() => touchedIndex = i),
-                onExit: (_) => setState(() => touchedIndex = -1),
-                child: Card(
-                  margin: const EdgeInsets.only(bottom: 12.0),
-                  elevation: isSelected ? 4 : 1,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    side: BorderSide(
-                      color: isSelected ? baseColor : Colors.transparent,
-                      width: 1.5,
-                    ),
-                  ),
-                  child: InkWell(
-                    borderRadius: BorderRadius.circular(12),
-                    onTap: () => _handleCategoryAction(i),
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 16.0,
-                        vertical: 14.0,
-                      ),
-                      child: Row(
-                        children: [
-                          Container(
-                            width: 16,
-                            height: 16,
-                            decoration: BoxDecoration(
-                              color: baseColor,
-                              shape: BoxShape.circle,
-                            ),
-                          ),
-                          const SizedBox(width: 16),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Row(
-                                  children: [
-                                    Flexible(
-                                      child: Text(
-                                        cat['title'] as String,
-                                        style: TextStyle(
-                                          fontWeight: FontWeight.bold,
-                                          fontSize: 14,
-                                          color: isSelected ? baseColor : null,
-                                        ),
-                                      ),
-                                    ),
-                                    if (cat['available'] == true) ...[
-                                      const SizedBox(width: 8),
-                                      Container(
-                                        padding: const EdgeInsets.symmetric(
-                                          horizontal: 6,
-                                          vertical: 2,
-                                        ),
-                                        decoration: BoxDecoration(
-                                          color: baseColor.withValues(
-                                            alpha: 0.2,
-                                          ),
-                                          borderRadius: BorderRadius.circular(
-                                            6,
-                                          ),
-                                        ),
-                                        child: Text(
-                                          'Ativo',
-                                          style: TextStyle(
-                                            fontSize: 9,
-                                            fontWeight: FontWeight.bold,
-                                            color: baseColor,
-                                          ),
-                                        ),
-                                      ),
-                                    ],
-                                  ],
-                                ),
-                                const SizedBox(height: 4),
-                                Text(
-                                  cat['description'] as String,
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    color: Theme.of(context).hintColor,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          Icon(
-                            Icons.chevron_right,
-                            color: isSelected
-                                ? baseColor
-                                : Theme.of(context).hintColor,
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
+              const SizedBox(height: AppSpacing.xs),
+              Text(
+                description,
+                style: TextStyle(
+                  fontSize: 14,
+                  color: Theme.of(context).hintColor,
+                  height: 1.4,
                 ),
-              );
-            },
-          );
-
-          if (isMobile) {
-            return SingleChildScrollView(
-              padding: const EdgeInsets.all(20.0),
-              child: Column(
+              ),
+              const SizedBox(height: AppSpacing.lg),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
                 children: [
-                  const Text(
-                    'Selecione uma área para navegar',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.grey,
-                    ),
+                  Text(
+                    'Acessar',
+                    style: TextStyle(fontWeight: FontWeight.bold, color: color),
                   ),
-                  const SizedBox(height: 20),
-                  chartWidget,
-                  const SizedBox(height: 32),
-                  listWidget,
+                  const SizedBox(width: AppSpacing.xxs),
+                  Icon(Icons.arrow_forward_rounded, color: color, size: 16),
                 ],
               ),
-            );
-          } else {
-            return Center(
-              child: Container(
-                constraints: const BoxConstraints(maxWidth: 1000),
-                padding: const EdgeInsets.all(32.0),
-                child: Row(
-                  children: [
-                    Expanded(
-                      flex: 4,
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          const Text(
-                            'Selecione uma área para navegar',
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.grey,
-                            ),
-                          ),
-                          const SizedBox(height: 32),
-                          chartWidget,
-                        ],
-                      ),
-                    ),
-                    const SizedBox(width: 48),
-                    Expanded(
-                      flex: 6,
-                      child: SingleChildScrollView(child: listWidget),
-                    ),
-                  ],
-                ),
-              ),
-            );
-          }
-        },
+            ],
+          ),
+        ),
       ),
     );
   }
