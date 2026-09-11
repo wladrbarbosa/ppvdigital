@@ -1,3 +1,4 @@
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:ppvdigital/app/capacitacao/financas/services/transaction_export_service.dart';
@@ -198,6 +199,25 @@ void main() {
       expect(csv.startsWith('\uFEFF'), isTrue);
       expect(csv, contains('Data;Descrição;Categoria;Conta;Tipo;Status;Valor'));
       expect(csv, contains('Nenhuma transação encontrada'));
+    });
+  });
+
+  group('TransactionExportService - File Download', () {
+    test('downloadCsvFile salva arquivo com sucesso', () async {
+      TestWidgetsFlutterBinding.ensureInitialized();
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(
+        const MethodChannel('plugins.flutter.io/path_provider'),
+        (MethodCall methodCall) async => '.',
+      );
+
+      final path = await TransactionExportService.downloadCsvFile(
+        csvContent: 'Data;Valor\n11/09/2026;100,00',
+        fileName: 'test_export.csv',
+      );
+
+      expect(path, isNotNull);
+      expect(path, contains('test_export.csv'));
     });
   });
 }

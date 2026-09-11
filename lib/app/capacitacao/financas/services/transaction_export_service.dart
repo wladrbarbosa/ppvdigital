@@ -1,4 +1,5 @@
 import 'package:intl/intl.dart';
+import 'package:ppvdigital/app/capacitacao/financas/services/file_saver.dart';
 import 'package:ppvdigital/models/transacao_model.dart';
 import 'package:ppvdigital/util.dart';
 
@@ -210,4 +211,13 @@ class TransactionExportService {
 
     return buffer.toString();
   }
+
+  /// Dispara o download ou salvamento do arquivo CSV na plataforma atual.
+  static Future<String?> downloadCsvFile({
+    required String csvContent,
+    required String fileName,
+  }) async {
+    return saveCsvFile(csvContent, fileName);
+  }
 }
+
