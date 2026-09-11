@@ -5,6 +5,7 @@ import 'package:flutter_expandable_fab/flutter_expandable_fab.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:intl/intl.dart';
 import 'package:ppvdigital/app/capacitacao/financas/financas_controller.dart';
+import 'package:ppvdigital/app/capacitacao/financas/widgets/exportar_transacoes_dialog.dart';
 import 'package:ppvdigital/app/capacitacao/financas/widgets/seletor_mes_widget.dart';
 import 'package:ppvdigital/core.dart';
 import 'package:ppvdigital/models/contato_model.dart';
@@ -244,6 +245,49 @@ class _FinancasLayoutState extends State<FinancasLayout>
     if (userDiv.isEmpty) return 0.0;
     final double userPeso = userDiv.fold(0.0, (sum, div) => sum + div.peso);
     return t.valor * (userPeso / totalPeso);
+  }
+
+  String _obterResumoFiltros() {
+    final parts = <String>[];
+    if (_descricaoQuery.trim().isNotEmpty) {
+      parts.add('Busca: "${_descricaoQuery.trim()}"');
+    }
+    if (_selectedContas.isNotEmpty) {
+      final names = Core.financasController.contasList
+          .where((c) => _selectedContas.contains(c.id))
+          .map((c) => c.name)
+          .join(', ');
+      if (names.isNotEmpty) parts.add('Contas: $names');
+    }
+    if (_selectedCategorias.isNotEmpty) {
+      final names = Core.financasController.categoriasList
+          .where((c) => _selectedCategorias.contains(c.id))
+          .map((c) => c.name)
+          .join(', ');
+      if (names.isNotEmpty) parts.add('Categorias: $names');
+    }
+    if (_selectedTipos.isNotEmpty) {
+      final tipos = _selectedTipos
+          .map((t) => t[0].toUpperCase() + t.substring(1))
+          .join(', ');
+      parts.add('Tipos: $tipos');
+    }
+    return parts.join(' | ');
+  }
+
+  void _abrirDialogoExportacao({
+    required List<TransacaoModel> transactions,
+    required Map<String, double> saldosDiarios,
+  }) {
+    showDialog(
+      context: context,
+      builder: (context) => ExportarTransacoesDialog(
+        transactions: transactions,
+        saldosDiarios: saldosDiarios,
+        currentMonth: _appliedMonth,
+        filterSummary: _obterResumoFiltros(),
+      ),
+    );
   }
 
   Map<String, List<TransacaoModel>> _agruparPorDia(List<TransacaoModel> list) {
@@ -643,6 +687,10 @@ class _FinancasLayoutState extends State<FinancasLayout>
                       SeletorMesWidget(
                         selectedMonth: _selectedMonth,
                         onMonthChanged: _onMonthChanged,
+                        onExportPressed: () => _abrirDialogoExportacao(
+                          transactions: filteredTransList,
+                          saldosDiarios: saldosDiarios,
+                        ),
                       ),
                       if (isSyncing)
                         const LinearProgressIndicator(minHeight: 2),
