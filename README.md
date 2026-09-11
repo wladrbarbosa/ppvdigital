@@ -6,7 +6,7 @@
 ![Drift](https://img.shields.io/badge/Database-Drift%20SQLite%20(v6)-lightgrey)
 ![Appwrite](https://img.shields.io/badge/Backend-Appwrite-FD366E?logo=appwrite)
 ![Design System](https://img.shields.io/badge/Design%20System-Pastel%20%26%20Leveza-7CB9A8)
-![Tests](https://img.shields.io/badge/Tests-164%2F164%20Passed-brightgreen)
+![Tests](https://img.shields.io/badge/Tests-185%2F185%20Passed-brightgreen)
 
 O **PPVDigital** é uma plataforma completa desenvolvida em Flutter (Web/Mobile) para planejamento pessoal, acompanhamento de hábitos, gestão de tarefas e controle financeiro pessoal e compartilhado. O projeto traz para o formato digital o conceito do **Projeto Pessoal de Vida (PPV)**, com foco em capacitação, acompanhamento de métricas e funcionamento offline transparente.
 
@@ -21,11 +21,11 @@ A aplicação adota uma arquitetura reativa, offline-first e modularizada por co
 ### Principais Tecnologias e Bibliotecas
 
 - **Framework**: [Flutter](https://flutter.dev) (gerenciado via **FVM** - Flutter Version Manager).
-- **Design System Pastel & Leveza**: Arquitetura centralizada de tokens de design (`lib/design_system/`) com paleta pastel serena (Menta, Lavanda, Pêssego), tipografia geométrica humanista ([Plus Jakarta Sans](https://fonts.google.com/specimen/Plus+Jakarta+Sans)), cartela de 24 cores suaves personalizáveis (`AppColors.customizablePastelColors`), curvaturas acolhedoras (`AppRadius`) e sombras difusas (`AppShadows`), com governança documentada em [docs/design_system.md](docs/design_system.md).
+- **Design System Pastel & Leveza**: Arquitetura centralizada de tokens de design (`lib/design_system/`) com paleta pastel serena (Menta, Lavanda, Pêssego), tipografia geométrica humanista ([Plus Jakarta Sans](https://fonts.google.com/specimen/Plus+Jakarta+Sans)), cartela de 24 cores suaves personalizáveis (`AppColors.customizablePastelColors`), curvaturas acolhedoras (`AppRadius`) e sombras difusas (`AppShadows`), com governança documentada em [docs/design_system.md](docs/design_system.md). Conta com **Menu de Configurações de Temas** na tela inicial pós-login (`HomePage`) com alternância em tempo real entre **10 paletas pastéis oficiais** (`AppThemePalette`: Menta, Lavanda, Pêssego, Céu Sereno, Sálvia, Rosa Blush, Turquesa, Ametista, Baunilha, Areia) e **3 modos** (Claro, Escuro e Sistema), orquestrado por `ThemeController` (MobX manual) e persistido localmente no Drift SQLite (`AppSettings`), preservado no logout (`clearAllUserData()`).
 - **Gerenciamento de Estado**: [MobX](https://pub.dev/packages/mobx) e `flutter_mobx` utilizando reatividade com instanciações manuais (`mobx.Observable`), getters com baixa alocação e mutações seguras via `mobx.runInAction()`.
 - **Banco de Dados Local & Cache Offline**: [Drift](https://drift.simonbinder.eu/) (SQLite reativo **Schema v6** com índices compostos em colunas críticas como `remoteId`, `usuarioId`, `dataCompetencia`, `agendamento`), permitindo consultas ultrarrápidas sem dependência imediata de rede e isolamento atômico de dados por usuário (`clearAllUserData()`).
 - **Backend & Backend-as-a-Service (BaaS)**: [Appwrite SDK](https://appwrite.io), gerenciando autenticação, sessões, persistência remota e **Appwrite Realtime (WebSockets)** escopado por usuário para sincronização instantânea inter-dispositivos.
-- **Serverless Functions**: Função Go 1.26 (`functions/process_recurrent_transactions`) para processamento automatizado de transações recorrentes indeterminadas.
+- **Serverless Functions**: Função Go 1.26 (`functions/process_recurrent_transactions`) para processamento automatizado de transações recorrentes indeterminadas. Implementa **esteira móvel de 24 ocorrências futuras** com **autocura de lacunas** para qualquer periodicidade (`dia`, `semana`, `quinzenal`, `mês`, `ano`), e **filtro de alta performance em memória ($O(1)$)** via checkpoint na coluna `fimRecorrencia` para dispensar consultas adicionais ao banco em execuções rotineiras.
 - **Arquitetura Híbrida de Sincronização**: Combinação de mutações REST API, canal Realtime Pub/Sub WebSocket para atualizações ativas, e **Delta Sync com Projeção Leve de IDs** (`Query.select(['$id'])`) para reconciliação de exclusões sem consumo desnecessário de tráfego de rede ao retomar o foco (`AppLifecycleState.resumed`).
 - **Domínio e Tipagem Forte**: Enums tipados do Dart 3 (`TipoTransacao`, `TipoItem`, `TipoHabito`, `TipoRecorrencia`) e desacoplamento de regras puras com `RecorrenciaService` via *switch expressions*.
 - **Roteamento Baseado em Arquivos**: [Routefly](https://github.com/wladrbarbosa/routefly) para navegação declarativa baseada na estrutura do sistema de arquivos.
@@ -194,6 +194,12 @@ fvm flutter test
 - `test/unit/negative_habits_test.dart`: Testes unitários do impacto negativo de hábitos no progresso do dashboard e distribuição de atenção.
 - `test/unit/arquivado_tarefas_habitos_test.dart`: Testes unitários de serialização e persistência do campo `arquivado` em SQLite (v5).
 - `test/unit/user_switch_cache_test.dart`: Testes unitários de isolamento multi-usuário, limpeza atômica do SQLite e reset completo de controllers MobX.
+- `test/unit/theme_database_test.dart`: Testes unitários do enum `AppThemePalette` (10 paletas pastéis) e da preservação de `theme_mode` e `theme_palette` em `clearAllUserData()` no Drift SQLite.
+- `test/unit/theme_controller_test.dart`: Testes unitários do `ThemeController` (MobX manual), reatividade de `setThemeMode`, `setPalette`, carregamento do SQLite com fallback seguro e injeção no `Core`.
+- `test/widget/root_app_theme_test.dart`: Teste de widget cobrindo a reatividade global do `RootAppWidget` envolto em MobX `Observer`.
+- `test/widget/configuracoes_modal_test.dart`: Testes de widget do `ConfiguracoesModalWidget` (SegmentedButton de 3 modos e 10 cartões pastéis do Design System).
+- `test/app/home/home_page_settings_test.dart`: Teste de integração do botão de configurações na AppBar da `HomePage` e abertura do modal.
+- `functions/process_recurrent_transactions/main_test.go`: Testes unitários da função Serverless Go (parsing de datas ISO, incremento de intervalos de recorrência e autocura de esteira de 24 ocorrências).
 - `test/widget_test.dart`: Teste de fumaça de instanciação de widgets.
 
 ---
