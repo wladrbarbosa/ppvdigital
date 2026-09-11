@@ -6,4 +6,5 @@
 | 4. Modal de Configurações e Ação na HomePage | COMPLETED | ConfiguracoesModalWidget e botão na AppBar da HomePage criados com testes 100% passando |
 | 5. Correção e Alta Performance na Function de Recorrência | COMPLETED | Atualizar main.go removendo restrição de hoje e implementando esteira de 24 ocorrências com fimRecorrencia |
 | 6. Verificação Global, Cobertura (~100%) e Documentação | COMPLETED | Executar fvm flutter analyze, fvm flutter test e atualizar README.md |
+| 7. Diagnóstico do Erro 500 no Upload da Function | COMPLETED | Rastreamento no Appwrite API e código-fonte: falha de comunicação com container orchestrator/executor no Docker VPS |
 
