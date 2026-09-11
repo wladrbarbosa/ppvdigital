@@ -1,7 +1,8 @@
 | Task | Status | Description |
 |---|---|---|
-| 1. Brainstorming: Explorar contexto e requisitos | COMPLETED | Temas do Design System mapeados e diagnóstico da function concluído |
-| 2. Brainstorming: Alinhamento de design com o usuário | IN_PROGRESS | Validar as 10 paletas e a proposta de correção da function de recorrência |
-| 3. Especificação do Design (`docs/plans/`) | PENDING | Documentar especificação de temas, settings modal e correção da function |
-| 4. Plano de Implementação detalhado (TDD) | PENDING | Estruturar etapas modulares de ThemeController, UI e correção do Go main.go |
-| 5. Execução e Verificação Contínua | PENDING | Implementação, testes unitários (~100%), analyze e compilação Go |
+| 1. Paletas de Cores e Preservação no SQLite | COMPLETED | Enum AppThemePalette (10 cores) criado e clearAllUserData ajustado com testes 100% passando |
+| 2. ThemeController MobX e Registro no Core | PENDING | Implementar ThemeController com observables manuais, persistência e testes unitários |
+| 3. MaterialTheme Dinâmico e Reatividade no RootAppWidget | PENDING | Atualizar MaterialTheme e RootAppWidget com Observer para troca instantânea |
+| 4. Modal de Configurações e Ação na HomePage | PENDING | Desenvolver ConfiguracoesModalWidget e botão na AppBar da HomePage com testes |
+| 5. Correção e Alta Performance na Function de Recorrência | PENDING | Atualizar main.go removendo restrição de hoje e implementando esteira de 24 ocorrências com fimRecorrencia |
+| 6. Verificação Global, Cobertura (~100%) e Documentação | PENDING | Executar fvm flutter analyze, fvm flutter test e atualizar README.md |

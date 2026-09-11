@@ -328,7 +328,9 @@ class AppDatabase extends _$AppDatabase {
       await delete(categoriaTransacoes).go();
       await delete(tarefaHabitos).go();
       await delete(historicoTarefasHabitos).go();
-      await delete(appSettings).go();
+      await (delete(appSettings)
+            ..where((s) => s.key.isNotIn(const ['theme_mode', 'theme_palette'])))
+          .go();
     });
   }
 
