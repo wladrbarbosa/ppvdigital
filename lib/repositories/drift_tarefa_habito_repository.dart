@@ -995,16 +995,26 @@ class DriftTarefaHabitoRepository implements TarefaHabitoRepository {
         payload[r'$id'] as String? ?? payload['id'] as String? ?? '';
     if (rowId.isEmpty) return;
 
-    final String usuario = payload['usuario'] as String? ?? '';
+    final dataMap = payload['data'] is Map
+        ? Map<String, dynamic>.from(payload['data'] as Map)
+        : payload;
+
+    final String usuario =
+        (dataMap['usuario'] ?? payload['usuario']) as String? ?? '';
     final String createdAtStr =
+        dataMap['dataCriacao'] as String? ??
         payload['dataCriacao'] as String? ??
         payload[r'$createdAt'] as String? ??
+        dataMap[r'$createdAt'] as String? ??
         payload['createdAt'] as String? ??
+        dataMap['createdAt'] as String? ??
         '';
-    final DateTime createdAt =
-        DateTime.tryParse(createdAtStr) ?? DateTime.now();
+    final DateTime? parsedCreatedAt = createdAtStr.isNotEmpty
+        ? DateTime.tryParse(createdAtStr)?.toLocal()
+        : null;
 
-    final dynamic rawTarefa = payload['tarefasEHabitos'];
+    final dynamic rawTarefa =
+        dataMap['tarefasEHabitos'] ?? payload['tarefasEHabitos'];
     String tarefaId = '';
     if (rawTarefa is Map) {
       tarefaId = (rawTarefa[r'$id'] ?? rawTarefa['id'] ?? '') as String;
@@ -1022,9 +1032,11 @@ class DriftTarefaHabitoRepository implements TarefaHabitoRepository {
       )..where((h) => h.remoteId.equals(rowId))).write(
         HistoricoTarefasHabitosCompanion(
           remoteId: Value(rowId),
-          usuario: Value(usuario),
-          createdAt: Value(createdAt),
-          tarefaHabitoId: Value(tarefaId),
+          usuario: Value(usuario.isNotEmpty ? usuario : existing.usuario),
+          createdAt: Value(parsedCreatedAt ?? existing.createdAt),
+          tarefaHabitoId: Value(
+            tarefaId.isNotEmpty ? tarefaId : existing.tarefaHabitoId,
+          ),
         ),
       );
     } else {
@@ -1034,7 +1046,7 @@ class DriftTarefaHabitoRepository implements TarefaHabitoRepository {
             HistoricoTarefasHabitosCompanion.insert(
               remoteId: rowId,
               usuario: usuario,
-              createdAt: createdAt,
+              createdAt: parsedCreatedAt ?? DateTime.now(),
               tarefaHabitoId: tarefaId,
             ),
           );
@@ -1065,13 +1077,21 @@ class DriftTarefaHabitoRepository implements TarefaHabitoRepository {
           Core.tarefasHabitosController.removeCategoryFromLoadedTasks(rowId);
         }
       } else if (action == 'create' || action == 'update') {
+        final dataMap = payload['data'] is Map
+            ? Map<String, dynamic>.from(payload['data'] as Map)
+            : payload;
+        final Map<String, dynamic> mergedPayload =
+            Map<String, dynamic>.from(dataMap);
+        if (payload.containsKey(r'$id')) mergedPayload[r'$id'] = payload[r'$id'];
+        if (payload.containsKey('id')) mergedPayload['id'] = payload['id'];
+
         if (tableId == Core.tableTarefasEHabitos) {
-          final model = TarefaHabitoModel.fromMap(payload);
+          final model = TarefaHabitoModel.fromMap(mergedPayload);
           await _upsertTarefaHabito(model);
         } else if (tableId == Core.tableHistoricoTarefasHabitos) {
           await _upsertHistoricoPayload(payload);
         } else if (tableId == Core.tableCategoriasTarefasHabitos) {
-          final catModel = CategoriasTarefasHabitosModel.fromMap(payload);
+          final catModel = CategoriasTarefasHabitosModel.fromMap(mergedPayload);
           await updateCategoryInMetas(catModel);
           Core.tarefasHabitosController.updateCategoryInLoadedTasks(catModel);
         }

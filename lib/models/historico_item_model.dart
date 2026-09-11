@@ -43,11 +43,11 @@ class HistoricoItemModel {
     final rawDate = map['dataCriacao'] ?? map['createdAt'];
     DateTime parsedDate;
     if (rawDate is int) {
-      parsedDate = DateTime.fromMillisecondsSinceEpoch(rawDate);
+      parsedDate = DateTime.fromMillisecondsSinceEpoch(rawDate).toLocal();
     } else if (rawDate is String) {
-      parsedDate = DateTime.tryParse(rawDate) ?? DateTime.now();
+      parsedDate = DateTime.tryParse(rawDate)?.toLocal() ?? DateTime.now();
     } else if (rawDate is DateTime) {
-      parsedDate = rawDate;
+      parsedDate = rawDate.toLocal();
     } else {
       parsedDate = DateTime.now();
     }

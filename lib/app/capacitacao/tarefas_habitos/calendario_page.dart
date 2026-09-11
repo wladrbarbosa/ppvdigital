@@ -36,33 +36,54 @@ class _CalendarioPageState extends State<CalendarioPage> {
     final DateTime? dropTime = details.droppingTime;
     if (appointment is! Appointment || dropTime == null) return;
 
-    final String? itemId = appointment.id as String?;
-    if (itemId == null) return;
-
+    final String? rawId = appointment.id?.toString();
+    final String? rawNotes = appointment.notes?.toString();
     final historyList = Core.historicoController.historicoList;
     final item = historyList.cast<HistoricoItemModel?>().firstWhere(
-          (el) => el?.id == itemId,
+          (el) =>
+              (rawId != null && el?.id == rawId) ||
+              (rawNotes != null && el?.id == rawNotes),
           orElse: () => null,
         );
     if (item == null) return;
+    final String itemId = item.id;
 
     final DateTime originalLocal = item.createdAt.toLocal();
-    if (originalLocal.year == dropTime.year &&
-        originalLocal.month == dropTime.month &&
-        originalLocal.day == dropTime.day &&
-        originalLocal.hour == dropTime.hour &&
-        originalLocal.minute == dropTime.minute) {
+
+    // When dropped in Month view (or when dropTime is at midnight 00:00 while the original had a specific hour/minute),
+    // preserve the original appointment's hour and minute so it does not jump to midnight.
+    DateTime targetDateTime = dropTime;
+    final isMonth = _calendarController.view == CalendarView.month;
+    if (isMonth ||
+        (dropTime.hour == 0 &&
+            dropTime.minute == 0 &&
+            (originalLocal.hour != 0 || originalLocal.minute != 0))) {
+      targetDateTime = DateTime(
+        dropTime.year,
+        dropTime.month,
+        dropTime.day,
+        originalLocal.hour,
+        originalLocal.minute,
+        originalLocal.second,
+      );
+    }
+
+    if (originalLocal.year == targetDateTime.year &&
+        originalLocal.month == targetDateTime.month &&
+        originalLocal.day == targetDateTime.day &&
+        originalLocal.hour == targetDateTime.hour &&
+        originalLocal.minute == targetDateTime.minute) {
       return;
     }
 
     final success = await Core.historicoController.updateHistoricoDate(
       itemId,
-      dropTime,
+      targetDateTime,
     );
 
     if (mounted) {
       final formattedDate =
-          '${dropTime.day.toString().padLeft(2, '0')}/${dropTime.month.toString().padLeft(2, '0')} às ${dropTime.hour.toString().padLeft(2, '0')}:${dropTime.minute.toString().padLeft(2, '0')}';
+          '${targetDateTime.day.toString().padLeft(2, '0')}/${targetDateTime.month.toString().padLeft(2, '0')} às ${targetDateTime.hour.toString().padLeft(2, '0')}:${targetDateTime.minute.toString().padLeft(2, '0')}';
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
@@ -403,6 +424,10 @@ class _CalendarioPageState extends State<CalendarioPage> {
                     timeSlotViewSettings: const TimeSlotViewSettings(
                       minimumAppointmentDuration: Duration(minutes: 30),
                       timeFormat: 'HH:mm',
+                    ),
+                    monthViewSettings: const MonthViewSettings(
+                      appointmentDisplayMode:
+                          MonthAppointmentDisplayMode.appointment,
                     ),
                     allowedViews: const [
                       CalendarView.day,

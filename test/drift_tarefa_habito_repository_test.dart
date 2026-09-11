@@ -653,4 +653,55 @@ void main() {
     final queue = await database.getSetting('pending_tarefas_habitos_syncs');
     expect(queue, equals('[]'));
   });
+
+  test('handleRealtimeEvent on tableHistoricoTarefasHabitos preserves relations on partial update and handles nested data', () async {
+    // 1. Initial insert
+    final initialDate = DateTime(2026, 9, 10, 8, 30);
+    await driftRepository.recordHistorico(
+      id: 'hist_rt_1',
+      foundId: 'habit_rt_1',
+      usuarioId: 'user_rt_1',
+    );
+
+    // Verify initial row
+    var row = (await database.select(database.historicoTarefasHabitos).get()).first;
+    expect(row.remoteId, equals('hist_rt_1'));
+    expect(row.tarefaHabitoId, equals('habit_rt_1'));
+    expect(row.usuario, equals('user_rt_1'));
+
+    // 2. Realtime update event with Tables DB nested payload and partial fields (no tarefasEHabitos)
+    final newDate = DateTime(2026, 9, 11, 14, 45);
+    await driftRepository.handleRealtimeEvent(
+      tableId: '6741f10d000d985e4af9',
+      action: 'update',
+      payload: {
+        r'$id': 'hist_rt_1',
+        r'$createdAt': initialDate.toIso8601String(),
+        r'$updatedAt': newDate.toIso8601String(),
+        'data': {
+          'dataCriacao': newDate.toUtc().toIso8601String(),
+          // tarefasEHabitos and usuario omitted/empty
+        },
+      },
+    );
+
+    // Verify relations were PRESERVED and date was updated
+    row = (await database.select(database.historicoTarefasHabitos).get()).first;
+    expect(row.remoteId, equals('hist_rt_1'));
+    expect(row.tarefaHabitoId, equals('habit_rt_1'));
+    expect(row.usuario, equals('user_rt_1'));
+    expect(row.createdAt.year, equals(newDate.year));
+    expect(row.createdAt.day, equals(newDate.day));
+    expect(row.createdAt.hour, equals(newDate.hour));
+    expect(row.createdAt.minute, equals(newDate.minute));
+
+    // 3. Delete event via Realtime
+    await driftRepository.handleRealtimeEvent(
+      tableId: '6741f10d000d985e4af9',
+      action: 'delete',
+      payload: {r'$id': 'hist_rt_1'},
+    );
+    final rowsAfterDelete = await database.select(database.historicoTarefasHabitos).get();
+    expect(rowsAfterDelete, isEmpty);
+  });
 }

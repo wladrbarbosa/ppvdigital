@@ -237,4 +237,95 @@ void main() {
     expect(mockHistoricoController.updatedDateId, 'item_1');
     expect(mockHistoricoController.updatedNewDate, newDropTime);
   });
+
+  testWidgets('onDragEnd preserves original hour and minute when dropped at midnight', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      const MaterialApp(
+        home: CalendarioPage(),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final calendarFinder = find.byType(SfCalendar);
+    final SfCalendar calendar = tester.widget(calendarFinder);
+
+    final appt = Appointment(
+      id: 'item_1',
+      startTime: DateTime(2026, 9, 10, 8, 30),
+      endTime: DateTime(2026, 9, 10, 9),
+      subject: 'Ler Livro',
+    );
+
+    // Drop time at midnight (00:00) on September 15
+    final midnightDropTime = DateTime(2026, 9, 15);
+    calendar.onDragEnd?.call(
+      AppointmentDragEndDetails(
+        appt,
+        null,
+        null,
+        midnightDropTime,
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(mockHistoricoController.updatedDateId, 'item_1');
+    // Verify targetDateTime retained original 8:00 time of day from testHistoryItem
+    expect(mockHistoricoController.updatedNewDate, DateTime(2026, 9, 15, 8));
+  });
+
+  testWidgets('onDragEnd resolves itemId from notes if id is null', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      const MaterialApp(
+        home: CalendarioPage(),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final calendarFinder = find.byType(SfCalendar);
+    final SfCalendar calendar = tester.widget(calendarFinder);
+
+    final appt = Appointment(
+      notes: 'item_1',
+      startTime: DateTime(2026, 9, 10, 8),
+      endTime: DateTime(2026, 9, 10, 8, 30),
+      subject: 'Ler Livro',
+    );
+
+    final newDropTime = DateTime(2026, 9, 12, 10);
+    calendar.onDragEnd?.call(
+      AppointmentDragEndDetails(
+        appt,
+        null,
+        null,
+        newDropTime,
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(mockHistoricoController.updatedDateId, 'item_1');
+    expect(mockHistoricoController.updatedNewDate, newDropTime);
+  });
+
+  testWidgets('SfCalendar configures monthViewSettings with appointment display mode', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      const MaterialApp(
+        home: CalendarioPage(),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final calendarFinder = find.byType(SfCalendar);
+    final SfCalendar calendar = tester.widget(calendarFinder);
+
+    expect(
+      calendar.monthViewSettings.appointmentDisplayMode,
+      MonthAppointmentDisplayMode.appointment,
+    );
+  });
 }

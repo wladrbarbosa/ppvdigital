@@ -208,4 +208,30 @@ class CalendarioController {
       log(e.toString());
     }
   }
+
+  Future<bool> updateHistoricoDate(String id, DateTime newDate) async {
+    try {
+      final success = await Core.tarefaHabitoRepository.updateHistoricoItemDate(
+        id: id,
+        newDate: newDate,
+      );
+
+      if (success) {
+        mobx.runInAction(() {
+          final index = _historicoList.indexWhere((el) => el.id == id);
+          if (index != -1) {
+            _historicoList[index] = _historicoList[index].copyWith(
+              createdAt: newDate,
+            );
+          }
+        });
+
+        await Core.tarefasHabitosController.loadDocuments();
+      }
+      return success;
+    } catch (e) {
+      log('Error updating history date: $e');
+      return false;
+    }
+  }
 }
