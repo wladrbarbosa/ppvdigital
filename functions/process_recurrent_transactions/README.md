@@ -33,9 +33,9 @@ Você deve configurar as seguintes variáveis de ambiente nas configurações da
 Como a função já está criada no Appwrite (`Generate Infinite Recurring Transactions`, ID `6a414a8100206d23a248`), você pode realizar o deploy da seguinte forma:
 
 ### Opção 1: Upload Manual (ZIP)
-1. Crie um arquivo ZIP contendo apenas os arquivos `main.go` e `go.mod` (sem pastas adicionais na raiz do zip).
+1. Crie um arquivo TAR.GZ com `tar -czvf functions/process_recurrent_transactions.tar.gz -C functions/process_recurrent_transactions main.go go.mod go.sum` contendo apenas os arquivos `main.go`, `go.sum` e `go.mod` (sem pastas adicionais na raiz do zip).
 2. No console do Appwrite, vá na função -> aba **Deployments** -> **Create deployment**.
-3. Selecione o arquivo ZIP, informe o ponto de entrada como `main.go` (já configurado) e marque a opção para ativar o deployment após a compilação.
+3. Selecione o arquivo TAR.GZ, informe o ponto de entrada como `main.go` (já configurado) e marque a opção para ativar o deployment após a compilação.
 
 ### Opção 2: Integração com Git (VCS)
 Se a sua função estiver integrada com o repositório Git:

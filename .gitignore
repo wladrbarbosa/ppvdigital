@@ -5,6 +5,7 @@
 *.pyc
 *.keystore
 *.swp
+*.tar.gz
 .DS_Store
 .atom/
 .buildlog/
