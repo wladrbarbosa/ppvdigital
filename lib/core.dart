@@ -8,6 +8,7 @@ import 'package:ppvdigital/app/capacitacao/tarefas_habitos/historico_controller.
 import 'package:ppvdigital/app/capacitacao/tarefas_habitos/tarefas_habitos_controller.dart';
 import 'package:ppvdigital/app/capacitacao/tarefas_habitos/tarefas_habitos_layout.dart';
 import 'package:ppvdigital/app/login/login_controller.dart';
+import 'package:ppvdigital/controllers/theme_controller.dart';
 import 'package:ppvdigital/models/local/app_database.dart';
 import 'package:ppvdigital/repositories/appwrite_financas_repository.dart';
 import 'package:ppvdigital/repositories/appwrite_tarefa_habito_repository.dart';
@@ -84,6 +85,7 @@ class Core {
       getIt<CalendarioController>();
   static CategoriasController get categoriasController =>
       getIt<CategoriasController>();
+  static ThemeController get themeController => getIt<ThemeController>();
   static CategoriasController? get maybeCategoriasController =>
       getIt.isRegistered<CategoriasController>()
       ? getIt<CategoriasController>()
@@ -133,6 +135,10 @@ class Core {
       getIt.registerSingleton<HistoricoController>(HistoricoController());
       getIt.registerSingleton<CalendarioController>(CalendarioController());
       getIt.registerSingleton<CategoriasController>(CategoriasController());
+
+      final themeCtrl = ThemeController(dbInstance);
+      themeCtrl.loadSettings();
+      getIt.registerSingleton<ThemeController>(themeCtrl);
     }
   }
 
