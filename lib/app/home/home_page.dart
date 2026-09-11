@@ -1,6 +1,7 @@
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:ppvdigital/app/home/widgets/configuracoes_modal_widget.dart';
 import 'package:ppvdigital/core.dart';
 import 'package:ppvdigital/design_system/design_system.dart';
 import 'package:ppvdigital/services/pwa_update_service.dart';
@@ -162,6 +163,11 @@ class _HomePageState extends State<HomePage> {
                   : 'Forçar Atualização / Limpar Cache',
               onPressed: _showUpdateDialog,
             ),
+          IconButton(
+            icon: const Icon(Icons.settings_outlined),
+            tooltip: 'Configurações',
+            onPressed: () => ConfiguracoesModalWidget.show(context),
+          ),
         ],
       ),
       body: LayoutBuilder(
@@ -293,12 +299,14 @@ class _HomePageState extends State<HomePage> {
                               children: [
                                 Row(
                                   children: [
-                                    Text(
-                                      cat['title'] as String,
-                                      style: TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 14,
-                                        color: isSelected ? baseColor : null,
+                                    Flexible(
+                                      child: Text(
+                                        cat['title'] as String,
+                                        style: TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 14,
+                                          color: isSelected ? baseColor : null,
+                                        ),
                                       ),
                                     ),
                                     if (cat['available'] == true) ...[
