@@ -5,11 +5,11 @@ import 'package:ppvdigital/app/capacitacao/financas/widgets/seletor_mes_widget.d
 
 void main() {
   setUpAll(() async {
-    await initializeDateFormatting('pt_BR', null);
+    await initializeDateFormatting('pt_BR');
   });
 
   testWidgets('SeletorMesWidget exibe mês e navega entre meses', (tester) async {
-    DateTime current = DateTime(2026, 9, 1);
+    DateTime current = DateTime(2026, 9);
 
     await tester.pumpWidget(
       MaterialApp(
@@ -52,7 +52,7 @@ void main() {
       MaterialApp(
         home: Scaffold(
           body: SeletorMesWidget(
-            selectedMonth: DateTime(2026, 9, 1),
+            selectedMonth: DateTime(2026, 9),
             onMonthChanged: (_) {},
             onExportPressed: () {
               exportClicked = true;

@@ -13,7 +13,7 @@ class TransactionExportService {
     String? filterSummary,
   }) {
     final buffer = StringBuffer();
-    final monthName = DateFormat('MMMM \'de\' yyyy', 'pt_BR').format(currentMonth);
+    final monthName = DateFormat("MMMM 'de' yyyy", 'pt_BR').format(currentMonth);
     final capitalizedMonth = monthName[0].toUpperCase() + monthName.substring(1);
 
     buffer.writeln('📊 *Relatório de Transações - $capitalizedMonth*');
@@ -216,8 +216,6 @@ class TransactionExportService {
   static Future<String?> downloadCsvFile({
     required String csvContent,
     required String fileName,
-  }) async {
-    return saveCsvFile(csvContent, fileName);
-  }
+  }) =>
+      saveCsvFile(csvContent, fileName);
 }
-

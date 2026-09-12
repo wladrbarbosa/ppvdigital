@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:intl/date_symbol_data_local.dart';
@@ -8,7 +9,7 @@ import 'package:ppvdigital/models/transacao_model.dart';
 
 void main() {
   setUpAll(() async {
-    await initializeDateFormatting('pt_BR', null);
+    await initializeDateFormatting('pt_BR');
   });
 
   final sampleConta = ContaModel(
@@ -21,7 +22,6 @@ void main() {
   final sampleCategoria = CategoriaTransacaoModel(
     id: 'cat1',
     name: 'Alimentação',
-    cor: null,
     icone: 'restaurant',
     userId: 'u1',
   );
@@ -31,7 +31,7 @@ void main() {
     descricao: 'Supermercado',
     valor: 250.50,
     tipo: 'despesa',
-    dataCompetencia: DateTime(2026, 9, 11, 10, 0),
+    dataCompetencia: DateTime(2026, 9, 11, 10),
     consolidada: true,
     conta: sampleConta,
     categoria: sampleCategoria,
@@ -54,7 +54,7 @@ void main() {
     descricao: 'Salário "Mensal"',
     valor: 3500.00,
     tipo: 'receita',
-    dataCompetencia: DateTime(2026, 9, 12, 9, 0),
+    dataCompetencia: DateTime(2026, 9, 12, 9),
     consolidada: true,
     conta: sampleConta,
     divisoes: [],
@@ -65,7 +65,7 @@ void main() {
     descricao: 'Reserva',
     valor: 300.00,
     tipo: 'transferencia',
-    dataCompetencia: DateTime(2026, 9, 12, 14, 0),
+    dataCompetencia: DateTime(2026, 9, 12, 14),
     consolidada: true,
     conta: sampleConta,
     contaDestino: ContaModel(
@@ -88,7 +88,7 @@ void main() {
         transactions: [t1, t2, t3, t4],
         groupByDateWithBalance: true,
         saldosDiarios: saldosDiarios,
-        currentMonth: DateTime(2026, 9, 1),
+        currentMonth: DateTime(2026, 9),
         filterSummary: 'Nubank | Alimentação',
       );
 
@@ -112,7 +112,7 @@ void main() {
       final result = TransactionExportService.formatWhatsApp(
         transactions: [t1, t3],
         groupByDateWithBalance: false,
-        currentMonth: DateTime(2026, 9, 1),
+        currentMonth: DateTime(2026, 9),
       );
 
       expect(result, contains('Relatório de Transações'));
@@ -130,7 +130,7 @@ void main() {
       final result = TransactionExportService.formatWhatsApp(
         transactions: [],
         groupByDateWithBalance: true,
-        currentMonth: DateTime(2026, 9, 1),
+        currentMonth: DateTime(2026, 9),
       );
 
       expect(result, contains('Nenhuma transação encontrada'));
@@ -148,7 +148,7 @@ void main() {
         transactions: [t1, t2, t3],
         groupByDateWithBalance: true,
         saldosDiarios: saldosDiarios,
-        currentMonth: DateTime(2026, 9, 1),
+        currentMonth: DateTime(2026, 9),
       );
 
       // Deve começar com BOM UTF-8
@@ -175,7 +175,7 @@ void main() {
       final csv = TransactionExportService.formatCsv(
         transactions: [t1, t3],
         groupByDateWithBalance: false,
-        currentMonth: DateTime(2026, 9, 1),
+        currentMonth: DateTime(2026, 9),
       );
 
       expect(csv.startsWith('\uFEFF'), isTrue);
@@ -193,7 +193,7 @@ void main() {
       final csv = TransactionExportService.formatCsv(
         transactions: [],
         groupByDateWithBalance: false,
-        currentMonth: DateTime(2026, 9, 1),
+        currentMonth: DateTime(2026, 9),
       );
 
       expect(csv.startsWith('\uFEFF'), isTrue);
@@ -215,6 +215,15 @@ void main() {
         csvContent: 'Data;Valor\n11/09/2026;100,00',
         fileName: 'test_export.csv',
       );
+
+      addTearDown(() {
+        if (path != null) {
+          final file = File(path);
+          if (file.existsSync()) {
+            file.deleteSync();
+          }
+        }
+      });
 
       expect(path, isNotNull);
       expect(path, contains('test_export.csv'));

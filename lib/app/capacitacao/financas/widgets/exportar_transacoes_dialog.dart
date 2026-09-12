@@ -139,7 +139,7 @@ class _ExportarTransacoesDialogState extends State<ExportarTransacoesDialog> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
-    final monthName = DateFormat('MMMM \'de\' yyyy', 'pt_BR').format(widget.currentMonth);
+    final monthName = DateFormat("MMMM 'de' yyyy", 'pt_BR').format(widget.currentMonth);
     final capitalizedMonth = monthName[0].toUpperCase() + monthName.substring(1);
 
     final previewContent = _generateContent();

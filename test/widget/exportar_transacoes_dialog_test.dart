@@ -9,7 +9,7 @@ import 'package:ppvdigital/models/transacao_model.dart';
 
 void main() {
   setUpAll(() async {
-    await initializeDateFormatting('pt_BR', null);
+    await initializeDateFormatting('pt_BR');
   });
 
   final sampleConta = ContaModel(
@@ -22,7 +22,6 @@ void main() {
   final sampleCategoria = CategoriaTransacaoModel(
     id: 'cat1',
     name: 'Alimentação',
-    cor: null,
     icone: 'restaurant',
     userId: 'u1',
   );
@@ -32,7 +31,7 @@ void main() {
     descricao: 'Supermercado',
     valor: 250.50,
     tipo: 'despesa',
-    dataCompetencia: DateTime(2026, 9, 11, 10, 0),
+    dataCompetencia: DateTime(2026, 9, 11, 10),
     consolidada: true,
     conta: sampleConta,
     categoria: sampleCategoria,
@@ -44,7 +43,7 @@ void main() {
     descricao: 'Salário',
     valor: 3500.00,
     tipo: 'receita',
-    dataCompetencia: DateTime(2026, 9, 12, 9, 0),
+    dataCompetencia: DateTime(2026, 9, 12, 9),
     consolidada: true,
     conta: sampleConta,
     divisoes: [],
@@ -69,7 +68,7 @@ void main() {
                     builder: (_) => ExportarTransacoesDialog(
                       transactions: transactions,
                       saldosDiarios: saldosDiarios,
-                      currentMonth: DateTime(2026, 9, 1),
+                      currentMonth: DateTime(2026, 9),
                       filterSummary: filterSummary,
                     ),
                   );

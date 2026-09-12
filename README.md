@@ -66,6 +66,16 @@ O módulo financeiro permite controlar contas, categorias, lançamentos individu
 - **`saldoAtual`**: Saldo acumulado (Saldo Anterior + Receitas do Mês - Despesas do Mês).
 - **Consolidação (`consolidada`)**: Transações consolidadas refletem o saldo real efetivado; transações não consolidadas alimentam as projeções financeiras.
 
+#### Exportação de Transações (WhatsApp & CSV)
+- Permite exportar os lançamentos da visualização corrente respeitando rigorosamente os filtros aplicados na tela (mês, tipo, conta, categoria e texto de busca).
+- **Formatos Disponíveis**:
+  - **Texto Amigável para WhatsApp**: Formatado com emojis, negrito padrão do WhatsApp, cabeçalho de filtros ativos e resumo de totais (Receitas, Despesas e Saldo Líquido).
+  - **Planilha CSV**: Arquivo estruturado com delimitador `;`, escape de caracteres especiais e BOM UTF-8 (`\uFEFF`) para compatibilidade nativa com Microsoft Excel.
+- **Opções de Estrutura**:
+  - **Separar por data**: Agrupa os lançamentos cronologicamente por dia e exibe o saldo acumulado ao final de cada data.
+  - **Somente transações**: Lista linear com resumo consolidado e totais ao final.
+- **Ações**: Cópia instantânea para a área de transferência com feedback visual e download direto do arquivo `.csv` na Web e Mobile/Desktop.
+
 ---
 
 ### 🎯 2. Módulo de Tarefas e Hábitos

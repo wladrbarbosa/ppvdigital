@@ -62,7 +62,7 @@ class MockLoginControllerForIntegration extends LoginController {
   Future<void> loadUser() async {}
 
   @override
-  String get user => 'u1';
+  String? get userid => 'u1';
 }
 
 void main() {
@@ -74,7 +74,7 @@ void main() {
   );
 
   setUpAll(() async {
-    await initializeDateFormatting('pt_BR', null);
+    await initializeDateFormatting('pt_BR');
   });
 
   late MockFinancasRepoForIntegration mockRepo;
