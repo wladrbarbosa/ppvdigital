@@ -68,27 +68,7 @@ class TransactionExportService {
               ? '🟢'
               : (t.tipo == 'transferencia' ? '🔵' : '🔴');
 
-          String details = '';
-          if (t.tipo == 'transferencia') {
-            final origem = t.conta?.name ?? '';
-            final destino = t.contaDestino?.name ?? '';
-            if (origem.isNotEmpty || destino.isNotEmpty) {
-              details = ' ($origem ➔ $destino)';
-            }
-          } else {
-            final parts = <String>[];
-            if (t.categoria?.name != null && t.categoria!.name.isNotEmpty) {
-              parts.add(t.categoria!.name);
-            }
-            if (t.conta?.name != null && t.conta!.name.isNotEmpty) {
-              parts.add(t.conta!.name);
-            }
-            if (parts.isNotEmpty) {
-              details = ' (${parts.join(' - ')})';
-            }
-          }
-
-          buffer.writeln('• $emoji ${t.descricao}: ${formatCurrency(t.valor)}$details');
+          buffer.writeln('• $emoji ${t.descricao}: ${formatCurrency(t.valor)}');
         }
 
         if (saldosDiarios != null && saldosDiarios.containsKey(key)) {
@@ -108,17 +88,14 @@ class TransactionExportService {
       buffer.writeln('• Total Despesas: ${formatCurrency(totalDespesas)}');
       buffer.writeln('• *Saldo Líquido:* ${formatCurrency(saldoLiquido)}');
     } else {
-      // Modo linear
+      // Modo linear ("Somente transações com total")
       final sortedTrans = List<TransacaoModel>.from(transactions)
         ..sort((a, b) => a.dataCompetencia.compareTo(b.dataCompetencia));
 
       for (final t in sortedTrans) {
-        final dateFormatted = DateFormat('dd/MM').format(t.dataCompetencia);
         final sign = t.tipo == 'receita' ? '+' : (t.tipo == 'despesa' ? '-' : '');
-        final detail = t.categoria?.name ?? (t.conta?.name ?? '');
-        final detailStr = detail.isNotEmpty ? ' ($detail)' : '';
 
-        buffer.writeln('• $dateFormatted - ${t.descricao}: $sign${formatCurrency(t.valor)}$detailStr');
+        buffer.writeln('• ${t.descricao}: $sign${formatCurrency(t.valor)}');
       }
 
       buffer.writeln('────────────────────────────');

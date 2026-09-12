@@ -97,7 +97,8 @@ void main() {
       expect(result, contains('Filtros: Nubank | Alimentação'));
       expect(result, contains('11/09/2026'));
       expect(result, contains('12/09/2026'));
-      expect(result, contains('Supermercado'));
+      expect(result, contains('• 🔴 Supermercado: R\$ 250,50'));
+      expect(result, isNot(contains('(Alimentação - Nubank)')));
       expect(result, contains('🔴'));
       expect(result, contains('🟢'));
       expect(result, contains('🔵'));
@@ -116,10 +117,14 @@ void main() {
       );
 
       expect(result, contains('Relatório de Transações'));
-      expect(result, contains('11/09'));
-      expect(result, contains('Supermercado'));
-      expect(result, contains('12/09'));
-      expect(result, contains('Salário "Mensal"'));
+      // No modo linear por WhatsApp, não deve conter a data
+      expect(result, isNot(contains('11/09')));
+      expect(result, isNot(contains('12/09')));
+      // Nem conta ou categoria
+      expect(result, isNot(contains('Alimentação')));
+      expect(result, isNot(contains('Nubank')));
+      expect(result, contains('• Supermercado: -R\$ 250,50'));
+      expect(result, contains('• Salário "Mensal": +R\$ 3.500,00'));
       expect(result, contains('• Receitas: R\$ 3.500,00'));
       expect(result, contains('• Despesas: R\$ 250,50'));
       expect(result, contains('• *Saldo:* R\$ 3.249,50'));
