@@ -1,10 +1,12 @@
 package handler
 
 import (
+	"net/http"
 	"strings"
 	"testing"
 	"time"
 
+	"github.com/appwrite/sdk-for-go/v5/appwrite"
 	"github.com/open-runtimes/types-for-go/v4/openruntimes"
 )
 
@@ -248,5 +250,43 @@ func TestEmptyDescriptionValidation(t *testing.T) {
 	}
 	if validTx["$id"] != "tx_valid" {
 		t.Errorf("expected to pick 'tx_valid', got %v", validTx["$id"])
+	}
+}
+
+func TestConfigureAppClientInRecurrence(t *testing.T) {
+	fakeCtx := openruntimes.Context{}
+	appClient := appwrite.NewClient(
+		appwrite.WithEndpoint("https://appwrite.wladapps.com/v1"),
+		appwrite.WithProject("test_project"),
+		appwrite.WithKey("test_key"),
+	)
+
+	configureAppClient(&appClient, fakeCtx)
+
+	if appClient.Client == nil {
+		t.Fatal("expected appClient.Client to not be nil")
+	}
+	if appClient.Client.Transport == nil {
+		t.Fatal("expected appClient.Client.Transport to be set")
+	}
+	transport, ok := appClient.Client.Transport.(*http.Transport)
+	if !ok {
+		t.Fatalf("expected *http.Transport, got %T", appClient.Client.Transport)
+	}
+	if transport.TLSClientConfig == nil {
+		t.Fatal("expected TLSClientConfig to be configured")
+	}
+	if !transport.TLSClientConfig.InsecureSkipVerify {
+		t.Errorf("expected InsecureSkipVerify to be true")
+	}
+	if transport.TLSClientConfig.ServerName != "appwrite.wladapps.com" {
+		t.Errorf("expected ServerName to be appwrite.wladapps.com, got %s", transport.TLSClientConfig.ServerName)
+	}
+}
+
+func TestGetDefaultGatewayInRecurrence(t *testing.T) {
+	gw := getDefaultGateway()
+	if gw == "0.0.0.0" {
+		t.Errorf("getDefaultGateway should never return 0.0.0.0")
 	}
 }

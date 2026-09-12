@@ -2,6 +2,7 @@ package handler
 
 import (
 	"context"
+	"crypto/tls"
 	"encoding/json"
 	"fmt"
 	"net"
@@ -13,6 +14,7 @@ import (
 	"time"
 
 	"github.com/appwrite/sdk-for-go/v5/appwrite"
+	"github.com/appwrite/sdk-for-go/v5/client"
 	"github.com/appwrite/sdk-for-go/v5/models"
 	"github.com/appwrite/sdk-for-go/v5/query"
 	"github.com/open-runtimes/types-for-go/v4/openruntimes"
@@ -25,29 +27,56 @@ var (
 	}
 )
 
-func init() {
-	// Globally override the DNS resolution for self-hosted / Docker bridge gateway.
-	if transport, ok := http.DefaultTransport.(*http.Transport); ok {
-		transport.DialContext = func(ctx context.Context, network, addr string) (net.Conn, error) {
-			if strings.HasPrefix(addr, "appwrite.wladapps.com:") {
-				targetIP := os.Getenv("APPWRITE_API_ENDPOINT_OVERRIDE")
-				if targetIP == "" {
-					targetIP = getDefaultGateway()
-				}
-				if targetIP == "" {
-					targetIP = "172.18.0.1" // Docker bridge fallback
-				}
+func configureAppClient(clt *client.Client, Context openruntimes.Context) {
+	targetIP := os.Getenv("APPWRITE_API_ENDPOINT_OVERRIDE")
+	targetIP = strings.TrimPrefix(targetIP, "http://")
+	targetIP = strings.TrimPrefix(targetIP, "https://")
+	targetIP = strings.Split(targetIP, "/")[0]
+	targetIP = strings.TrimSpace(targetIP)
 
-				targetIP = strings.TrimPrefix(targetIP, "http://")
-				targetIP = strings.TrimPrefix(targetIP, "https://")
-				targetIP = strings.Split(targetIP, "/")[0]
+	if targetIP == "" || targetIP == "0.0.0.0" || targetIP == "localhost" || targetIP == "127.0.0.1" || targetIP == "::1" || strings.Contains(targetIP, "appwrite.wladapps.com") {
+		targetIP = getDefaultGateway()
+	}
+	if targetIP == "" || targetIP == "0.0.0.0" || targetIP == "localhost" || targetIP == "127.0.0.1" || targetIP == "::1" || strings.Contains(targetIP, "appwrite.wladapps.com") {
+		targetIP = "172.18.0.1" // Docker bridge fallback
+	}
 
+	Context.Log(fmt.Sprintf("Configuring client transport. Host gateway IP: %s", targetIP))
+
+	customTransport := &http.Transport{
+		Proxy: http.ProxyFromEnvironment,
+		DialContext: func(ctx context.Context, network, addr string) (net.Conn, error) {
+			origAddr := addr
+			host, port, err := net.SplitHostPort(addr)
+			if err == nil {
+				if host == "appwrite.wladapps.com" || host == "localhost" || host == "127.0.0.1" || host == "::1" {
+					addr = net.JoinHostPort(targetIP, port)
+					Context.Log(fmt.Sprintf("DialContext redirect: %s -> %s", origAddr, addr))
+				}
+			} else if strings.HasPrefix(addr, "appwrite.wladapps.com:") {
 				port := strings.Split(addr, ":")[1]
 				addr = fmt.Sprintf("%s:%s", targetIP, port)
+				Context.Log(fmt.Sprintf("DialContext prefix redirect: %s -> %s", origAddr, addr))
 			}
 			return dialer.DialContext(ctx, network, addr)
+		},
+		ForceAttemptHTTP2:   true,
+		MaxIdleConns:        100,
+		IdleConnTimeout:     90 * time.Second,
+		TLSHandshakeTimeout: 10 * time.Second,
+		TLSClientConfig: &tls.Config{
+			InsecureSkipVerify: true,
+			ServerName:         "appwrite.wladapps.com",
+		},
+	}
+
+	if clt.Client == nil {
+		clt.Client = &http.Client{
+			Timeout: clt.Timeout,
 		}
 	}
+	clt.Client.Transport = customTransport
+	http.DefaultTransport = customTransport
 }
 
 const (
@@ -114,6 +143,7 @@ func Main(Context openruntimes.Context) openruntimes.Response {
 		appwrite.WithKey(apiKey),
 		appwrite.WithSelfSigned(true),
 	)
+	configureAppClient(&appClient, Context)
 
 	dbService := appwrite.NewDatabases(appClient)
 	Context.Log(fmt.Sprintf("Starting cleanup execution (DryRun=%v, EmptyDescOnly=%v, Concurrency=%d)...", reqOptions.DryRun, reqOptions.EmptyDescOnly, reqOptions.Concurrency))
@@ -472,10 +502,14 @@ func getDefaultGateway() string {
 	}
 	for _, line := range strings.Split(string(data), "\n") {
 		fields := strings.Fields(line)
-		if len(fields) >= 3 && fields[1] == "00000000" {
+		if len(fields) >= 3 && fields[1] == "00000000" && fields[2] != "00000000" {
 			var a, b, c, d int
-			fmt.Sscanf(fields[2], "%02x%02x%02x%02x", &a, &b, &c, &d)
-			return fmt.Sprintf("%d.%d.%d.%d", d, c, b, a)
+			if n, err := fmt.Sscanf(fields[2], "%02x%02x%02x%02x", &a, &b, &c, &d); err == nil && n == 4 {
+				ip := fmt.Sprintf("%d.%d.%d.%d", d, c, b, a)
+				if ip != "0.0.0.0" {
+					return ip
+				}
+			}
 		}
 	}
 	return ""

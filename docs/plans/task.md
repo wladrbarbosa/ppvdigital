@@ -1,6 +1,6 @@
 | Task | Status | Description |
 |---|---|---|
-| 1. Limpeza do Appwrite e Criação da Cloud Function de Limpeza | COMPLETED | Excluídas as 6.812 transações vazias e divisões órfãs; criado functions/cleanup_corrupt_transactions com autenticação via env vars para não expor segredos no git |
-| 2. Correção da Cloud Function de Recorrência (Decodificação e Controle Estrito) | COMPLETED | Corrigida decodificação no Go SDK v5 com .Decode(), validação de descrição não vazia, cálculo exato de horizonte e no-op sem criar transações se horizonte já alcançado |
-| 3. Testes Unitários das Cloud Functions Go | COMPLETED | Testes de unidade implementados e passando em ambas as functions cobrindo decodificação, campos dinâmicos/aninhados, prevenção de vazios e no-op |
-| 4. Verificação Final e Documentação | COMPLETED | Repositório 100% limpo de segredos, 200 testes Flutter passando, fvm flutter analyze limpo e READMEs atualizados |
+| 1. Corrigir resolução de rede e transporte HTTP nas Cloud Functions | COMPLETED | Substituído override frágil em init() por configureAppClient() configurado diretamente em clt.Client.Transport e http.DefaultTransport com TLS ServerName e filtro de 0.0.0.0 em getDefaultGateway() |
+| 2. Executar testes unitários Go e verificar integridade | COMPLETED | Testes de unidade em functions/cleanup_corrupt_transactions (4/4) e functions/process_recurrent_transactions (9/9) executados e passando |
+| 3. Empacotar e fazer novo deploy das Cloud Functions no Appwrite | COMPLETED | Novo pacote tar.gz gerado e deploy realizado com status 'ready' para cleanup (6aa5d5ceb4129d1a38c5) e recorrência (6aa5d5d64b6440dba1df) |
+| 4. Executar function e validar logs de conexão | COMPLETED | Execuções disparadas com sucesso via Appwrite MCP; ambas conectaram em 172.16.3.1:443 com status 'completed', 0 erros e tempo de resposta < 2.5s |
