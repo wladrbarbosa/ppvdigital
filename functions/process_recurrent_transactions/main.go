@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/appwrite/sdk-for-go/v5/appwrite"
+	"github.com/appwrite/sdk-for-go/v5/models"
 	"github.com/appwrite/sdk-for-go/v5/query"
 	"github.com/open-runtimes/types-for-go/v4/openruntimes"
 )
@@ -124,15 +125,19 @@ func Main(Context openruntimes.Context) openruntimes.Response {
 			})
 		}
 
-		// Convert Documents slice to interface slice for processing
-		// In v5 SDK, res.Documents is accessible
+		// Decode DocumentList directly to preserve all custom fields in data
 		var documents []interface{}
-		resBytes, marshalErr := json.Marshal(res)
-		if marshalErr == nil {
-			var resMap map[string]interface{}
-			if json.Unmarshal(resBytes, &resMap) == nil {
-				if docsVal, ok := resMap["documents"].([]interface{}); ok {
-					documents = docsVal
+		var listMap map[string]interface{}
+		if dErr := res.Decode(&listMap); dErr == nil {
+			if docsVal, ok := listMap["documents"].([]interface{}); ok {
+				documents = docsVal
+			}
+		}
+		if len(documents) == 0 && len(res.Documents) > 0 {
+			for _, doc := range res.Documents {
+				var docMap map[string]interface{}
+				if dErr := doc.Decode(&docMap); dErr == nil {
+					documents = append(documents, docMap)
 				}
 			}
 		}
@@ -167,8 +172,9 @@ func Main(Context openruntimes.Context) openruntimes.Response {
 		go func(recDoc interface{}) {
 			defer wg.Done()
 			defer func() { <-semaphore }() // release token
+
 			recID := getDocumentID(recDoc)
-			tipoRecorrencia := getStringAttribute(recDoc, "tipoRecorrencia")
+			tipoRecorrencia := strings.TrimSpace(getStringAttribute(recDoc, "tipoRecorrencia"))
 			if tipoRecorrencia == "" {
 				tipoRecorrencia = "mês" // Default to month
 			}
@@ -189,14 +195,15 @@ func Main(Context openruntimes.Context) openruntimes.Response {
 				}
 			}
 
-			// Query the latest transaction associated with this recurrence rule
+			// Query the latest transactions associated with this recurrence rule
+			// Limit to 10 to locate the latest legitimate transaction with valid description
 			txRes, err := dbService.ListDocuments(
 				DatabaseID,
 				TransactionColl,
 				dbService.WithListDocumentsQueries([]string{
 					query.Equal("recorrencia", recID),
 					query.OrderDesc("dataCompetencia"),
-					query.Limit(1),
+					query.Limit(10),
 				}),
 			)
 			if err != nil {
@@ -208,12 +215,17 @@ func Main(Context openruntimes.Context) openruntimes.Response {
 			}
 
 			var txDocuments []interface{}
-			txResBytes, marshalErr := json.Marshal(txRes)
-			if marshalErr == nil {
-				var txResMap map[string]interface{}
-				if json.Unmarshal(txResBytes, &txResMap) == nil {
-					if docsVal, ok := txResMap["documents"].([]interface{}); ok {
-						txDocuments = docsVal
+			var txListMap map[string]interface{}
+			if dErr := txRes.Decode(&txListMap); dErr == nil {
+				if docsVal, ok := txListMap["documents"].([]interface{}); ok {
+					txDocuments = docsVal
+				}
+			}
+			if len(txDocuments) == 0 && len(txRes.Documents) > 0 {
+				for _, doc := range txRes.Documents {
+					var docMap map[string]interface{}
+					if dErr := doc.Decode(&docMap); dErr == nil {
+						txDocuments = append(txDocuments, docMap)
 					}
 				}
 			}
@@ -223,11 +235,35 @@ func Main(Context openruntimes.Context) openruntimes.Response {
 				return
 			}
 
-			latestTx := txDocuments[0]
-			latestTxID := getDocumentID(latestTx)
-			latestDate := parseTransactionDate(latestTx, Context)
+			// Find latest valid transaction with non-empty description and valid dataCompetencia
+			var latestTx interface{}
+			var latestDate time.Time
+			for _, cand := range txDocuments {
+				desc := strings.TrimSpace(getStringAttribute(cand, "descricao"))
+				if desc == "" {
+					continue
+				}
+				d, ok := parseTransactionDate(cand, Context)
+				if ok {
+					latestTx = cand
+					latestDate = d
+					break
+				}
+			}
 
-			// If latest transaction already reaches or exceeds target horizon
+			if latestTx == nil {
+				Context.Log(fmt.Sprintf("Warning: recurrence %s has no transactions with valid description. Skipping to avoid generating invalid data.", recID))
+				return
+			}
+
+			latestTxID := getDocumentID(latestTx)
+			descricao := strings.TrimSpace(getStringAttribute(latestTx, "descricao"))
+			if descricao == "" {
+				Context.Log(fmt.Sprintf("Warning: latest transaction %s has empty description. Skipping recurrence %s.", latestTxID, recID))
+				return
+			}
+
+			// If latest transaction already reaches or exceeds target horizon, do NOT create any transactions.
 			if !latestDate.Before(targetHorizon) {
 				// Save fimRecorrencia checkpoint if missing or outdated so future cron runs skip early
 				if fimRecorrenciaStr == "" {
@@ -255,11 +291,17 @@ func Main(Context openruntimes.Context) openruntimes.Response {
 			)
 			var divDocuments []interface{}
 			if err == nil {
-				if divResBytes, mErr := json.Marshal(divRes); mErr == nil {
-					var divResMap map[string]interface{}
-					if json.Unmarshal(divResBytes, &divResMap) == nil {
-						if docsVal, ok := divResMap["documents"].([]interface{}); ok {
-							divDocuments = docsVal
+				var divListMap map[string]interface{}
+				if dErr := divRes.Decode(&divListMap); dErr == nil {
+					if docsVal, ok := divListMap["documents"].([]interface{}); ok {
+						divDocuments = docsVal
+					}
+				}
+				if len(divDocuments) == 0 && len(divRes.Documents) > 0 {
+					for _, doc := range divRes.Documents {
+						var docMap map[string]interface{}
+						if dErr := doc.Decode(&docMap); dErr == nil {
+							divDocuments = append(divDocuments, docMap)
 						}
 					}
 				}
@@ -268,9 +310,11 @@ func Main(Context openruntimes.Context) openruntimes.Response {
 			}
 
 			// Extract fields to clone from the latest transaction
-			descricao := getStringAttribute(latestTx, "descricao")
 			valor := getFloatAttribute(latestTx, "valor")
-			tipo := getStringAttribute(latestTx, "tipo")
+			tipo := strings.TrimSpace(getStringAttribute(latestTx, "tipo"))
+			if tipo == "" {
+				tipo = "despesa"
+			}
 			conta := getRelationID(latestTx, "conta")
 			contaDestino := getRelationID(latestTx, "contaDestino")
 			categoria := getRelationID(latestTx, "categoria")
@@ -331,9 +375,11 @@ func Main(Context openruntimes.Context) openruntimes.Response {
 					peso := getFloatAttribute(divDoc, "peso")
 
 					newDivData := map[string]interface{}{
-						"transacao":          newTxID,
-						"contatoResponsavel": contatoResponsavel,
-						"peso":               peso,
+						"transacao": newTxID,
+						"peso":      peso,
+					}
+					if contatoResponsavel != "" {
+						newDivData["contatoResponsavel"] = contatoResponsavel
 					}
 
 					_, divErr := dbService.CreateDocument(
@@ -354,19 +400,21 @@ func Main(Context openruntimes.Context) openruntimes.Response {
 				createdForRule++
 			}
 
-			// Update fimRecorrencia on transacao_recorrencia to currentDate
-			_, updateErr := dbService.UpdateDocument(
-				DatabaseID,
-				RecurrenceColl,
-				recID,
-				dbService.WithUpdateDocumentData(map[string]interface{}{
-					"fimRecorrencia": currentDate.Format(time.RFC3339),
-				}),
-			)
-			if updateErr != nil {
-				Context.Error(fmt.Sprintf("Failed to update fimRecorrencia for recurrence %s: %v", recID, updateErr))
-			} else {
-				Context.Log(fmt.Sprintf("Updated fimRecorrencia checkpoint for %s to %s (created %d installments)", recID, currentDate.Format("2006-01-02"), createdForRule))
+			// Update fimRecorrencia on transacao_recorrencia to currentDate only if new transactions were created
+			if createdForRule > 0 {
+				_, updateErr := dbService.UpdateDocument(
+					DatabaseID,
+					RecurrenceColl,
+					recID,
+					dbService.WithUpdateDocumentData(map[string]interface{}{
+						"fimRecorrencia": currentDate.Format(time.RFC3339),
+					}),
+				)
+				if updateErr != nil {
+					Context.Error(fmt.Sprintf("Failed to update fimRecorrencia for recurrence %s: %v", recID, updateErr))
+				} else {
+					Context.Log(fmt.Sprintf("Updated fimRecorrencia checkpoint for %s to %s (created %d installments)", recID, currentDate.Format("2006-01-02"), createdForRule))
+				}
 			}
 
 			mu.Lock()
@@ -389,42 +437,59 @@ func Main(Context openruntimes.Context) openruntimes.Response {
 // Utility Helper Functions to handle dynamic Document interfaces gracefully
 
 func getAttribute(doc interface{}, key string) interface{} {
-	docJSON, err := json.Marshal(doc)
-	if err != nil {
+	if doc == nil {
 		return nil
 	}
 
 	var flatMap map[string]interface{}
-	if err := json.Unmarshal(docJSON, &flatMap); err == nil {
-		if val, exists := flatMap[key]; exists {
-			return val
+	switch v := doc.(type) {
+	case map[string]interface{}:
+		flatMap = v
+	case *models.Document:
+		if err := v.Decode(&flatMap); err != nil {
+			docJSON, _ := json.Marshal(v)
+			_ = json.Unmarshal(docJSON, &flatMap)
 		}
-		// If nested under a "data" map (standard Appwrite Go SDK structure)
-		if dataVal, exists := flatMap["data"]; exists {
-			if dataMap, ok := dataVal.(map[string]interface{}); ok {
-				if val, exists := dataMap[key]; exists {
-					return val
-				}
+	case models.Document:
+		if err := v.Decode(&flatMap); err != nil {
+			docJSON, _ := json.Marshal(v)
+			_ = json.Unmarshal(docJSON, &flatMap)
+		}
+	default:
+		docJSON, err := json.Marshal(doc)
+		if err == nil {
+			_ = json.Unmarshal(docJSON, &flatMap)
+		}
+	}
+
+	if flatMap == nil {
+		return nil
+	}
+
+	if val, exists := flatMap[key]; exists && val != nil {
+		return val
+	}
+
+	// Check if nested under "data"
+	if dataVal, exists := flatMap["data"]; exists && dataVal != nil {
+		if dataMap, ok := dataVal.(map[string]interface{}); ok {
+			if val, exists := dataMap[key]; exists && val != nil {
+				return val
 			}
 		}
 	}
+
 	return nil
 }
 
 func getDocumentID(doc interface{}) string {
-	docJSON, err := json.Marshal(doc)
-	if err != nil {
-		return ""
+	val := getAttribute(doc, "$id")
+	if strVal, ok := val.(string); ok && strVal != "" {
+		return strVal
 	}
-
-	var flatMap map[string]interface{}
-	if err := json.Unmarshal(docJSON, &flatMap); err == nil {
-		if id, ok := flatMap["$id"].(string); ok {
-			return id
-		}
-		if id, ok := flatMap["id"].(string); ok {
-			return id
-		}
+	val = getAttribute(doc, "id")
+	if strVal, ok := val.(string); ok && strVal != "" {
+		return strVal
 	}
 	return ""
 }
@@ -558,26 +623,10 @@ func addRecurrenceInterval(base time.Time, tipo string, freq int, steps int) tim
 	}
 }
 
-func parseTransactionDate(doc interface{}, Context openruntimes.Context) time.Time {
-	// Try primary dataCompetencia first, then fallback to $createdAt, then $updatedAt
+func parseTransactionDate(doc interface{}, Context openruntimes.Context) (time.Time, bool) {
 	raw := getStringAttribute(doc, "dataCompetencia")
-	txID := getDocumentID(doc)
-
-	if raw == "" {
-		raw = getStringAttribute(doc, "$createdAt")
-	}
-	if raw == "" {
-		raw = getStringAttribute(doc, "$updatedAt")
-	}
-
 	if t, ok := parseDateString(raw); ok {
-		return t
+		return t, true
 	}
-
-	if strings.TrimSpace(raw) == "" {
-		Context.Log(fmt.Sprintf("Warning: transaction %s has no dataCompetencia, $createdAt, or $updatedAt. Fallback to current time.", txID))
-	} else {
-		Context.Log(fmt.Sprintf("Warning: unable to parse date '%s' for transaction %s. Fallback to current time.", raw, txID))
-	}
-	return time.Now().UTC()
+	return time.Time{}, false
 }

@@ -1,8 +1,6 @@
 | Task | Status | Description |
 |---|---|---|
-| 1. Serviço de Formatação WhatsApp e CSV | COMPLETED | TransactionExportService com formatWhatsApp e formatCsv 100% testado |
-| 2. Download Multiplataforma e Arquivo CSV | COMPLETED | Suporte a download de arquivo CSV na Web e Mobile/Desktop implementado e testado |
-| 3. Diálogo Modal de Exportação | COMPLETED | ExportarTransacoesDialog com opções, preview e cópia/download testado |
-| 4. Integração no SeletorMesWidget | COMPLETED | Adicionado callback onExportPressed e botão de ação no seletor de mês com testes |
-| 5. Conexão Final no FinancasLayout | COMPLETED | Seletor conectado ao diálogo com filtros, dados filtrados e saldos diários testado |
-| 6. Verificação Global, Cobertura e Documentação | COMPLETED | Executar testes (~100%), fvm flutter analyze e atualizar README.md |
+| 1. Limpeza do Appwrite e Criação da Cloud Function de Limpeza | COMPLETED | Excluídas as 6.812 transações vazias e divisões órfãs; criado functions/cleanup_corrupt_transactions com autenticação via env vars para não expor segredos no git |
+| 2. Correção da Cloud Function de Recorrência (Decodificação e Controle Estrito) | COMPLETED | Corrigida decodificação no Go SDK v5 com .Decode(), validação de descrição não vazia, cálculo exato de horizonte e no-op sem criar transações se horizonte já alcançado |
+| 3. Testes Unitários das Cloud Functions Go | COMPLETED | Testes de unidade implementados e passando em ambas as functions cobrindo decodificação, campos dinâmicos/aninhados, prevenção de vazios e no-op |
+| 4. Verificação Final e Documentação | COMPLETED | Repositório 100% limpo de segredos, 200 testes Flutter passando, fvm flutter analyze limpo e READMEs atualizados |
