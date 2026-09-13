@@ -39,6 +39,8 @@ dependencies:
     sdk: flutter
   get_it: 9.2.1
   google_fonts: 8.2.1
+  google_sign_in: ^6.2.1
+  googleapis: ^13.2.0
   http: ^1.2.0
   intl: 0.20.3
   lint: 2.8.0

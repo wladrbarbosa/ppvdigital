@@ -1,6 +1,9 @@
 | Task | Status | Description |
 |---|---|---|
-| 1. Corrigir resolução de rede e transporte HTTP nas Cloud Functions | COMPLETED | Substituído override frágil em init() por configureAppClient() configurado diretamente em clt.Client.Transport e http.DefaultTransport com TLS ServerName e filtro de 0.0.0.0 em getDefaultGateway() |
-| 2. Executar testes unitários Go e verificar integridade | COMPLETED | Testes de unidade em functions/cleanup_corrupt_transactions (4/4) e functions/process_recurrent_transactions (9/9) executados e passando |
-| 3. Empacotar e fazer novo deploy das Cloud Functions no Appwrite | COMPLETED | Novo pacote tar.gz gerado e deploy realizado com status 'ready' para cleanup (6aa5d5ceb4129d1a38c5) e recorrência (6aa5d5d64b6440dba1df) |
-| 4. Executar function e validar logs de conexão | COMPLETED | Execuções disparadas com sucesso via Appwrite MCP; ambas conectaram em 172.16.3.1:443 com status 'completed', 0 erros e tempo de resposta < 2.5s |
+| 1. Dependências e Modelo de Dados (`BackupPayloadModel`) | COMPLETED | Adicionados googleapis e google_sign_in em pubspec.yaml, criado BackupPayloadModel com integridade SHA-256 e suíte de testes com 100% de cobertura (passado e futuro) |
+| 2. Serviço de Extração e Backup (`BackupService`) | IN_PROGRESS | Implementar extração direta e paginada do Appwrite (sem limites temporais em finanças), utilitário de download multiplataforma e testes unitários com mocks |
+| 3. Serviço de Restauração Segura (`RestoreService`) | PENDING | Implementar restauração em 4 etapas ordenadas por dependência, validação prévia de checksum, reconstituição do Drift e testes unitários |
+| 4. Serviço Google Drive (`GoogleDriveBackupService`) | PENDING | Implementar autenticação OAuth2 com escopo `drive.file`, upload diário, rotação de 30 dias, listagem/download e testes unitários |
+| 5. Gerenciamento de Estado (`BackupController` & `Core`) | PENDING | Implementar controller MobX com observables manuais, verificação diária automática de 24h, registro no GetIt e testes de controller |
+| 6. Interface de Usuário no `ConfiguracoesModalWidget` | PENDING | Criar seção de Backup/Restauração no modal de configurações e diálogo interativo de progresso/resumo com Design System Pastel |
+| 7. Verificação Completa e Relatório (`flutter test` / `analyze`) | PENDING | Executar suíte completa de testes e análise estática, garantindo máxima cobertura sem regressões |
