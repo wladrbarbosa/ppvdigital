@@ -28,8 +28,12 @@ echo -e "\033[0;90mExecutando: $FLUTTER_CMD pub get\033[0m"
 $FLUTTER_CMD pub get
 
 # 2. Compila o Flutter Web como WASM
-echo -e "\033[0;90mExecutando: $FLUTTER_CMD build web --wasm\033[0m"
-$FLUTTER_CMD build web --wasm
+BUILD_ARGS="--wasm"
+if [ -f ".env" ]; then
+    BUILD_ARGS="$BUILD_ARGS --dart-define-from-file=.env"
+fi
+echo -e "\033[0;90mExecutando: $FLUTTER_CMD build web $BUILD_ARGS\033[0m"
+$FLUTTER_CMD build web $BUILD_ARGS
 
 # 3. Processa arquivos de manifest de assets para compatibilidade total Web / Appwrite Sites
 echo -e "\033[0;90mGarantindo compatibilidade dos arquivos AssetManifest...\033[0m"

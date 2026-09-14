@@ -33,8 +33,12 @@ Write-Host "Executando: $flutterCmd pub get" -ForegroundColor Gray
 Invoke-Expression "$flutterCmd pub get"
 
 # 2. Compila o Flutter Web como WASM
-Write-Host "Executando: $flutterCmd build web --wasm" -ForegroundColor Gray
-Invoke-Expression "$flutterCmd build web --wasm"
+$buildArgs = "--wasm"
+if (Test-Path ".env") {
+    $buildArgs += " --dart-define-from-file=.env"
+}
+Write-Host "Executando: $flutterCmd build web $buildArgs" -ForegroundColor Gray
+Invoke-Expression "$flutterCmd build web $buildArgs"
 
 # 3. Processa arquivos de manifest de assets para compatibilidade total Web / Appwrite Sites
 Write-Host "Garantindo compatibilidade dos arquivos AssetManifest..." -ForegroundColor Gray

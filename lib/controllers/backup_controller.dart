@@ -200,7 +200,7 @@ class BackupController {
         friendlyMessage = 'Conexão cancelada.';
       } else if (errStr.contains('Google Client ID não configurado')) {
         friendlyMessage =
-            'A sincronização com o Google Drive ainda não foi habilitada no aplicativo.';
+            'A sincronização com o Google Drive não está habilitada. Defina GOOGLE_CLIENT_ID no arquivo .env ou nos parâmetros de inicialização.';
       } else {
         friendlyMessage = 'Falha ao conectar conta Google: $e';
       }
