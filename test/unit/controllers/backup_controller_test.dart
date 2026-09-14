@@ -102,7 +102,7 @@ class FakeGoogleDriveBackupService extends GoogleDriveBackupService {
   final List<drive.File> driveFiles = [];
   String downloadedContent =
       BackupPayloadModel(
-        exportedAt: DateTime(2026, 1, 1),
+        exportedAt: DateTime(2026),
         userId: 'user_abc',
         userEmail: 'user@example.com',
         data: {},

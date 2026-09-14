@@ -6,7 +6,7 @@
 ![Drift](https://img.shields.io/badge/Database-Drift%20SQLite%20(v6)-lightgrey)
 ![Appwrite](https://img.shields.io/badge/Backend-Appwrite-FD366E?logo=appwrite)
 ![Design System](https://img.shields.io/badge/Design%20System-Pastel%20%26%20Leveza-7CB9A8)
-![Tests](https://img.shields.io/badge/Tests-186%2F186%20Passed-brightgreen)
+![Tests](https://img.shields.io/badge/Tests-276%2F276%20Passed-brightgreen)
 
 O **PPVDigital** é uma plataforma completa desenvolvida em Flutter (Web/Mobile) para planejamento pessoal, acompanhamento de hábitos, gestão de tarefas e controle financeiro pessoal e compartilhado. O projeto traz para o formato digital o conceito do **Projeto Pessoal de Vida (PPV)**, com foco em capacitação, acompanhamento de métricas e funcionamento offline transparente.
 
@@ -141,7 +141,32 @@ O PPVDigital adota um Design System proprietário com foco em leveza visual, con
 
 ---
 
-### 🔑 4. Módulo de Autenticação e Isolamento de Sessão
+### 💾 4. Módulo de Backup & Restauração de Dados (Manual e Google Drive)
+
+Permite ao usuário salvaguardar e recuperar integralmente seu ecossistema pessoal (contas, categorias, transações passadas e futuras projetadas, divisões por contatos, hábitos, tarefas, históricos de execução e configurações de tema) com zero perda de dados.
+
+- **Backup Manual (`.json`)**:
+  - Exportação e download direto do arquivo de backup no formato JSON com assinatura criptográfica SHA-256 no cabeçalho para verificação de autenticidade e integridade.
+  - Restauração assistida por diálogo interativo com leitura de resumo prévio, contadores de registros e opção de substituição limpa (*Clean Replacement*) ou mescla incremental (*Upsert*).
+  - Suporte multiplataforma (Web via `dart:html` blob download / `FileReader` e Mobile/Desktop via I/O com cache em diretório de documentos).
+- **Integração Automática com Google Drive**:
+  - Autenticação OAuth2 restrita ao escopo mínimo de menor privilégio (`drive.file`), acessando exclusivamente os arquivos gerados pelo próprio PPVDigital.
+  - Criação e reutilização automática de pasta dedicada no Drive (`PPVDigital_Backups`).
+  - **Sincronização Diária em Segundo Plano**: Verificação periódica a cada 24 horas no ciclo de vida da aplicação (`AppLifecycleState.resumed`), realizando upload transparente sem travar ou bloquear a interface do usuário.
+  - **Política de Retenção Móvel de 30 Dias**: Rotação automática de backups no Google Drive mantendo snapshots das últimas 30 datas e excluindo versões mais antigas para preservar espaço de armazenamento.
+- **Cobertura Temporal Irrestrita (Finanças & Hábitos)**:
+  - Extração paginada de todas as 10 coleções do usuário sem filtros de `dataCompetencia`, garantindo que transações do passado histórico, presente corrente e parcelas/recorrências futuras permaneçam 100% preservadas.
+- **Integridade Referencial em 4 Fases**:
+  - Processo de restauração orquestrado em etapas ordenadas para respeitar dependências de chaves estrangeiras:
+    1. **Fase 1**: Contas, Categorias de Finanças e Categorias de Tarefas/Hábitos.
+    2. **Fase 2**: Contatos e Modelos Base de Hábitos/Tarefas.
+    3. **Fase 3**: Transações Financeiras e Históricos de Execução.
+    4. **Fase 4**: Divisões de Transações Financeiras.
+  - Limpeza atômica em ordem inversa de dependências no modo de substituição limpa, seguida de reset do cache local Drift SQLite e recarregamento reativo dos controllers.
+
+---
+
+### 🔑 5. Módulo de Autenticação e Isolamento de Sessão
 
 - Gerenciamento de sessão via `LoginController` integrado ao Appwrite `Account`.
 - Persistência e restauração offline do perfil do usuário em `Drift SQLite` (`AppSettings`) para acesso sem conexão à internet.
@@ -207,8 +232,14 @@ fvm flutter test
 - `test/unit/theme_database_test.dart`: Testes unitários do enum `AppThemePalette` (10 paletas pastéis) e da preservação de `theme_mode` e `theme_palette` em `clearAllUserData()` no Drift SQLite.
 - `test/unit/theme_controller_test.dart`: Testes unitários do `ThemeController` (MobX manual), reatividade de `setThemeMode`, `setPalette`, carregamento do SQLite com fallback seguro e injeção no `Core`.
 - `test/widget/root_app_theme_test.dart`: Teste de widget cobrindo a reatividade global do `RootAppWidget` envolto em MobX `Observer`.
-- `test/widget/configuracoes_modal_test.dart`: Testes de widget do `ConfiguracoesModalWidget` (SegmentedButton de 3 modos e 10 cartões pastéis do Design System).
+- `test/widget/configuracoes_modal_test.dart`: Testes de widget do `ConfiguracoesModalWidget` (SegmentedButton de 3 modos, 10 cartões pastéis do Design System e seção de Backup/Google Drive).
 - `test/app/home/home_page_settings_test.dart`: Teste de integração do botão de configurações na AppBar da `HomePage` e abertura do modal.
+- `test/unit/models/backup_payload_model_test.dart`: Testes unitários do modelo `BackupPayloadModel` (serialização, contadores de registros, parsing e validação criptográfica de checksum SHA-256).
+- `test/unit/services/backup_service_test.dart`: Testes unitários do `BackupService` (extração paginada das 10 coleções, integridade temporal irrestrita com dados passados, presentes e futuros e geração de checksum).
+- `test/unit/services/restore_service_test.dart`: Testes unitários do `RestoreService` (restauração segura em 4 fases, integridade referencial, validação de hash, modos clean replacement e upsert, e isolamento de cache Drift).
+- `test/unit/services/google_drive_backup_service_test.dart`: Testes unitários do `GoogleDriveBackupService` (fluxos de upload, download, listagem, rotação de retenção de 30 dias e autenticação OAuth2 drive.file).
+- `test/unit/controllers/backup_controller_test.dart`: Testes unitários do `BackupController` (gerenciamento de estado com observables manuais MobX, verificação de 24h e integração de backup/restauração manual e Drive).
+- `test/widget/backup_restore_dialog_test.dart`: Testes de widget dos diálogos `BackupRestoreDialog` (progresso em tempo real, confirmação detalhada de registros e listagem/seleção de backups do Drive).
 - `functions/process_recurrent_transactions/main_test.go`: Testes unitários da função Serverless Go (parsing de datas ISO, incremento de intervalos de recorrência e autocura de esteira de 24 ocorrências).
 - `test/widget_test.dart`: Teste de fumaça de instanciação de widgets.
 

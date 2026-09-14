@@ -6,6 +6,11 @@ import 'package:googleapis/drive/v3.dart' as drive;
 import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
 
+export 'package:googleapis/drive/v3.dart' show File;
+
+/// Representação canônica de um item de arquivo de backup retornado pelo Google Drive.
+typedef DriveBackupItem = drive.File;
+
 /// Cliente HTTP autenticado via cabeçalhos OAuth do Google.
 class GoogleAuthClient extends http.BaseClient {
   GoogleAuthClient(this._headers, {http.Client? client})
@@ -36,15 +41,12 @@ class GoogleDriveBackupService {
     GoogleSignIn? googleSignIn,
     drive.DriveApi? driveApi,
     this.driveApiBuilder,
-    Future<GoogleSignInAccount?> Function()? signInHandler,
-    Future<GoogleSignInAccount?> Function()? signInSilentlyHandler,
-    Future<void> Function()? signOutHandler,
+    this._signInHandler,
+    this._signInSilentlyHandler,
+    this._signOutHandler,
     GoogleSignInAccount? initialUser,
   })  : _googleSignIn = googleSignIn ?? GoogleSignIn.instance,
         _injectedDriveApi = driveApi,
-        _signInHandler = signInHandler,
-        _signInSilentlyHandler = signInSilentlyHandler,
-        _signOutHandler = signOutHandler,
         _currentUser = initialUser;
 
   static const String backupFolderName = 'PPVDigital Backups';
@@ -80,8 +82,9 @@ class GoogleDriveBackupService {
   /// Realiza login interativo na conta Google.
   Future<GoogleSignInAccount?> signIn() async {
     try {
-      if (_signInHandler != null) {
-        final account = await _signInHandler!();
+      final handler = _signInHandler;
+      if (handler != null) {
+        final account = await handler();
         _currentUser = account;
         return account;
       }
@@ -98,8 +101,9 @@ class GoogleDriveBackupService {
   /// Tenta restaurar a sessão do Google silenciosamente.
   Future<GoogleSignInAccount?> signInSilently() async {
     try {
-      if (_signInSilentlyHandler != null) {
-        final account = await _signInSilentlyHandler!();
+      final handler = _signInSilentlyHandler;
+      if (handler != null) {
+        final account = await handler();
         _currentUser = account;
         return account;
       }
@@ -117,8 +121,9 @@ class GoogleDriveBackupService {
   /// Realiza logout e limpa credenciais da sessão.
   Future<void> signOut() async {
     try {
-      if (_signOutHandler != null) {
-        await _signOutHandler!();
+      final handler = _signOutHandler;
+      if (handler != null) {
+        await handler();
         _currentUser = null;
         return;
       }
@@ -149,11 +154,9 @@ class GoogleDriveBackupService {
       drive.DriveApi.driveFileScope,
     ]);
 
-    if (auth == null) {
-      auth = await user.authorizationClient.authorizeScopes([
-        drive.DriveApi.driveFileScope,
-      ]);
-    }
+    auth ??= await user.authorizationClient.authorizeScopes([
+      drive.DriveApi.driveFileScope,
+    ]);
 
     final accessToken = auth.accessToken;
 

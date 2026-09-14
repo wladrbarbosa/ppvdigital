@@ -1,11 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
+import 'package:intl/intl.dart';
+import 'package:ppvdigital/app/home/widgets/backup_restore_dialog.dart';
+import 'package:ppvdigital/controllers/backup_controller.dart';
 import 'package:ppvdigital/core.dart';
 import 'package:ppvdigital/design_system/design_system.dart';
+import 'package:ppvdigital/models/backup/backup_payload_model.dart';
+import 'package:ppvdigital/services/backup/backup_file_loader.dart';
 
-/// Modal bottom sheet para seleção de modo de exibição (claro/escuro/sistema)
-/// e das 10 paletas pastéis oficiais do Design System do Seapruma.
-class ConfiguracoesModalWidget extends StatelessWidget {
+/// Modal bottom sheet para seleção de modo de exibição (claro/escuro/sistema),
+/// paletas pastéis do Design System e Backup & Restauração (Manual e Google Drive).
+class ConfiguracoesModalWidget extends StatefulWidget {
   const ConfiguracoesModalWidget({super.key});
 
   /// Exibe o modal bottom sheet de configurações formatado com tokens do Design System.
@@ -19,6 +24,279 @@ class ConfiguracoesModalWidget extends StatelessWidget {
   }
 
   @override
+  State<ConfiguracoesModalWidget> createState() =>
+      _ConfiguracoesModalWidgetState();
+}
+
+class _ConfiguracoesModalWidgetState extends State<ConfiguracoesModalWidget> {
+  @override
+  void initState() {
+    super.initState();
+    // Inicializa leitura das configurações de backup persistidas se registrado
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (Core.getIt.isRegistered<BackupController>()) {
+        Core.backupController.loadSettings();
+      }
+    });
+  }
+
+  Future<void> _handleDownloadBackup(BuildContext context) async {
+    final messenger = ScaffoldMessenger.of(context);
+    final backupController = Core.backupController;
+
+    BackupRestoreDialog.showProgressDialog(
+      context: context,
+      title: 'Gerando Backup...',
+      controller: backupController,
+    );
+
+    final filePath = await backupController.downloadManualBackup();
+    final success = filePath != null;
+
+    if (!context.mounted) return;
+    Navigator.of(context, rootNavigator: true).pop();
+
+    messenger.showSnackBar(
+      SnackBar(
+        content: Text(
+          success
+              ? (backupController.successMessage ?? 'Backup baixado com sucesso!')
+              : (backupController.errorMessage ?? 'Falha ao baixar backup.'),
+        ),
+        backgroundColor:
+            success ? AppColors.pastelSuccess : AppColors.pastelError,
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
+  }
+
+  Future<void> _processRestoreJson(
+    BuildContext context,
+    String jsonString,
+  ) async {
+    final messenger = ScaffoldMessenger.of(context);
+    final backupController = Core.backupController;
+
+    BackupPayloadModel payload;
+    try {
+      payload = BackupPayloadModel.fromJson(jsonString);
+    } catch (e) {
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text('Arquivo inválido ou ilegível: $e'),
+          backgroundColor: AppColors.pastelError,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
+    }
+
+    final cleanFirst =
+        await BackupRestoreDialog.showRestoreConfirmationDialog(
+      context: context,
+      payload: payload,
+    );
+
+    if (cleanFirst == null || !context.mounted) return;
+
+    BackupRestoreDialog.showProgressDialog(
+      context: context,
+      title: 'Restaurando Dados...',
+      controller: backupController,
+    );
+
+    final success = await backupController.restoreFromManualJson(
+      jsonString,
+      cleanReplace: cleanFirst,
+    );
+
+    if (!context.mounted) return;
+    Navigator.of(context, rootNavigator: true).pop();
+
+    messenger.showSnackBar(
+      SnackBar(
+        content: Text(
+          success
+              ? (backupController.successMessage ??
+                  'Dados restaurados com sucesso!')
+              : (backupController.errorMessage ??
+                  'Falha ao restaurar dados.'),
+        ),
+        backgroundColor:
+            success ? AppColors.pastelSuccess : AppColors.pastelError,
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
+  }
+
+  Future<void> _handleManualRestore(BuildContext context) async {
+    // Oferece opções: Selecionar arquivo JSON ou colar texto
+    final option = await showModalBottomSheet<String>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (sheetContext) {
+        final isDark = Theme.of(sheetContext).brightness == Brightness.dark;
+        final surfaceColor =
+            isDark ? AppColors.surfaceDark : AppColors.surfaceLight;
+        final textColor =
+            isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight;
+        final textSecondary =
+            isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight;
+
+        return Container(
+          decoration: BoxDecoration(
+            color: surfaceColor,
+            borderRadius: const BorderRadius.vertical(
+              top: Radius.circular(AppRadius.xl),
+            ),
+          ),
+          padding: const EdgeInsets.all(AppSpacing.lg),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(
+                'Restaurar Backup Manual',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: textColor,
+                ),
+              ),
+              const SizedBox(height: AppSpacing.xs),
+              Text(
+                'Como você deseja carregar o arquivo de backup?',
+                style: TextStyle(fontSize: 12, color: textSecondary),
+              ),
+              const SizedBox(height: AppSpacing.md),
+              ListTile(
+                leading: const Icon(Icons.file_open_outlined),
+                title: const Text('Selecionar arquivo do dispositivo (.json)'),
+                subtitle: const Text('Carregar arquivo salvo anteriormente'),
+                shape: RoundedRectangleBorder(
+                  borderRadius: AppRadius.roundedMd,
+                ),
+                onTap: () => Navigator.of(sheetContext).pop('file'),
+              ),
+              ListTile(
+                leading: const Icon(Icons.paste_outlined),
+                title: const Text('Colar texto JSON manualmente'),
+                subtitle: const Text('Ideal para colar dados copiados'),
+                shape: RoundedRectangleBorder(
+                  borderRadius: AppRadius.roundedMd,
+                ),
+                onTap: () => Navigator.of(sheetContext).pop('paste'),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+
+    if (option == null || !context.mounted) return;
+
+    if (option == 'file') {
+      final jsonContent = await pickJsonFile();
+      if (jsonContent != null && context.mounted) {
+        await _processRestoreJson(context, jsonContent);
+      }
+    } else if (option == 'paste' && context.mounted) {
+      await BackupRestoreDialog.showPasteJsonDialog(
+        context: context,
+        onConfirm: (content) async {
+          if (context.mounted) {
+            await _processRestoreJson(context, content);
+          }
+        },
+      );
+    }
+  }
+
+  Future<void> _handleUploadGoogleDrive(BuildContext context) async {
+    final messenger = ScaffoldMessenger.of(context);
+    final backupController = Core.backupController;
+
+    BackupRestoreDialog.showProgressDialog(
+      context: context,
+      title: 'Enviando ao Google Drive...',
+      controller: backupController,
+    );
+
+    final success = await backupController.uploadBackupToGoogleDrive();
+
+    if (!context.mounted) return;
+    Navigator.of(context, rootNavigator: true).pop();
+
+    messenger.showSnackBar(
+      SnackBar(
+        content: Text(
+          success
+              ? (backupController.successMessage ??
+                  'Backup salvo no Google Drive com sucesso!')
+              : (backupController.errorMessage ??
+                  'Falha ao enviar backup para o Google Drive.'),
+        ),
+        backgroundColor:
+            success ? AppColors.pastelSuccess : AppColors.pastelError,
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
+  }
+
+  Future<void> _handleRestoreFromGoogleDrive(BuildContext context) async {
+    final messenger = ScaffoldMessenger.of(context);
+    final backupController = Core.backupController;
+
+    await BackupRestoreDialog.showDriveBackupsDialog(
+      context: context,
+      controller: backupController,
+      onSelect: (item, cleanFirst) async {
+        BackupRestoreDialog.showProgressDialog(
+          context: context,
+          title: 'Restaurando do Google Drive...',
+          controller: backupController,
+        );
+
+        final success = await backupController.restoreFromGoogleDrive(
+          item.id ?? '',
+          cleanReplace: cleanFirst,
+        );
+
+        if (!context.mounted) return;
+        Navigator.of(context, rootNavigator: true).pop();
+
+        messenger.showSnackBar(
+          SnackBar(
+            content: Text(
+              success
+                  ? (backupController.successMessage ??
+                      'Dados restaurados com sucesso do Google Drive!')
+                  : (backupController.errorMessage ??
+                      'Falha ao restaurar do Google Drive.'),
+            ),
+            backgroundColor:
+                success ? AppColors.pastelSuccess : AppColors.pastelError,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      },
+    );
+  }
+
+  String _formatDateTime(DateTime dt) {
+    try {
+      return DateFormat("dd/MM/yyyy 'às' HH:mm", 'pt_BR').format(dt);
+    } catch (_) {
+      final d = dt.day.toString().padLeft(2, '0');
+      final m = dt.month.toString().padLeft(2, '0');
+      final y = dt.year;
+      final h = dt.hour.toString().padLeft(2, '0');
+      final min = dt.minute.toString().padLeft(2, '0');
+      return '$d/$m/$y às $h:$min';
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final surfaceColor =
@@ -28,15 +306,20 @@ class ConfiguracoesModalWidget extends StatelessWidget {
         isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight;
     final textSecondaryColor =
         isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight;
+    final cardBgColor =
+        isDark ? AppColors.surfaceDark : AppColors.backgroundLight;
 
     return Observer(
       builder: (_) {
         final currentMode = Core.themeController.themeMode;
         final currentPalette = Core.themeController.palette;
+        final backupController = Core.getIt.isRegistered<BackupController>()
+            ? Core.backupController
+            : null;
 
         return Container(
           constraints: BoxConstraints(
-            maxHeight: MediaQuery.of(context).size.height * 0.85,
+            maxHeight: MediaQuery.of(context).size.height * 0.90,
             maxWidth: 600,
           ),
           decoration: BoxDecoration(
@@ -92,7 +375,7 @@ class ConfiguracoesModalWidget extends StatelessWidget {
                           ),
                           const SizedBox(height: AppSpacing.xxs),
                           Text(
-                            'Personalize a aparência e cores do aplicativo',
+                            'Personalize aparência, paleta e gerencie backups',
                             style: TextStyle(
                               fontSize: 12,
                               color: textSecondaryColor,
@@ -199,7 +482,7 @@ class ConfiguracoesModalWidget extends StatelessWidget {
                       ),
                       const SizedBox(height: AppSpacing.xxs),
                       Text(
-                            'Selecione o tom pastel principal de destaque para todo o app',
+                        'Selecione o tom pastel principal de destaque para todo o app',
                         style: TextStyle(
                           fontSize: 12,
                           color: textSecondaryColor,
@@ -296,7 +579,324 @@ class ConfiguracoesModalWidget extends StatelessWidget {
                           );
                         },
                       ),
+
+                      if (backupController != null) ...[
+                        const SizedBox(height: AppSpacing.xl),
+
+                        // Seção 3: Backup e Restauração de Dados
+                      Row(
+                        children: [
+                          Icon(
+                            Icons.cloud_sync_outlined,
+                            size: 18,
+                            color: Theme.of(context).colorScheme.primary,
+                          ),
+                          const SizedBox(width: AppSpacing.xs),
+                          Text(
+                            'Backup e Restauração de Dados',
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                              color: textColor,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: AppSpacing.xxs),
+                      Text(
+                        'Exporte seus dados com segurança ou ative a sincronização com o Google Drive',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: textSecondaryColor,
+                        ),
+                      ),
+                      const SizedBox(height: AppSpacing.mdSm),
+
+                      // Card: Backup Manual
+                      Container(
+                        padding: const EdgeInsets.all(AppSpacing.md),
+                        decoration: BoxDecoration(
+                          color: cardBgColor,
+                          borderRadius: AppRadius.roundedLg,
+                          border: Border.all(color: borderColor),
+                          boxShadow: AppShadows.soft,
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.all(AppSpacing.xs),
+                                  decoration: BoxDecoration(
+                                    color: isDark
+                                        ? AppColors.primaryContainerDark.withValues(
+                                            alpha: 0.2,
+                                          )
+                                        : AppColors.primaryContainerLight,
+                                    borderRadius: AppRadius.roundedSm,
+                                  ),
+                                  child: Icon(
+                                    Icons.file_download_outlined,
+                                    size: 18,
+                                    color:
+                                        Theme.of(context).colorScheme.primary,
+                                  ),
+                                ),
+                                const SizedBox(width: AppSpacing.sm),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        'Backup Manual (.json)',
+                                        style: TextStyle(
+                                          fontSize: 13,
+                                          fontWeight: FontWeight.bold,
+                                          color: textColor,
+                                        ),
+                                      ),
+                                      Text(
+                                        'Exportação completa de contas, transações e tarefas',
+                                        style: TextStyle(
+                                          fontSize: 11,
+                                          color: textSecondaryColor,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: AppSpacing.md),
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: OutlinedButton.icon(
+                                    onPressed: backupController.isBackingUp ||
+                                            backupController.isRestoring
+                                        ? null
+                                        : () => _handleDownloadBackup(context),
+                                    icon: const Icon(
+                                      Icons.download_rounded,
+                                      size: 16,
+                                    ),
+                                    label: const Text('Exportar Arquivo'),
+                                    style: OutlinedButton.styleFrom(
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: AppRadius.roundedMd,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: AppSpacing.sm),
+                                Expanded(
+                                  child: OutlinedButton.icon(
+                                    onPressed: backupController.isBackingUp ||
+                                            backupController.isRestoring
+                                        ? null
+                                        : () => _handleManualRestore(context),
+                                    icon: const Icon(
+                                      Icons.upload_file_rounded,
+                                      size: 16,
+                                    ),
+                                    label: const Text('Restaurar Arquivo'),
+                                    style: OutlinedButton.styleFrom(
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: AppRadius.roundedMd,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+
                       const SizedBox(height: AppSpacing.md),
+
+                      // Card: Integração Google Drive
+                      Container(
+                        padding: const EdgeInsets.all(AppSpacing.md),
+                        decoration: BoxDecoration(
+                          color: cardBgColor,
+                          borderRadius: AppRadius.roundedLg,
+                          border: Border.all(color: borderColor),
+                          boxShadow: AppShadows.soft,
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.all(AppSpacing.xs),
+                                  decoration: BoxDecoration(
+                                    color: isDark
+                                        ? AppColors.secondaryContainerDark.withValues(
+                                            alpha: 0.2,
+                                          )
+                                        : AppColors.secondaryContainerLight,
+                                    borderRadius: AppRadius.roundedSm,
+                                  ),
+                                  child: Icon(
+                                    Icons.add_to_drive_outlined,
+                                    size: 18,
+                                    color: isDark
+                                        ? AppColors.secondaryDark
+                                        : AppColors.secondaryLight,
+                                  ),
+                                ),
+                                const SizedBox(width: AppSpacing.sm),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        'Google Drive',
+                                        style: TextStyle(
+                                          fontSize: 13,
+                                          fontWeight: FontWeight.bold,
+                                          color: textColor,
+                                        ),
+                                      ),
+                                      Text(
+                                        backupController.isGoogleConnected
+                                            ? 'Conectado como ${backupController.googleUserEmail ?? 'Google User'}'
+                                            : 'Não conectado ao Google Drive',
+                                        style: TextStyle(
+                                          fontSize: 11,
+                                          color: backupController.isGoogleConnected
+                                              ? AppColors.onPastelSuccessContainer
+                                              : textSecondaryColor,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                if (backupController.isGoogleConnected)
+                                  TextButton.icon(
+                                    onPressed: () =>
+                                        backupController.disconnectGoogleDrive(),
+                                    icon: const Icon(
+                                      Icons.logout_rounded,
+                                      size: 14,
+                                    ),
+                                    label: const Text(
+                                      'Desconectar',
+                                      style: TextStyle(fontSize: 11),
+                                    ),
+                                  )
+                                else
+                                  FilledButton.tonalIcon(
+                                    onPressed: () =>
+                                        backupController.connectGoogleDrive(),
+                                    icon: const Icon(
+                                      Icons.login_rounded,
+                                      size: 14,
+                                    ),
+                                    label: const Text(
+                                      'Conectar',
+                                      style: TextStyle(fontSize: 11),
+                                    ),
+                                    style: FilledButton.styleFrom(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: AppSpacing.sm,
+                                        vertical: AppSpacing.xs,
+                                      ),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: AppRadius.roundedMd,
+                                      ),
+                                    ),
+                                  ),
+                              ],
+                            ),
+                            const Divider(height: AppSpacing.lg),
+
+                            // Switch de Backup Automático Diário
+                            SwitchListTile(
+                              contentPadding: EdgeInsets.zero,
+                              value: backupController.isAutoBackupEnabled,
+                              onChanged: backupController.isGoogleConnected
+                                  ? (val) => backupController
+                                      .setAutoBackupEnabled(val)
+                                  : null,
+                              title: Text(
+                                'Backup Automático Diário',
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w600,
+                                  color: backupController.isGoogleConnected
+                                      ? textColor
+                                      : textSecondaryColor,
+                                ),
+                              ),
+                              subtitle: Text(
+                                backupController.lastBackupTime != null
+                                    ? 'Último envio: ${_formatDateTime(backupController.lastBackupTime!)}'
+                                    : 'Envia um backup para a pasta PPVDigital Backups diariamente',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  color: textSecondaryColor,
+                                ),
+                              ),
+                            ),
+
+                            if (backupController.isGoogleConnected) ...[
+                              const SizedBox(height: AppSpacing.xs),
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: FilledButton.icon(
+                                      onPressed: backupController.isBackingUp ||
+                                              backupController.isRestoring
+                                          ? null
+                                          : () => _handleUploadGoogleDrive(
+                                              context),
+                                      icon: const Icon(
+                                        Icons.cloud_upload_outlined,
+                                        size: 16,
+                                      ),
+                                      label: const Text('Fazer Backup Agora'),
+                                      style: FilledButton.styleFrom(
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: AppRadius.roundedMd,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(width: AppSpacing.sm),
+                                  Expanded(
+                                    child: OutlinedButton.icon(
+                                      onPressed: backupController.isBackingUp ||
+                                              backupController.isRestoring
+                                          ? null
+                                          : () => _handleRestoreFromGoogleDrive(
+                                              context),
+                                      icon: const Icon(
+                                        Icons.cloud_download_outlined,
+                                        size: 16,
+                                      ),
+                                      label: const Text('Restaurar do Drive'),
+                                      style: OutlinedButton.styleFrom(
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: AppRadius.roundedMd,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ],
+                        ),
+                      ),
+                    ],
+
+                    const SizedBox(height: AppSpacing.md),
                     ],
                   ),
                 ),

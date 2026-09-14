@@ -1,24 +1,61 @@
+import 'package:appwrite/appwrite.dart';
 import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:googleapis/drive/v3.dart' as drive;
+import 'package:intl/date_symbol_data_local.dart';
 import 'package:ppvdigital/app/home/widgets/configuracoes_modal_widget.dart';
+import 'package:ppvdigital/app/login/login_controller.dart';
+import 'package:ppvdigital/controllers/backup_controller.dart';
 import 'package:ppvdigital/controllers/theme_controller.dart';
 import 'package:ppvdigital/core.dart';
 import 'package:ppvdigital/design_system/design_system.dart';
+import 'package:ppvdigital/models/backup/backup_payload_model.dart';
 import 'package:ppvdigital/models/local/app_database.dart';
+import 'package:ppvdigital/services/backup/backup_service.dart';
+import 'package:ppvdigital/services/backup/google_drive_backup_service.dart';
+import 'package:ppvdigital/services/backup/restore_service.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
+  setUpAll(() async {
+    await initializeDateFormatting('pt_BR');
+  });
+
   group('ConfiguracoesModalWidget Tests', () {
     late AppDatabase db;
     late ThemeController themeController;
+    late BackupController backupController;
+    late FakeBackupService fakeBackupService;
+    late FakeRestoreService fakeRestoreService;
+    late FakeGoogleDriveBackupService fakeDriveService;
+    late FakeLoginController fakeLoginController;
 
     setUp(() {
       db = AppDatabase(NativeDatabase.memory());
       themeController = ThemeController(db);
+      fakeBackupService = FakeBackupService();
+      fakeRestoreService = FakeRestoreService();
+      fakeDriveService = FakeGoogleDriveBackupService();
+      fakeLoginController = FakeLoginController();
+
+      backupController = BackupController(
+        backupService: fakeBackupService,
+        restoreService: fakeRestoreService,
+        googleDriveService: fakeDriveService,
+        database: db,
+        loginController: fakeLoginController,
+      );
+
       if (!Core.getIt.isRegistered<ThemeController>()) {
         Core.getIt.registerSingleton<ThemeController>(themeController);
+      }
+      if (!Core.getIt.isRegistered<BackupController>()) {
+        Core.getIt.registerSingleton<BackupController>(backupController);
+      }
+      if (!Core.getIt.isRegistered<LoginController>()) {
+        Core.getIt.registerSingleton<LoginController>(fakeLoginController);
       }
     });
 
@@ -113,6 +150,65 @@ void main() {
       expect(themeController.palette, AppThemePalette.rosaBlush);
     });
 
+    testWidgets('Exibe seção de Backup e Restauração com cards manual e Google Drive', (tester) async {
+      tester.view.physicalSize = const Size(1000, 1400);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+      });
+
+      await tester.pumpWidget(
+        const MaterialApp(
+          home: Scaffold(
+            body: ConfiguracoesModalWidget(),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // Rola até o final
+      await tester.drag(find.byType(SingleChildScrollView), const Offset(0, -600));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Backup e Restauração de Dados'), findsOneWidget);
+      expect(find.text('Backup Manual (.json)'), findsOneWidget);
+      expect(find.text('Exportar Arquivo'), findsOneWidget);
+      expect(find.text('Restaurar Arquivo'), findsOneWidget);
+
+      expect(find.text('Google Drive'), findsOneWidget);
+      expect(find.text('Não conectado ao Google Drive'), findsOneWidget);
+      expect(find.text('Conectar'), findsOneWidget);
+      expect(find.text('Backup Automático Diário'), findsOneWidget);
+    });
+
+    testWidgets('Toca em Exportar Arquivo e executa downloadManualBackup', (tester) async {
+      tester.view.physicalSize = const Size(1000, 1400);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+      });
+
+      await tester.pumpWidget(
+        const MaterialApp(
+          home: Scaffold(
+            body: ConfiguracoesModalWidget(),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.drag(find.byType(SingleChildScrollView), const Offset(0, -600));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Exportar Arquivo'));
+      await tester.pumpAndSettle();
+
+      // Verifica snackbar exibido
+      expect(find.byType(SnackBar), findsOneWidget);
+    });
+
     testWidgets('ConfiguracoesModalWidget.show abre o modal bottom sheet e fecha ao tocar fechar', (tester) async {
       await tester.pumpWidget(
         MaterialApp(
@@ -143,4 +239,69 @@ void main() {
       expect(find.byType(ConfiguracoesModalWidget), findsNothing);
     });
   });
+}
+
+class FakeBackupService extends BackupService {
+  FakeBackupService() : super(tablesDB: FakeTablesDB());
+
+  @override
+  Future<BackupPayloadModel> generateBackup({
+    required String userId,
+    required String userEmail,
+    void Function(String step, double progress)? onProgress,
+  }) async {
+    return BackupPayloadModel(
+      exportedAt: DateTime.now(),
+      userId: userId,
+      userEmail: userEmail,
+      data: {},
+    );
+  }
+
+  @override
+  Future<String?> downloadBackup(
+    BackupPayloadModel payload, {
+    String? customFileName,
+  }) async {
+    return '/downloads/backup.json';
+  }
+}
+
+class FakeRestoreService extends RestoreService {
+  FakeRestoreService() : super(tablesDB: FakeTablesDB());
+}
+
+class FakeTablesDB implements TablesDB {
+  @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
+}
+
+class FakeGoogleDriveBackupService extends GoogleDriveBackupService {
+  FakeGoogleDriveBackupService({this.isSignedInValue = false});
+
+  bool isSignedInValue;
+  final List<drive.File> driveFiles = [];
+
+  @override
+  bool get isSignedIn => isSignedInValue;
+
+  @override
+  Future<List<drive.File>> listBackups({drive.DriveApi? customDriveApi}) async {
+    return driveFiles;
+  }
+}
+
+class FakeLoginController implements LoginController {
+  FakeLoginController({this.mockEmail = 'teste@usuario.com'});
+
+  String? mockEmail;
+
+  @override
+  String? get email => mockEmail;
+
+  @override
+  String? get userid => 'user_test_id';
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }
