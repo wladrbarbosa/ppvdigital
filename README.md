@@ -6,7 +6,7 @@
 ![Drift](https://img.shields.io/badge/Database-Drift%20SQLite%20(v6)-lightgrey)
 ![Appwrite](https://img.shields.io/badge/Backend-Appwrite-FD366E?logo=appwrite)
 ![Design System](https://img.shields.io/badge/Design%20System-Pastel%20%26%20Leveza-7CB9A8)
-![Tests](https://img.shields.io/badge/Tests-276%2F276%20Passed-brightgreen)
+![Tests](https://img.shields.io/badge/Tests-279%2F279%20Passed-brightgreen)
 
 O **PPVDigital** é uma plataforma completa desenvolvida em Flutter (Web/Mobile) para planejamento pessoal, acompanhamento de hábitos, gestão de tarefas e controle financeiro pessoal e compartilhado. O projeto traz para o formato digital o conceito do **Projeto Pessoal de Vida (PPV)**, com foco em capacitação, acompanhamento de métricas e funcionamento offline transparente.
 
@@ -154,6 +154,7 @@ Permite ao usuário salvaguardar e recuperar integralmente seu ecossistema pesso
   - Criação e reutilização automática de pasta dedicada no Drive (`PPVDigital_Backups`).
   - **Sincronização Diária em Segundo Plano**: Verificação periódica a cada 24 horas no ciclo de vida da aplicação (`AppLifecycleState.resumed`), realizando upload transparente sem travar ou bloquear a interface do usuário.
   - **Política de Retenção Móvel de 30 Dias**: Rotação automática de backups no Google Drive mantendo snapshots das últimas 30 datas e excluindo versões mais antigas para preservar espaço de armazenamento.
+  - **Configuração de Google Client ID (Web & Multiplataforma)**: Suporte a OAuth2 com Client ID configurável via `--dart-define=GOOGLE_CLIENT_ID=...` ou interativamente pelo usuário no modal de configurações, salvo em `AppSettings`. No Flutter Web, utiliza `authorizationClient.authorizeScopes` para integração com `google_sign_in: 7.2.0` sem necessidade de downgrades.
 - **Cobertura Temporal Irrestrita (Finanças & Hábitos)**:
   - Extração paginada de todas as 10 coleções do usuário sem filtros de `dataCompetencia`, garantindo que transações do passado histórico, presente corrente e parcelas/recorrências futuras permaneçam 100% preservadas.
 - **Integridade Referencial em 4 Fases**:

@@ -329,7 +329,8 @@ class AppDatabase extends _$AppDatabase {
       await delete(tarefaHabitos).go();
       await delete(historicoTarefasHabitos).go();
       await (delete(appSettings)
-            ..where((s) => s.key.isNotIn(const ['theme_mode', 'theme_palette'])))
+            ..where((s) => s.key.isNotIn(
+                const ['theme_mode', 'theme_palette', 'google_client_id'])))
           .go();
     });
   }

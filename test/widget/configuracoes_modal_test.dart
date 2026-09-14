@@ -209,6 +209,66 @@ void main() {
       expect(find.byType(SnackBar), findsOneWidget);
     });
 
+    testWidgets('Toca em Conectar sem Client ID configurado abre showGoogleClientIdDialog', (tester) async {
+      tester.view.physicalSize = const Size(1000, 1400);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+      });
+
+      await tester.pumpWidget(
+        const MaterialApp(
+          home: Scaffold(
+            body: ConfiguracoesModalWidget(),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.drag(find.byType(SingleChildScrollView), const Offset(0, -600));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Conectar'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Configurar Google Drive'), findsOneWidget);
+      expect(find.text('Salvar e Conectar'), findsOneWidget);
+    });
+
+    testWidgets('Exibe estado conectado e permite desconectar com sucesso', (tester) async {
+      tester.view.physicalSize = const Size(1000, 1400);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+      });
+
+      fakeDriveService.isSignedInValue = true;
+      await backupController.loadSettings();
+
+      await tester.pumpWidget(
+        const MaterialApp(
+          home: Scaffold(
+            body: ConfiguracoesModalWidget(),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.drag(find.byType(SingleChildScrollView), const Offset(0, -600));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Desconectar'), findsOneWidget);
+      expect(find.textContaining('teste@gmail.com'), findsOneWidget);
+
+      await tester.tap(find.text('Desconectar'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Conectar'), findsOneWidget);
+      expect(find.text('Não conectado ao Google Drive'), findsOneWidget);
+    });
+
     testWidgets('ConfiguracoesModalWidget.show abre o modal bottom sheet e fecha ao tocar fechar', (tester) async {
       await tester.pumpWidget(
         MaterialApp(
@@ -284,6 +344,17 @@ class FakeGoogleDriveBackupService extends GoogleDriveBackupService {
 
   @override
   bool get isSignedIn => isSignedInValue;
+
+  @override
+  String? get userEmail => isSignedInValue ? 'teste@gmail.com' : null;
+
+  @override
+  String? get userDisplayName => isSignedInValue ? 'Teste User' : null;
+
+  @override
+  Future<void> signOut() async {
+    isSignedInValue = false;
+  }
 
   @override
   Future<List<drive.File>> listBackups({drive.DriveApi? customDriveApi}) async {

@@ -52,6 +52,11 @@ class Core {
   static const String endpoint = 'https://appwrite.wladapps.com/v1';
   static const String projectId = '6a46a08b0009901f8788';
 
+  // Google Drive OAuth Configuration
+  static const String defaultGoogleClientId = String.fromEnvironment(
+    'GOOGLE_CLIENT_ID',
+  );
+
   // Appwrite Database parameters
   static const String databaseId = '671f6e1600022832cba5';
 
@@ -164,7 +169,9 @@ class Core {
         ),
       );
       getIt.registerSingleton<GoogleDriveBackupService>(
-        GoogleDriveBackupService(),
+        GoogleDriveBackupService(
+          clientId: defaultGoogleClientId.isNotEmpty ? defaultGoogleClientId : null,
+        ),
       );
 
       final backupCtrl = BackupController(

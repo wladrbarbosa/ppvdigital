@@ -3,6 +3,7 @@ import 'dart:developer';
 import 'package:googleapis/drive/v3.dart' as drive;
 import 'package:mobx/mobx.dart' as mobx;
 import 'package:ppvdigital/app/login/login_controller.dart';
+import 'package:ppvdigital/core.dart';
 import 'package:ppvdigital/models/backup/backup_payload_model.dart';
 import 'package:ppvdigital/models/local/app_database.dart';
 import 'package:ppvdigital/services/backup/backup_service.dart';
@@ -53,6 +54,16 @@ class BackupController {
   final mobx.ObservableList<drive.File> _driveBackups =
       mobx.ObservableList<drive.File>();
 
+  // Observables para sessão do Google Drive
+  final mobx.Observable<bool> _isGoogleConnected =
+      mobx.Observable<bool>(false, name: 'isGoogleConnected');
+  final mobx.Observable<String?> _googleUserEmail =
+      mobx.Observable<String?>(null, name: 'googleUserEmail');
+  final mobx.Observable<String?> _googleUserName =
+      mobx.Observable<String?>(null, name: 'googleUserName');
+  final mobx.Observable<String?> _googleClientId =
+      mobx.Observable<String?>(null, name: 'googleClientId');
+
   // Getters
   bool get isLoading => _isLoading.value;
   bool get isBackingUp => _isBackingUp.value;
@@ -67,15 +78,35 @@ class BackupController {
   bool get driveBackupsLoading => _driveBackupsLoading.value;
   List<drive.File> get driveBackups => _driveBackups.toList();
 
-  bool get isGoogleConnected => googleDriveService.isSignedIn;
-  String? get googleUserEmail => googleDriveService.userEmail;
-  String? get googleUserName => googleDriveService.userDisplayName;
+  bool get isGoogleConnected =>
+      _isGoogleConnected.value || googleDriveService.isSignedIn;
+  String? get googleUserEmail =>
+      _googleUserEmail.value ?? googleDriveService.userEmail;
+  String? get googleUserName =>
+      _googleUserName.value ?? googleDriveService.userDisplayName;
+  String? get googleClientId => _googleClientId.value;
+  bool get hasGoogleClientId =>
+      (_googleClientId.value != null &&
+          _googleClientId.value!.trim().isNotEmpty) ||
+      Core.defaultGoogleClientId.isNotEmpty;
+
+  /// Define e persiste o Google Client ID nas configurações locais.
+  Future<void> setGoogleClientId(String clientId) async {
+    final trimmed = clientId.trim();
+    mobx.runInAction(() {
+      _googleClientId.value = trimmed;
+    });
+    try {
+      await database.setSetting('google_client_id', trimmed);
+    } catch (_) {}
+  }
 
   /// Carrega as preferências persistidas no SQLite e tenta recuperar sessão silenciosa.
   Future<void> loadSettings() async {
     try {
       final autoBackupStr = await database.getSetting(keyGDriveAutoBackupEnabled);
       final lastTimestampStr = await database.getSetting(keyLastGDriveBackupTimestamp);
+      final savedClientId = await database.getSetting('google_client_id');
 
       DateTime? parsedTime;
       if (lastTimestampStr != null && lastTimestampStr.isNotEmpty) {
@@ -83,16 +114,28 @@ class BackupController {
       }
 
       final autoBackup = autoBackupStr == 'true';
+      final effectiveClientId = (savedClientId != null && savedClientId.isNotEmpty)
+          ? savedClientId
+          : Core.defaultGoogleClientId;
 
       mobx.runInAction(() {
         _isAutoBackupEnabled.value = autoBackup;
         _lastBackupTime.value = parsedTime;
+        if (effectiveClientId.isNotEmpty) {
+          _googleClientId.value = effectiveClientId;
+        }
       });
 
       // Tenta recuperar sessão silenciosamente se não estiver conectado
       if (!googleDriveService.isSignedIn) {
         await googleDriveService.signInSilently();
       }
+
+      mobx.runInAction(() {
+        _isGoogleConnected.value = googleDriveService.isSignedIn;
+        _googleUserEmail.value = googleDriveService.userEmail;
+        _googleUserName.value = googleDriveService.userDisplayName;
+      });
 
       if (googleDriveService.isSignedIn) {
         await fetchDriveBackups();
@@ -118,17 +161,33 @@ class BackupController {
   }
 
   /// Conecta interativamente a conta Google Drive do usuário.
-  Future<bool> connectGoogleDrive() async {
+  Future<bool> connectGoogleDrive({String? clientId}) async {
     clearMessages();
     mobx.runInAction(() => _isLoading.value = true);
 
     try {
-      final account = await googleDriveService.signIn();
-      if (account != null) {
+      final effectiveClientId = (clientId != null && clientId.trim().isNotEmpty)
+          ? clientId.trim()
+          : (_googleClientId.value ?? Core.defaultGoogleClientId);
+
+      final account = await googleDriveService.signIn(
+        clientId: effectiveClientId.isNotEmpty ? effectiveClientId : null,
+      );
+
+      if (account != null || googleDriveService.isSignedIn) {
+        if (clientId != null && clientId.trim().isNotEmpty) {
+          await setGoogleClientId(clientId.trim());
+        }
         await fetchDriveBackups();
+        final email = googleDriveService.userEmail ?? account?.email ?? '';
+        final displayName =
+            googleDriveService.userDisplayName ?? account?.displayName;
         mobx.runInAction(() {
+          _isGoogleConnected.value = true;
+          _googleUserEmail.value = email;
+          _googleUserName.value = displayName;
           _successMessage.value =
-              'Conectado ao Google Drive com sucesso (${account.email})';
+              'Conectado ao Google Drive com sucesso${email.isNotEmpty ? ' ($email)' : ''}';
         });
         return true;
       }
@@ -152,6 +211,9 @@ class BackupController {
       await googleDriveService.signOut();
       await setAutoBackupEnabled(false);
       mobx.runInAction(() {
+        _isGoogleConnected.value = false;
+        _googleUserEmail.value = null;
+        _googleUserName.value = null;
         _driveBackups.clear();
         _successMessage.value = 'Google Drive desconectado';
       });

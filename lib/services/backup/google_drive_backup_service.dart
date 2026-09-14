@@ -45,6 +45,7 @@ class GoogleDriveBackupService {
     this._signInSilentlyHandler,
     this._signOutHandler,
     GoogleSignInAccount? initialUser,
+    this.clientId,
   })  : _googleSignIn = googleSignIn ?? GoogleSignIn.instance,
         _injectedDriveApi = driveApi,
         _currentUser = initialUser;
@@ -57,30 +58,54 @@ class GoogleDriveBackupService {
   final Future<GoogleSignInAccount?> Function()? _signInHandler;
   final Future<GoogleSignInAccount?> Function()? _signInSilentlyHandler;
   final Future<void> Function()? _signOutHandler;
+  final String? clientId;
 
   GoogleSignInAccount? _currentUser;
+  String? _cachedAccessToken;
+  String? _webUserEmail;
+  String? _webUserDisplayName;
+  String? _webUserPhotoUrl;
   bool _initialized = false;
 
   GoogleSignIn get googleSignIn => _googleSignIn;
   GoogleSignInAccount? get currentUser => _currentUser;
-  bool get isSignedIn => _currentUser != null;
-  String? get userEmail => _currentUser?.email;
-  String? get userDisplayName => _currentUser?.displayName;
-  String? get userPhotoUrl => _currentUser?.photoUrl;
+  bool get isSignedIn =>
+      _currentUser != null ||
+      (_cachedAccessToken != null && _cachedAccessToken!.isNotEmpty);
+  String? get userEmail => _currentUser?.email ?? _webUserEmail;
+  String? get userDisplayName =>
+      _currentUser?.displayName ?? _webUserDisplayName;
+  String? get userPhotoUrl => _currentUser?.photoUrl ?? _webUserPhotoUrl;
 
-  Future<void> _ensureInitialized() async {
+  Future<void> _ensureInitialized({String? clientId}) async {
     if (!_initialized) {
+      final effectiveClientId = (clientId != null && clientId.trim().isNotEmpty)
+          ? clientId.trim()
+          : (this.clientId != null && this.clientId!.trim().isNotEmpty
+              ? this.clientId!.trim()
+              : null);
+
+      if (!_googleSignIn.supportsAuthenticate() &&
+          (effectiveClientId == null || effectiveClientId.isEmpty)) {
+        throw StateError(
+          'Google Client ID não configurado. Por favor, configure o Google Client ID para habilitar a conexão com o Google Drive.',
+        );
+      }
+
       try {
-        await _googleSignIn.initialize();
+        await _googleSignIn.initialize(
+          clientId: effectiveClientId,
+        );
         _initialized = true;
       } catch (e, stack) {
         log('Erro ao inicializar GoogleSignIn: $e', stackTrace: stack);
+        rethrow;
       }
     }
   }
 
-  /// Realiza login interativo na conta Google.
-  Future<GoogleSignInAccount?> signIn() async {
+  /// Realiza login e autorização interativa na conta Google Drive.
+  Future<GoogleSignInAccount?> signIn({String? clientId}) async {
     try {
       final handler = _signInHandler;
       if (handler != null) {
@@ -88,10 +113,33 @@ class GoogleDriveBackupService {
         _currentUser = account;
         return account;
       }
-      await _ensureInitialized();
-      final account = await _googleSignIn.authenticate();
-      _currentUser = account;
-      return account;
+
+      await _ensureInitialized(clientId: clientId);
+
+      if (_googleSignIn.supportsAuthenticate()) {
+        final account = await _googleSignIn.authenticate();
+        _currentUser = account;
+        return account;
+      } else {
+        // No Web, o Google Identity Services (GIS) não suporta authenticate().
+        // Solicita autorização de escopos via authorizationClient.
+        final auth = await _googleSignIn.authorizationClient.authorizeScopes([
+          drive.DriveApi.driveFileScope,
+        ]);
+        _cachedAccessToken = auth.accessToken;
+
+        // Tenta obter o perfil do usuário via Drive API
+        try {
+          final api = await getDriveApi();
+          final about = await api.about.get($fields: 'user');
+          _webUserEmail = about.user?.emailAddress;
+          _webUserDisplayName = about.user?.displayName;
+          _webUserPhotoUrl = about.user?.photoLink;
+        } catch (e) {
+          log('Aviso ao obter perfil do usuário via Drive API: $e');
+        }
+        return _currentUser;
+      }
     } catch (e, stack) {
       log('Erro ao autenticar no Google Sign-In: $e', stackTrace: stack);
       rethrow;
@@ -106,6 +154,11 @@ class GoogleDriveBackupService {
         final account = await handler();
         _currentUser = account;
         return account;
+      }
+      if (!_initialized &&
+          !_googleSignIn.supportsAuthenticate() &&
+          (clientId == null || clientId!.isEmpty)) {
+        return null;
       }
       await _ensureInitialized();
       final account = await _googleSignIn.attemptLightweightAuthentication();
@@ -125,10 +178,18 @@ class GoogleDriveBackupService {
       if (handler != null) {
         await handler();
         _currentUser = null;
+        _cachedAccessToken = null;
+        _webUserEmail = null;
+        _webUserDisplayName = null;
+        _webUserPhotoUrl = null;
         return;
       }
       await _googleSignIn.signOut();
       _currentUser = null;
+      _cachedAccessToken = null;
+      _webUserEmail = null;
+      _webUserDisplayName = null;
+      _webUserPhotoUrl = null;
     } catch (e, stack) {
       log('Erro ao deslogar do Google Sign-In: $e', stackTrace: stack);
       rethrow;
@@ -141,24 +202,36 @@ class GoogleDriveBackupService {
       return _injectedDriveApi;
     }
 
-    final user = currentUser;
-    if (user == null) {
+    if (!isSignedIn) {
       throw StateError('Usuário não autenticado no Google');
     }
 
-    if (driveApiBuilder != null) {
-      return await driveApiBuilder!(user);
+    if (driveApiBuilder != null && currentUser != null) {
+      return await driveApiBuilder!(currentUser!);
     }
 
-    var auth = await user.authorizationClient.authorizationForScopes([
-      drive.DriveApi.driveFileScope,
-    ]);
+    String? accessToken;
+    if (_cachedAccessToken != null && _cachedAccessToken!.isNotEmpty) {
+      accessToken = _cachedAccessToken;
+    } else if (currentUser != null) {
+      var auth = await currentUser!.authorizationClient.authorizationForScopes([
+        drive.DriveApi.driveFileScope,
+      ]);
+      auth ??= await currentUser!.authorizationClient.authorizeScopes([
+        drive.DriveApi.driveFileScope,
+      ]);
+      accessToken = auth.accessToken;
+    } else {
+      final auth = await _googleSignIn.authorizationClient.authorizeScopes([
+        drive.DriveApi.driveFileScope,
+      ]);
+      accessToken = auth.accessToken;
+      _cachedAccessToken = accessToken;
+    }
 
-    auth ??= await user.authorizationClient.authorizeScopes([
-      drive.DriveApi.driveFileScope,
-    ]);
-
-    final accessToken = auth.accessToken;
+    if (accessToken == null || accessToken.isEmpty) {
+      throw StateError('Falha ao obter token de acesso para o Google Drive');
+    }
 
     final headers = <String, String>{
       'Authorization': 'Bearer $accessToken',

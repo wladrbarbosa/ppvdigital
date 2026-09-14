@@ -118,7 +118,7 @@ class FakeGoogleDriveBackupService extends GoogleDriveBackupService {
   String? get userDisplayName => isSignedInValue ? 'GDrive User' : null;
 
   @override
-  Future<FakeGoogleSignInAccount?> signIn() async {
+  Future<FakeGoogleSignInAccount?> signIn({String? clientId}) async {
     if (shouldThrowSignIn) throw Exception('Sign in failed');
     isSignedInValue = true;
     return FakeGoogleSignInAccount(email: 'gdrive_user@gmail.com');

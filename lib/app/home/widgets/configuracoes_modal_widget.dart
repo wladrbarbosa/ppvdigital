@@ -283,6 +283,80 @@ class _ConfiguracoesModalWidgetState extends State<ConfiguracoesModalWidget> {
     );
   }
 
+  Future<void> _handleConnectGoogleDrive(BuildContext context) async {
+    if (!Core.getIt.isRegistered<BackupController>()) return;
+    final messenger = ScaffoldMessenger.of(context);
+    final backupController = Core.backupController;
+
+    // Se o Client ID não estiver configurado, solicita ao usuário via diálogo amigável
+    if (!backupController.hasGoogleClientId) {
+      final enteredId = await BackupRestoreDialog.showGoogleClientIdDialog(
+        context: context,
+        initialValue: backupController.googleClientId,
+      );
+      if (enteredId == null || enteredId.trim().isEmpty) {
+        return; // Usuário cancelou ou não preencheu
+      }
+
+      final success = await backupController.connectGoogleDrive(
+        clientId: enteredId.trim(),
+      );
+
+      if (!context.mounted) return;
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text(
+            success
+                ? (backupController.successMessage ??
+                    'Conectado ao Google Drive com sucesso!')
+                : (backupController.errorMessage ??
+                    'Falha ao conectar ao Google Drive.'),
+          ),
+          backgroundColor:
+              success ? AppColors.pastelSuccess : AppColors.pastelError,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
+    }
+
+    // Já possui Client ID configurado: conecta diretamente
+    final success = await backupController.connectGoogleDrive();
+    if (!context.mounted) return;
+    messenger.showSnackBar(
+      SnackBar(
+        content: Text(
+          success
+              ? (backupController.successMessage ??
+                  'Conectado ao Google Drive com sucesso!')
+              : (backupController.errorMessage ??
+                  'Falha ao conectar ao Google Drive.'),
+        ),
+        backgroundColor:
+            success ? AppColors.pastelSuccess : AppColors.pastelError,
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
+  }
+
+  Future<void> _handleDisconnectGoogleDrive(BuildContext context) async {
+    if (!Core.getIt.isRegistered<BackupController>()) return;
+    final messenger = ScaffoldMessenger.of(context);
+    final backupController = Core.backupController;
+
+    await backupController.disconnectGoogleDrive();
+    if (!context.mounted) return;
+    messenger.showSnackBar(
+      SnackBar(
+        content: Text(
+          backupController.successMessage ?? 'Google Drive desconectado.',
+        ),
+        backgroundColor: AppColors.pastelSuccess,
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
+  }
+
   String _formatDateTime(DateTime dt) {
     try {
       return DateFormat("dd/MM/yyyy 'às' HH:mm", 'pt_BR').format(dt);
@@ -779,8 +853,10 @@ class _ConfiguracoesModalWidgetState extends State<ConfiguracoesModalWidget> {
                                 ),
                                 if (backupController.isGoogleConnected)
                                   TextButton.icon(
-                                    onPressed: () =>
-                                        backupController.disconnectGoogleDrive(),
+                                    onPressed: backupController.isLoading
+                                        ? null
+                                        : () => _handleDisconnectGoogleDrive(
+                                            context),
                                     icon: const Icon(
                                       Icons.logout_rounded,
                                       size: 14,
@@ -790,17 +866,52 @@ class _ConfiguracoesModalWidgetState extends State<ConfiguracoesModalWidget> {
                                       style: TextStyle(fontSize: 11),
                                     ),
                                   )
-                                else
-                                  FilledButton.tonalIcon(
-                                    onPressed: () =>
-                                        backupController.connectGoogleDrive(),
+                                else ...[
+                                  IconButton(
+                                    tooltip: 'Configurar Google Client ID',
                                     icon: const Icon(
-                                      Icons.login_rounded,
-                                      size: 14,
+                                      Icons.settings_outlined,
+                                      size: 16,
                                     ),
-                                    label: const Text(
-                                      'Conectar',
-                                      style: TextStyle(fontSize: 11),
+                                    onPressed: () async {
+                                      final enteredId =
+                                          await BackupRestoreDialog
+                                              .showGoogleClientIdDialog(
+                                        context: context,
+                                        initialValue:
+                                            backupController.googleClientId,
+                                      );
+                                      if (enteredId != null &&
+                                          enteredId.trim().isNotEmpty) {
+                                        await backupController
+                                            .setGoogleClientId(enteredId.trim());
+                                      }
+                                    },
+                                  ),
+                                  FilledButton.tonalIcon(
+                                    onPressed: (backupController.isLoading ||
+                                            backupController.isBackingUp ||
+                                            backupController.isRestoring)
+                                        ? null
+                                        : () =>
+                                            _handleConnectGoogleDrive(context),
+                                    icon: backupController.isLoading
+                                        ? const SizedBox(
+                                            width: 14,
+                                            height: 14,
+                                            child: CircularProgressIndicator(
+                                              strokeWidth: 2,
+                                            ),
+                                          )
+                                        : const Icon(
+                                            Icons.login_rounded,
+                                            size: 14,
+                                          ),
+                                    label: Text(
+                                      backupController.isLoading
+                                          ? 'Conectando...'
+                                          : 'Conectar',
+                                      style: const TextStyle(fontSize: 11),
                                     ),
                                     style: FilledButton.styleFrom(
                                       padding: const EdgeInsets.symmetric(
@@ -812,35 +923,41 @@ class _ConfiguracoesModalWidgetState extends State<ConfiguracoesModalWidget> {
                                       ),
                                     ),
                                   ),
+                                ],
                               ],
                             ),
                             const Divider(height: AppSpacing.lg),
 
                             // Switch de Backup Automático Diário
-                            SwitchListTile(
-                              contentPadding: EdgeInsets.zero,
-                              value: backupController.isAutoBackupEnabled,
-                              onChanged: backupController.isGoogleConnected
-                                  ? (val) => backupController
-                                      .setAutoBackupEnabled(val)
-                                  : null,
-                              title: Text(
-                                'Backup Automático Diário',
-                                style: TextStyle(
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w600,
-                                  color: backupController.isGoogleConnected
-                                      ? textColor
-                                      : textSecondaryColor,
+                            Material(
+                              type: MaterialType.transparency,
+                              child: SwitchListTile(
+                                contentPadding: EdgeInsets.zero,
+                                value: backupController.isAutoBackupEnabled,
+                                onChanged: backupController.isGoogleConnected
+                                    ? (val) => backupController
+                                        .setAutoBackupEnabled(val)
+                                    : null,
+                                title: Text(
+                                  'Backup Automático Diário',
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w600,
+                                    color: backupController.isGoogleConnected
+                                        ? textColor
+                                        : textSecondaryColor,
+                                  ),
                                 ),
-                              ),
-                              subtitle: Text(
-                                backupController.lastBackupTime != null
-                                    ? 'Último envio: ${_formatDateTime(backupController.lastBackupTime!)}'
-                                    : 'Envia um backup para a pasta PPVDigital Backups diariamente',
-                                style: TextStyle(
-                                  fontSize: 11,
-                                  color: textSecondaryColor,
+                                subtitle: Text(
+                                  backupController.lastBackupTime != null
+                                      ? 'Último envio: ${_formatDateTime(backupController.lastBackupTime!)}'
+                                      : (backupController.isGoogleConnected
+                                          ? 'Sincroniza automaticamente a cada 24h'
+                                          : 'Conecte o Google Drive para habilitar'),
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    color: textSecondaryColor,
+                                  ),
                                 ),
                               ),
                             ),
