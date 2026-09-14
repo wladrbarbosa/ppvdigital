@@ -288,39 +288,6 @@ class _ConfiguracoesModalWidgetState extends State<ConfiguracoesModalWidget> {
     final messenger = ScaffoldMessenger.of(context);
     final backupController = Core.backupController;
 
-    // Se o Client ID não estiver configurado, solicita ao usuário via diálogo amigável
-    if (!backupController.hasGoogleClientId) {
-      final enteredId = await BackupRestoreDialog.showGoogleClientIdDialog(
-        context: context,
-        initialValue: backupController.googleClientId,
-      );
-      if (enteredId == null || enteredId.trim().isEmpty) {
-        return; // Usuário cancelou ou não preencheu
-      }
-
-      final success = await backupController.connectGoogleDrive(
-        clientId: enteredId.trim(),
-      );
-
-      if (!context.mounted) return;
-      messenger.showSnackBar(
-        SnackBar(
-          content: Text(
-            success
-                ? (backupController.successMessage ??
-                    'Conectado ao Google Drive com sucesso!')
-                : (backupController.errorMessage ??
-                    'Falha ao conectar ao Google Drive.'),
-          ),
-          backgroundColor:
-              success ? AppColors.pastelSuccess : AppColors.pastelError,
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
-      return;
-    }
-
-    // Já possui Client ID configurado: conecta diretamente
     final success = await backupController.connectGoogleDrive();
     if (!context.mounted) return;
     messenger.showSnackBar(
@@ -866,28 +833,7 @@ class _ConfiguracoesModalWidgetState extends State<ConfiguracoesModalWidget> {
                                       style: TextStyle(fontSize: 11),
                                     ),
                                   )
-                                else ...[
-                                  IconButton(
-                                    tooltip: 'Configurar Google Client ID',
-                                    icon: const Icon(
-                                      Icons.settings_outlined,
-                                      size: 16,
-                                    ),
-                                    onPressed: () async {
-                                      final enteredId =
-                                          await BackupRestoreDialog
-                                              .showGoogleClientIdDialog(
-                                        context: context,
-                                        initialValue:
-                                            backupController.googleClientId,
-                                      );
-                                      if (enteredId != null &&
-                                          enteredId.trim().isNotEmpty) {
-                                        await backupController
-                                            .setGoogleClientId(enteredId.trim());
-                                      }
-                                    },
-                                  ),
+                                else
                                   FilledButton.tonalIcon(
                                     onPressed: (backupController.isLoading ||
                                             backupController.isBackingUp ||
@@ -923,7 +869,6 @@ class _ConfiguracoesModalWidgetState extends State<ConfiguracoesModalWidget> {
                                       ),
                                     ),
                                   ),
-                                ],
                               ],
                             ),
                             const Divider(height: AppSpacing.lg),

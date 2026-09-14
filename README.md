@@ -154,7 +154,7 @@ Permite ao usuário salvaguardar e recuperar integralmente seu ecossistema pesso
   - Criação e reutilização automática de pasta dedicada no Drive (`PPVDigital_Backups`).
   - **Sincronização Diária em Segundo Plano**: Verificação periódica a cada 24 horas no ciclo de vida da aplicação (`AppLifecycleState.resumed`), realizando upload transparente sem travar ou bloquear a interface do usuário.
   - **Política de Retenção Móvel de 30 Dias**: Rotação automática de backups no Google Drive mantendo snapshots das últimas 30 datas e excluindo versões mais antigas para preservar espaço de armazenamento.
-  - **Configuração de Google Client ID (Web & Multiplataforma)**: Suporte a OAuth2 com Client ID configurável via `--dart-define=GOOGLE_CLIENT_ID=...` ou interativamente pelo usuário no modal de configurações, salvo em `AppSettings`. No Flutter Web, utiliza `authorizationClient.authorizeScopes` para integração com `google_sign_in: 7.2.0` sem necessidade de downgrades.
+  - **Experiência Transparente para o Usuário Final**: Conexão simples e direta com um clique via OAuth2 nativo, sem exigir que o usuário final acesse o Google Cloud Console ou configure chaves técnicas. O Client ID pode ser fornecido no build via `--dart-define=GOOGLE_CLIENT_ID=...` ou herdado da configuração do ambiente. No Flutter Web, utiliza `authorizationClient.authorizeScopes` para integração moderna com `google_sign_in: 7.2.0`.
 - **Cobertura Temporal Irrestrita (Finanças & Hábitos)**:
   - Extração paginada de todas as 10 coleções do usuário sem filtros de `dataCompetencia`, garantindo que transações do passado histórico, presente corrente e parcelas/recorrências futuras permaneçam 100% preservadas.
 - **Integridade Referencial em 4 Fases**:

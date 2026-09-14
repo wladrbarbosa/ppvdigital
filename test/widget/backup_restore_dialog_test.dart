@@ -269,49 +269,6 @@ void main() {
 
       expect(pastedResult, '{"version": 1}');
     });
-
-    testWidgets(
-        'showGoogleClientIdDialog exibe campo e retorna Client ID inserido',
-        (tester) async {
-      String? enteredClientId;
-
-      await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(
-            body: Builder(
-              builder: (context) => ElevatedButton(
-                onPressed: () async {
-                  enteredClientId =
-                      await BackupRestoreDialog.showGoogleClientIdDialog(
-                    context: context,
-                    initialValue: 'antigo-client-id',
-                  );
-                },
-                child: const Text('Configurar Client ID'),
-              ),
-            ),
-          ),
-        ),
-      );
-
-      await tester.tap(find.text('Configurar Client ID'));
-      await tester.pumpAndSettle();
-
-      expect(find.text('Configurar Google Drive'), findsOneWidget);
-      expect(find.text('antigo-client-id'), findsOneWidget);
-
-      await tester.enterText(
-        find.byKey(const Key('google_client_id_field')),
-        'novo-client-id-123.apps.googleusercontent.com',
-      );
-      await tester.tap(find.text('Salvar e Conectar'));
-      await tester.pumpAndSettle();
-
-      expect(
-        enteredClientId,
-        'novo-client-id-123.apps.googleusercontent.com',
-      );
-    });
   });
 }
 

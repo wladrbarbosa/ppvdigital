@@ -2,6 +2,7 @@ import 'package:appwrite/appwrite.dart';
 import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 import 'package:googleapis/drive/v3.dart' as drive;
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:ppvdigital/app/home/widgets/configuracoes_modal_widget.dart';
@@ -209,7 +210,7 @@ void main() {
       expect(find.byType(SnackBar), findsOneWidget);
     });
 
-    testWidgets('Toca em Conectar sem Client ID configurado abre showGoogleClientIdDialog', (tester) async {
+    testWidgets('Toca em Conectar inicia fluxo OAuth2 e conecta com sucesso', (tester) async {
       tester.view.physicalSize = const Size(1000, 1400);
       tester.view.devicePixelRatio = 1.0;
       addTearDown(() {
@@ -232,8 +233,9 @@ void main() {
       await tester.tap(find.text('Conectar'));
       await tester.pumpAndSettle();
 
-      expect(find.text('Configurar Google Drive'), findsOneWidget);
-      expect(find.text('Salvar e Conectar'), findsOneWidget);
+      expect(find.byType(SnackBar), findsOneWidget);
+      expect(find.text('Desconectar'), findsOneWidget);
+      expect(find.text('Conectado como teste@gmail.com'), findsOneWidget);
     });
 
     testWidgets('Exibe estado conectado e permite desconectar com sucesso', (tester) async {
@@ -350,6 +352,12 @@ class FakeGoogleDriveBackupService extends GoogleDriveBackupService {
 
   @override
   String? get userDisplayName => isSignedInValue ? 'Teste User' : null;
+
+  @override
+  Future<GoogleSignInAccount?> signIn({String? clientId}) async {
+    isSignedInValue = true;
+    return null;
+  }
 
   @override
   Future<void> signOut() async {

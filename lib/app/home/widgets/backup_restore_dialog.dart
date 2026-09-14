@@ -22,12 +22,15 @@ class BackupRestoreDialog {
       barrierDismissible: false,
       builder: (dialogContext) {
         final isDark = Theme.of(dialogContext).brightness == Brightness.dark;
-        final textColor =
-            isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight;
-        final textSecondary =
-            isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight;
-        final surfaceColor =
-            isDark ? AppColors.surfaceDark : AppColors.surfaceLight;
+        final textColor = isDark
+            ? AppColors.textPrimaryDark
+            : AppColors.textPrimaryLight;
+        final textSecondary = isDark
+            ? AppColors.textSecondaryDark
+            : AppColors.textSecondaryLight;
+        final surfaceColor = isDark
+            ? AppColors.surfaceDark
+            : AppColors.surfaceLight;
 
         return PopScope(
           canPop: false,
@@ -96,14 +99,18 @@ class BackupRestoreDialog {
       context: context,
       builder: (dialogContext) {
         final isDark = Theme.of(dialogContext).brightness == Brightness.dark;
-        final textColor =
-            isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight;
-        final textSecondary =
-            isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight;
-        final surfaceColor =
-            isDark ? AppColors.surfaceDark : AppColors.surfaceLight;
-        final borderColor =
-            isDark ? AppColors.borderDark : AppColors.borderLight;
+        final textColor = isDark
+            ? AppColors.textPrimaryDark
+            : AppColors.textPrimaryLight;
+        final textSecondary = isDark
+            ? AppColors.textSecondaryDark
+            : AppColors.textSecondaryLight;
+        final surfaceColor = isDark
+            ? AppColors.surfaceDark
+            : AppColors.surfaceLight;
+        final borderColor = isDark
+            ? AppColors.borderDark
+            : AppColors.borderLight;
 
         final currentUserEmail = Core.loginController.email;
         final isDifferentUser =
@@ -235,21 +242,61 @@ class BackupRestoreDialog {
                         ),
                         child: Column(
                           children: [
-                            _buildSummaryRow('Data do Backup', formattedDate, textColor, textSecondary),
+                            _buildSummaryRow(
+                              'Data do Backup',
+                              formattedDate,
+                              textColor,
+                              textSecondary,
+                            ),
                             const Divider(height: AppSpacing.sm),
-                            _buildSummaryRow('Total de Entidades', '${payload.summary.totalRecords}', textColor, textSecondary),
+                            _buildSummaryRow(
+                              'Total de Entidades',
+                              '${payload.summary.totalRecords}',
+                              textColor,
+                              textSecondary,
+                            ),
                             const Divider(height: AppSpacing.sm),
-                            _buildSummaryRow('Transações', '$transacoesCount', textColor, textSecondary),
+                            _buildSummaryRow(
+                              'Transações',
+                              '$transacoesCount',
+                              textColor,
+                              textSecondary,
+                            ),
                             const Divider(height: AppSpacing.sm),
-                            _buildSummaryRow('Contas Financeiras', '$contasCount', textColor, textSecondary),
+                            _buildSummaryRow(
+                              'Contas Financeiras',
+                              '$contasCount',
+                              textColor,
+                              textSecondary,
+                            ),
                             const Divider(height: AppSpacing.sm),
-                            _buildSummaryRow('Tarefas e Hábitos', '$tarefasCount', textColor, textSecondary),
+                            _buildSummaryRow(
+                              'Tarefas e Hábitos',
+                              '$tarefasCount',
+                              textColor,
+                              textSecondary,
+                            ),
                             const Divider(height: AppSpacing.sm),
-                            _buildSummaryRow('Histórico de Execuções', '$historicoCount', textColor, textSecondary),
+                            _buildSummaryRow(
+                              'Histórico de Execuções',
+                              '$historicoCount',
+                              textColor,
+                              textSecondary,
+                            ),
                             const Divider(height: AppSpacing.sm),
-                            _buildSummaryRow('Categorias (Total)', '$categoriasCount', textColor, textSecondary),
+                            _buildSummaryRow(
+                              'Categorias (Total)',
+                              '$categoriasCount',
+                              textColor,
+                              textSecondary,
+                            ),
                             const Divider(height: AppSpacing.sm),
-                            _buildSummaryRow('Contatos', '$contatosCount', textColor, textSecondary),
+                            _buildSummaryRow(
+                              'Contatos',
+                              '$contatosCount',
+                              textColor,
+                              textSecondary,
+                            ),
                           ],
                         ),
                       ),
@@ -279,10 +326,12 @@ class BackupRestoreDialog {
                             padding: const EdgeInsets.all(AppSpacing.sm),
                             decoration: BoxDecoration(
                               color: cleanFirst
-                                  ? AppColors.pastelErrorContainer.withValues(alpha: 0.3)
+                                  ? AppColors.pastelErrorContainer.withValues(
+                                      alpha: 0.3,
+                                    )
                                   : isDark
-                                      ? AppColors.surfaceDark
-                                      : AppColors.backgroundLight,
+                                  ? AppColors.surfaceDark
+                                  : AppColors.backgroundLight,
                               borderRadius: AppRadius.roundedMd,
                               border: Border.all(
                                 color: cleanFirst
@@ -304,7 +353,8 @@ class BackupRestoreDialog {
                                 const SizedBox(width: AppSpacing.xs),
                                 Expanded(
                                   child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
                                     children: [
                                       Text(
                                         'Substituição Limpa (Limpar antes de restaurar)',
@@ -369,7 +419,7 @@ class BackupRestoreDialog {
     required BuildContext context,
     required BackupController controller,
     required Future<void> Function(DriveBackupItem item, bool cleanReplace)
-        onSelect,
+    onSelect,
   }) {
     // Dispara recarregamento da lista de backups no Drive
     controller.fetchDriveBackups();
@@ -378,12 +428,15 @@ class BackupRestoreDialog {
       context: context,
       builder: (dialogContext) {
         final isDark = Theme.of(dialogContext).brightness == Brightness.dark;
-        final textColor =
-            isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight;
-        final textSecondary =
-            isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight;
-        final surfaceColor =
-            isDark ? AppColors.surfaceDark : AppColors.surfaceLight;
+        final textColor = isDark
+            ? AppColors.textPrimaryDark
+            : AppColors.textPrimaryLight;
+        final textSecondary = isDark
+            ? AppColors.textSecondaryDark
+            : AppColors.textSecondaryLight;
+        final surfaceColor = isDark
+            ? AppColors.surfaceDark
+            : AppColors.surfaceLight;
 
         return AlertDialog(
           backgroundColor: surfaceColor,
@@ -445,9 +498,7 @@ class BackupRestoreDialog {
                 if (controller.driveBackupsLoading) {
                   return const SizedBox(
                     height: 180,
-                    child: Center(
-                      child: CircularProgressIndicator(),
-                    ),
+                    child: Center(child: CircularProgressIndicator()),
                   );
                 }
 
@@ -521,13 +572,8 @@ class BackupRestoreDialog {
                         overflow: TextOverflow.ellipsis,
                       ),
                       subtitle: Text(
-                        sizeKb != null
-                            ? '$dateStr • $sizeKb KB'
-                            : dateStr,
-                        style: TextStyle(
-                          fontSize: 11,
-                          color: textSecondary,
-                        ),
+                        sizeKb != null ? '$dateStr • $sizeKb KB' : dateStr,
+                        style: TextStyle(fontSize: 11, color: textSecondary),
                       ),
                       trailing: FilledButton.tonal(
                         style: FilledButton.styleFrom(
@@ -591,7 +637,10 @@ class BackupRestoreDialog {
                             await onSelect(item, cleanReplace);
                           }
                         },
-                        child: const Text('Restaurar', style: TextStyle(fontSize: 12)),
+                        child: const Text(
+                          'Restaurar',
+                          style: TextStyle(fontSize: 12),
+                        ),
                       ),
                     );
                   },
@@ -621,14 +670,18 @@ class BackupRestoreDialog {
       context: context,
       builder: (dialogContext) {
         final isDark = Theme.of(dialogContext).brightness == Brightness.dark;
-        final textColor =
-            isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight;
-        final textSecondary =
-            isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight;
-        final surfaceColor =
-            isDark ? AppColors.surfaceDark : AppColors.surfaceLight;
-        final borderColor =
-            isDark ? AppColors.borderDark : AppColors.borderLight;
+        final textColor = isDark
+            ? AppColors.textPrimaryDark
+            : AppColors.textPrimaryLight;
+        final textSecondary = isDark
+            ? AppColors.textSecondaryDark
+            : AppColors.textSecondaryLight;
+        final surfaceColor = isDark
+            ? AppColors.surfaceDark
+            : AppColors.surfaceLight;
+        final borderColor = isDark
+            ? AppColors.borderDark
+            : AppColors.borderLight;
 
         String? errorMessage;
 
@@ -646,8 +699,10 @@ class BackupRestoreDialog {
                 ),
               ),
               content: ConstrainedBox(
-                constraints:
-                    const BoxConstraints(maxWidth: 500, maxHeight: 300),
+                constraints: const BoxConstraints(
+                  maxWidth: 500,
+                  maxHeight: 300,
+                ),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
@@ -678,7 +733,10 @@ class BackupRestoreDialog {
               actions: [
                 TextButton(
                   onPressed: () => Navigator.of(dialogContext).pop(),
-                  child: Text('Cancelar', style: TextStyle(color: textSecondary)),
+                  child: Text(
+                    'Cancelar',
+                    style: TextStyle(color: textSecondary),
+                  ),
                 ),
                 FilledButton(
                   onPressed: () async {
@@ -706,136 +764,6 @@ class BackupRestoreDialog {
               ],
             );
           },
-        );
-      },
-    );
-  }
-
-  /// Exibe diálogo modal para inserção ou atualização do Google OAuth Client ID.
-  static Future<String?> showGoogleClientIdDialog({
-    required BuildContext context,
-    String? initialValue,
-  }) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-    final surfaceColor =
-        isDark ? AppColors.surfaceDark : AppColors.surfaceLight;
-    final textColor =
-        isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight;
-    final secondaryColor =
-        isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight;
-    final controller = TextEditingController(text: initialValue ?? '');
-
-    return showDialog<String>(
-      context: context,
-      builder: (dialogContext) {
-        return AlertDialog(
-          backgroundColor: surfaceColor,
-          shape: RoundedRectangleBorder(
-            borderRadius: AppRadius.roundedLg,
-          ),
-          title: Row(
-            children: [
-              Icon(
-                Icons.add_to_drive_rounded,
-                color: theme.colorScheme.primary,
-                size: 24,
-              ),
-              const SizedBox(width: AppSpacing.sm),
-              Text(
-                'Configurar Google Drive',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                  color: textColor,
-                ),
-              ),
-            ],
-          ),
-          content: SingleChildScrollView(
-            child: SizedBox(
-              width: 480,
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Text(
-                    'Para sincronizar com o Google Drive, é necessário informar o Client ID de OAuth 2.0 (Aplicativo da Web) gerado no Google Cloud Console.',
-                    style: TextStyle(
-                      fontSize: 13,
-                      color: secondaryColor,
-                      height: 1.4,
-                    ),
-                  ),
-                  const SizedBox(height: AppSpacing.md),
-                  TextField(
-                    key: const Key('google_client_id_field'),
-                    controller: controller,
-                    decoration: InputDecoration(
-                      labelText: 'Google Client ID',
-                      hintText:
-                          'Ex.: 123456789-xyz.apps.googleusercontent.com',
-                      border: OutlineInputBorder(
-                        borderRadius: AppRadius.roundedMd,
-                      ),
-                      prefixIcon: const Icon(Icons.key_rounded, size: 18),
-                      suffixIcon: IconButton(
-                        icon: const Icon(Icons.clear, size: 16),
-                        onPressed: () => controller.clear(),
-                      ),
-                    ),
-                    style: TextStyle(fontSize: 13, color: textColor),
-                  ),
-                  const SizedBox(height: AppSpacing.md),
-                  Container(
-                    padding: const EdgeInsets.all(AppSpacing.sm),
-                    decoration: BoxDecoration(
-                      color: theme.colorScheme.primary.withValues(alpha: 0.08),
-                      borderRadius: AppRadius.roundedMd,
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Como obter seu Client ID:',
-                          style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.bold,
-                            color: theme.colorScheme.primary,
-                          ),
-                        ),
-                        const SizedBox(height: AppSpacing.xs),
-                        Text(
-                          '1. Acesse o Google Cloud Console e crie um projeto.\n'
-                          '2. Ative a "Google Drive API" na biblioteca de APIs.\n'
-                          '3. Em "Tela de consentimento OAuth", preencha seu e-mail.\n'
-                          '4. Em "Credenciais", crie um "ID do cliente OAuth 2.0" do tipo Aplicativo da Web e adicione o domínio do app em Origens JavaScript autorizadas.',
-                          style: TextStyle(
-                            fontSize: 11,
-                            color: secondaryColor,
-                            height: 1.3,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(dialogContext).pop(),
-              child: const Text('Cancelar'),
-            ),
-            FilledButton(
-              onPressed: () {
-                final text = controller.text.trim();
-                Navigator.of(dialogContext).pop(text);
-              },
-              child: const Text('Salvar e Conectar'),
-            ),
-          ],
         );
       },
     );

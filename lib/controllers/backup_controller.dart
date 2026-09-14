@@ -193,8 +193,19 @@ class BackupController {
       }
       return false;
     } catch (e) {
+      final errStr = e.toString();
+      String friendlyMessage;
+      if (errStr.contains('popup_closed_by_user') ||
+          errStr.toLowerCase().contains('cancel')) {
+        friendlyMessage = 'Conexão cancelada.';
+      } else if (errStr.contains('Google Client ID não configurado')) {
+        friendlyMessage =
+            'A sincronização com o Google Drive ainda não foi habilitada no aplicativo.';
+      } else {
+        friendlyMessage = 'Falha ao conectar conta Google: $e';
+      }
       mobx.runInAction(() {
-        _errorMessage.value = 'Falha ao conectar conta Google: $e';
+        _errorMessage.value = friendlyMessage;
       });
       return false;
     } finally {
