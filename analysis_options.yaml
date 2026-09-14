@@ -23,6 +23,8 @@ linter:
     avoid_classes_with_only_static_members: false
 
     avoid_positional_boolean_parameters: false
+    use_primary_constructors: false
+    unnecessary_type_name_in_constructor: false
 
 
     # ------ Enable individual rules ------ #

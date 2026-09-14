@@ -1125,7 +1125,7 @@ class _FinancasLayoutState extends State<FinancasLayout>
           );
         },
       ),
-      floatingActionButtonLocation: ExpandableFab.location,
+      floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
       floatingActionButton: ExpandableFab(
         key: _key,
         distance: 240,

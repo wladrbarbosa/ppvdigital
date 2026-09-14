@@ -5,6 +5,7 @@ import 'package:appwrite/appwrite.dart';
 import 'package:appwrite/enums.dart';
 import 'package:appwrite/models.dart';
 import 'package:mobx/mobx.dart' as mobx;
+import 'package:ppvdigital/controllers/backup_controller.dart';
 import 'package:ppvdigital/core.dart';
 import 'package:ppvdigital/routes.g.dart';
 import 'package:routefly/routefly.dart';
@@ -76,6 +77,10 @@ class LoginController {
       _currentUser.value = user;
       _statusStreamController.add(AuthStatus.authenticated);
     });
+
+    if (Core.getIt.isRegistered<BackupController>()) {
+      Future.microtask(() => Core.backupController.checkAndExecuteDailyBackup());
+    }
   }
 
   Future<void> loadUser() async {

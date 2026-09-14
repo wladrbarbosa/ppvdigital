@@ -8,6 +8,7 @@ import 'package:ppvdigital/app/capacitacao/tarefas_habitos/historico_controller.
 import 'package:ppvdigital/app/capacitacao/tarefas_habitos/tarefas_habitos_controller.dart';
 import 'package:ppvdigital/app/capacitacao/tarefas_habitos/tarefas_habitos_layout.dart';
 import 'package:ppvdigital/app/login/login_controller.dart';
+import 'package:ppvdigital/controllers/backup_controller.dart';
 import 'package:ppvdigital/controllers/theme_controller.dart';
 import 'package:ppvdigital/models/local/app_database.dart';
 import 'package:ppvdigital/repositories/appwrite_financas_repository.dart';
@@ -17,6 +18,9 @@ import 'package:ppvdigital/repositories/drift_tarefa_habito_repository.dart';
 import 'package:ppvdigital/repositories/financas_repository.dart';
 import 'package:ppvdigital/repositories/tarefa_habito_repository.dart';
 import 'package:ppvdigital/services/appwrite_realtime_service.dart';
+import 'package:ppvdigital/services/backup/backup_service.dart';
+import 'package:ppvdigital/services/backup/google_drive_backup_service.dart';
+import 'package:ppvdigital/services/backup/restore_service.dart';
 
 extension HexColor on Color {
   /// String is in the format "aabbcc" or "ffaabbcc" with an optional leading "#".
@@ -65,6 +69,7 @@ class Core {
 
   static Client client = Client().setEndpoint(endpoint).setProject(projectId);
   static Databases databases = Databases(client);
+  static TablesDB tablesDB = TablesDB(client);
 
   static GetIt get getIt => GetIt.instance;
 
@@ -103,6 +108,12 @@ class Core {
   static AppwriteRealtimeService get realtimeService =>
       getIt<AppwriteRealtimeService>();
 
+  static BackupController get backupController => getIt<BackupController>();
+  static BackupService get backupService => getIt<BackupService>();
+  static RestoreService get restoreService => getIt<RestoreService>();
+  static GoogleDriveBackupService get googleDriveBackupService =>
+      getIt<GoogleDriveBackupService>();
+
   static void initialize(AppDatabase dbInstance) {
     if (!getIt.isRegistered<AppDatabase>()) {
       getIt.registerSingleton<AppDatabase>(dbInstance);
@@ -139,6 +150,32 @@ class Core {
       final themeCtrl = ThemeController(dbInstance);
       themeCtrl.loadSettings();
       getIt.registerSingleton<ThemeController>(themeCtrl);
+
+      getIt.registerSingleton<BackupService>(
+        BackupService(
+          tablesDB: tablesDB,
+          localDatabase: dbInstance,
+        ),
+      );
+      getIt.registerSingleton<RestoreService>(
+        RestoreService(
+          tablesDB: tablesDB,
+          localDatabase: dbInstance,
+        ),
+      );
+      getIt.registerSingleton<GoogleDriveBackupService>(
+        GoogleDriveBackupService(),
+      );
+
+      final backupCtrl = BackupController(
+        backupService: getIt<BackupService>(),
+        restoreService: getIt<RestoreService>(),
+        googleDriveService: getIt<GoogleDriveBackupService>(),
+        database: dbInstance,
+        loginController: getIt<LoginController>(),
+      );
+      backupCtrl.loadSettings();
+      getIt.registerSingleton<BackupController>(backupCtrl);
     }
   }
 
@@ -160,6 +197,9 @@ class Core {
     }
     if (getIt.isRegistered<CategoriasController>()) {
       getIt<CategoriasController>().reset();
+    }
+    if (getIt.isRegistered<BackupController>()) {
+      getIt<BackupController>().reset();
     }
   }
 

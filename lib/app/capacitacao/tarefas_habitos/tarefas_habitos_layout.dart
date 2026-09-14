@@ -262,7 +262,7 @@ class TarefasPageState extends State<TarefasPage>
             const Expanded(child: RouterOutlet(defaultWidget: DashboardPage())),
           ],
         ),
-        floatingActionButtonLocation: ExpandableFab.location,
+        floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
         floatingActionButton: ExpandableFab(
           key: _key,
           children: [

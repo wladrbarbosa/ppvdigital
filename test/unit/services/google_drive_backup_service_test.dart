@@ -6,6 +6,41 @@ import 'package:googleapis/drive/v3.dart' as drive;
 import 'package:http/http.dart' as http;
 import 'package:ppvdigital/services/backup/google_drive_backup_service.dart';
 
+class FakeGoogleSignInClientAuthorization
+    implements GoogleSignInClientAuthorization {
+  FakeGoogleSignInClientAuthorization({this.accessToken = 'test_token'});
+
+  @override
+  final String accessToken;
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
+}
+
+class FakeGoogleSignInAuthorizationClient
+    implements GoogleSignInAuthorizationClient {
+  FakeGoogleSignInAuthorizationClient({this.token = 'test_token'});
+
+  final String token;
+  bool returnNullOnAuthorization = false;
+
+  @override
+  Future<GoogleSignInClientAuthorization?> authorizationForScopes(
+      List<String> scopes) async {
+    if (returnNullOnAuthorization) return null;
+    return FakeGoogleSignInClientAuthorization(accessToken: token);
+  }
+
+  @override
+  Future<GoogleSignInClientAuthorization> authorizeScopes(
+      List<String> scopes) async {
+    return FakeGoogleSignInClientAuthorization(accessToken: token);
+  }
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
+}
+
 // ignore: avoid_implementing_value_types
 class FakeGoogleSignInAccount implements GoogleSignInAccount {
   FakeGoogleSignInAccount({
@@ -13,11 +48,8 @@ class FakeGoogleSignInAccount implements GoogleSignInAccount {
     this.displayName = 'Tester Google',
     this.photoUrl = 'https://example.com/photo.jpg',
     this.id = 'user_12345',
-    this.authHeadersMap = const {
-      'Authorization': 'Bearer test_token',
-      'X-Goog-AuthUser': '0',
-    },
-  });
+    FakeGoogleSignInAuthorizationClient? client,
+  }) : _authClient = client ?? FakeGoogleSignInAuthorizationClient();
 
   @override
   final String email;
@@ -31,58 +63,10 @@ class FakeGoogleSignInAccount implements GoogleSignInAccount {
   @override
   final String id;
 
-  final Map<String, String> authHeadersMap;
+  final FakeGoogleSignInAuthorizationClient _authClient;
 
   @override
-  Future<Map<String, String>> get authHeaders async => authHeadersMap;
-
-  @override
-  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
-}
-
-class FakeGoogleSignIn implements GoogleSignIn {
-  FakeGoogleSignIn({this.initialUser});
-
-  GoogleSignInAccount? initialUser;
-  GoogleSignInAccount? _currentUser;
-  bool shouldThrowOnSignIn = false;
-  bool shouldThrowOnSignOut = false;
-  bool shouldThrowOnSignInSilently = false;
-
-  @override
-  GoogleSignInAccount? get currentUser => _currentUser ?? initialUser;
-
-  @override
-  Future<GoogleSignInAccount?> signIn() async {
-    if (shouldThrowOnSignIn) {
-      throw Exception('Falha simulada no signIn');
-    }
-    return _currentUser = initialUser ?? FakeGoogleSignInAccount();
-  }
-
-  @override
-  Future<GoogleSignInAccount?> signInSilently({
-    bool reAuthenticate = false,
-    bool suppressErrors = true,
-  }) async {
-    if (shouldThrowOnSignInSilently) {
-      throw Exception('Falha simulada no signInSilently');
-    }
-    return _currentUser = initialUser ?? FakeGoogleSignInAccount();
-  }
-
-  @override
-  Future<GoogleSignInAccount?> signOut() async {
-    if (shouldThrowOnSignOut) {
-      throw Exception('Falha simulada no signOut');
-    }
-    _currentUser = null;
-    initialUser = null;
-    return null;
-  }
-
-  @override
-  Future<bool> isSignedIn() async => currentUser != null;
+  GoogleSignInAuthorizationClient get authorizationClient => _authClient;
 
   @override
   dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
@@ -252,16 +236,14 @@ void main() {
   });
 
   group('GoogleDriveBackupService - Autenticação & Propriedades', () {
-    test('propriedades refletem o estado do GoogleSignIn', () {
+    test('propriedades refletem o estado do usuário inicial', () {
       final account = FakeGoogleSignInAccount(
         email: 'usuario@gmail.com',
         displayName: 'Usuario Nome',
         photoUrl: 'https://foto.com/1.png',
       );
-      final fakeSignIn = FakeGoogleSignIn(initialUser: account);
-      final service = GoogleDriveBackupService(googleSignIn: fakeSignIn);
+      final service = GoogleDriveBackupService(initialUser: account);
 
-      expect(service.googleSignIn, fakeSignIn);
       expect(service.isSignedIn, isTrue);
       expect(service.userEmail, 'usuario@gmail.com');
       expect(service.userDisplayName, 'Usuario Nome');
@@ -270,8 +252,7 @@ void main() {
     });
 
     test('quando não autenticado, propriedades retornam null/false', () {
-      final fakeSignIn = FakeGoogleSignIn();
-      final service = GoogleDriveBackupService(googleSignIn: fakeSignIn);
+      final service = GoogleDriveBackupService();
 
       expect(service.isSignedIn, isFalse);
       expect(service.userEmail, isNull);
@@ -280,34 +261,41 @@ void main() {
       expect(service.currentUser, isNull);
     });
 
-    test('signIn autentica com sucesso', () async {
-      final fakeSignIn = FakeGoogleSignIn();
-      final service = GoogleDriveBackupService(googleSignIn: fakeSignIn);
+    test('signIn autentica via signInHandler com sucesso', () async {
+      final account = FakeGoogleSignInAccount();
+      final service = GoogleDriveBackupService(
+        signInHandler: () async => account,
+      );
 
       final user = await service.signIn();
-      expect(user, isNotNull);
+      expect(user, account);
       expect(service.isSignedIn, isTrue);
     });
 
     test('signIn propaga exceção caso ocorra erro', () {
-      final fakeSignIn = FakeGoogleSignIn()..shouldThrowOnSignIn = true;
-      final service = GoogleDriveBackupService(googleSignIn: fakeSignIn);
+      final service = GoogleDriveBackupService(
+        signInHandler: () async => throw Exception('Falha simulada no signIn'),
+      );
 
       expect(() => service.signIn(), throwsA(isA<Exception>()));
     });
 
     test('signInSilently autentica com sucesso', () async {
-      final fakeSignIn = FakeGoogleSignIn();
-      final service = GoogleDriveBackupService(googleSignIn: fakeSignIn);
+      final account = FakeGoogleSignInAccount();
+      final service = GoogleDriveBackupService(
+        signInSilentlyHandler: () async => account,
+      );
 
       final user = await service.signInSilently();
-      expect(user, isNotNull);
+      expect(user, account);
       expect(service.isSignedIn, isTrue);
     });
 
     test('signInSilently retorna null caso ocorra exceção silenciosa', () async {
-      final fakeSignIn = FakeGoogleSignIn()..shouldThrowOnSignInSilently = true;
-      final service = GoogleDriveBackupService(googleSignIn: fakeSignIn);
+      final service = GoogleDriveBackupService(
+        signInSilentlyHandler: () async =>
+            throw Exception('Falha silenciosa'),
+      );
 
       final user = await service.signInSilently();
       expect(user, isNull);
@@ -315,15 +303,22 @@ void main() {
 
     test('signOut limpa a sessão e propaga exceção se falhar', () async {
       final account = FakeGoogleSignInAccount();
-      final fakeSignIn = FakeGoogleSignIn(initialUser: account);
-      final service = GoogleDriveBackupService(googleSignIn: fakeSignIn);
+      var signOutCalled = false;
+      final service = GoogleDriveBackupService(
+        initialUser: account,
+        signOutHandler: () async => signOutCalled = true,
+      );
 
       expect(service.isSignedIn, isTrue);
       await service.signOut();
       expect(service.isSignedIn, isFalse);
+      expect(signOutCalled, isTrue);
 
-      fakeSignIn.shouldThrowOnSignOut = true;
-      expect(() => service.signOut(), throwsA(isA<Exception>()));
+      final errorService = GoogleDriveBackupService(
+        initialUser: account,
+        signOutHandler: () async => throw Exception('Sign out error'),
+      );
+      expect(() => errorService.signOut(), throwsA(isA<Exception>()));
     });
   });
 
@@ -337,19 +332,16 @@ void main() {
     });
 
     test('lança StateError se usuário não estiver autenticado', () {
-      final fakeSignIn = FakeGoogleSignIn();
-      final service = GoogleDriveBackupService(googleSignIn: fakeSignIn);
-
+      final service = GoogleDriveBackupService();
       expect(() => service.getDriveApi(), throwsStateError);
     });
 
     test('utiliza driveApiBuilder caso fornecido', () async {
       final account = FakeGoogleSignInAccount();
-      final fakeSignIn = FakeGoogleSignIn(initialUser: account);
       final fakeDrive = FakeDriveApi();
 
       final service = GoogleDriveBackupService(
-        googleSignIn: fakeSignIn,
+        initialUser: account,
         driveApiBuilder: (user) async => fakeDrive,
       );
 
@@ -357,14 +349,23 @@ void main() {
       expect(api, fakeDrive);
     });
 
-    test('cria DriveApi padrão com authHeaders do usuário', () async {
+    test('cria DriveApi com token do authorizationClient', () async {
       final account = FakeGoogleSignInAccount();
-      final fakeSignIn = FakeGoogleSignIn(initialUser: account);
+      final service = GoogleDriveBackupService(initialUser: account);
 
-      final service = GoogleDriveBackupService(googleSignIn: fakeSignIn);
       final api = await service.getDriveApi();
       expect(api, isNotNull);
       expect(api.files, isNotNull);
+    });
+
+    test('solicita autorização de escopo se authorizationForScopes retornar null', () async {
+      final client = FakeGoogleSignInAuthorizationClient()
+        ..returnNullOnAuthorization = true;
+      final account = FakeGoogleSignInAccount(client: client);
+      final service = GoogleDriveBackupService(initialUser: account);
+
+      final api = await service.getDriveApi();
+      expect(api, isNotNull);
     });
   });
 
@@ -376,7 +377,10 @@ void main() {
     setUp(() {
       fakeFiles = FakeFilesResource();
       fakeDrive = FakeDriveApi(files: fakeFiles);
-      service = GoogleDriveBackupService(driveApi: fakeDrive);
+      service = GoogleDriveBackupService(
+        driveApi: fakeDrive,
+        initialUser: FakeGoogleSignInAccount(),
+      );
     });
 
     test('getOrCreateBackupFolder cria nova pasta se não existir', () async {
@@ -496,9 +500,7 @@ void main() {
 
       fakeFiles.filesStore.addAll([recentFile, oldFile1, oldFile2, incompleteFile]);
 
-      final deleted = await service.pruneOldBackups(
-        now: now,
-      );
+      final deleted = await service.pruneOldBackups(now: now);
 
       expect(deleted, 2);
       expect(fakeFiles.filesStore.any((f) => f.id == 'recent_1'), isTrue);
@@ -519,9 +521,7 @@ void main() {
       fakeFiles.filesStore.add(oldFile);
       fakeFiles.failDelete = true;
 
-      final deleted = await service.pruneOldBackups(
-        now: now,
-      );
+      final deleted = await service.pruneOldBackups(now: now);
 
       expect(deleted, 0); // Não incrementou por causa da falha capturada
     });

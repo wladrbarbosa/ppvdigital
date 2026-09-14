@@ -36,29 +36,59 @@ class GoogleDriveBackupService {
     GoogleSignIn? googleSignIn,
     drive.DriveApi? driveApi,
     this.driveApiBuilder,
-  })  : _googleSignIn = googleSignIn ??
-            GoogleSignIn(
-              scopes: [drive.DriveApi.driveFileScope],
-            ),
-        _injectedDriveApi = driveApi;
+    Future<GoogleSignInAccount?> Function()? signInHandler,
+    Future<GoogleSignInAccount?> Function()? signInSilentlyHandler,
+    Future<void> Function()? signOutHandler,
+    GoogleSignInAccount? initialUser,
+  })  : _googleSignIn = googleSignIn ?? GoogleSignIn.instance,
+        _injectedDriveApi = driveApi,
+        _signInHandler = signInHandler,
+        _signInSilentlyHandler = signInSilentlyHandler,
+        _signOutHandler = signOutHandler,
+        _currentUser = initialUser;
 
   static const String backupFolderName = 'PPVDigital Backups';
 
   final GoogleSignIn _googleSignIn;
   final drive.DriveApi? _injectedDriveApi;
   final Future<drive.DriveApi> Function(GoogleSignInAccount account)? driveApiBuilder;
+  final Future<GoogleSignInAccount?> Function()? _signInHandler;
+  final Future<GoogleSignInAccount?> Function()? _signInSilentlyHandler;
+  final Future<void> Function()? _signOutHandler;
+
+  GoogleSignInAccount? _currentUser;
+  bool _initialized = false;
 
   GoogleSignIn get googleSignIn => _googleSignIn;
-  GoogleSignInAccount? get currentUser => _googleSignIn.currentUser;
-  bool get isSignedIn => _googleSignIn.currentUser != null;
-  String? get userEmail => _googleSignIn.currentUser?.email;
-  String? get userDisplayName => _googleSignIn.currentUser?.displayName;
-  String? get userPhotoUrl => _googleSignIn.currentUser?.photoUrl;
+  GoogleSignInAccount? get currentUser => _currentUser;
+  bool get isSignedIn => _currentUser != null;
+  String? get userEmail => _currentUser?.email;
+  String? get userDisplayName => _currentUser?.displayName;
+  String? get userPhotoUrl => _currentUser?.photoUrl;
+
+  Future<void> _ensureInitialized() async {
+    if (!_initialized) {
+      try {
+        await _googleSignIn.initialize();
+        _initialized = true;
+      } catch (e, stack) {
+        log('Erro ao inicializar GoogleSignIn: $e', stackTrace: stack);
+      }
+    }
+  }
 
   /// Realiza login interativo na conta Google.
   Future<GoogleSignInAccount?> signIn() async {
     try {
-      return await _googleSignIn.signIn();
+      if (_signInHandler != null) {
+        final account = await _signInHandler!();
+        _currentUser = account;
+        return account;
+      }
+      await _ensureInitialized();
+      final account = await _googleSignIn.authenticate();
+      _currentUser = account;
+      return account;
     } catch (e, stack) {
       log('Erro ao autenticar no Google Sign-In: $e', stackTrace: stack);
       rethrow;
@@ -68,9 +98,18 @@ class GoogleDriveBackupService {
   /// Tenta restaurar a sessão do Google silenciosamente.
   Future<GoogleSignInAccount?> signInSilently() async {
     try {
-      return await _googleSignIn.signInSilently();
+      if (_signInSilentlyHandler != null) {
+        final account = await _signInSilentlyHandler!();
+        _currentUser = account;
+        return account;
+      }
+      await _ensureInitialized();
+      final account = await _googleSignIn.attemptLightweightAuthentication();
+      _currentUser = account;
+      return account;
     } catch (e, stack) {
-      log('Erro ao autenticar silenciosamente no Google Sign-In: $e', stackTrace: stack);
+      log('Erro ao autenticar silenciosamente no Google Sign-In: $e',
+          stackTrace: stack);
       return null;
     }
   }
@@ -78,7 +117,13 @@ class GoogleDriveBackupService {
   /// Realiza logout e limpa credenciais da sessão.
   Future<void> signOut() async {
     try {
+      if (_signOutHandler != null) {
+        await _signOutHandler!();
+        _currentUser = null;
+        return;
+      }
       await _googleSignIn.signOut();
+      _currentUser = null;
     } catch (e, stack) {
       log('Erro ao deslogar do Google Sign-In: $e', stackTrace: stack);
       rethrow;
@@ -100,7 +145,21 @@ class GoogleDriveBackupService {
       return await driveApiBuilder!(user);
     }
 
-    final headers = await user.authHeaders;
+    var auth = await user.authorizationClient.authorizationForScopes([
+      drive.DriveApi.driveFileScope,
+    ]);
+
+    if (auth == null) {
+      auth = await user.authorizationClient.authorizeScopes([
+        drive.DriveApi.driveFileScope,
+      ]);
+    }
+
+    final accessToken = auth.accessToken;
+
+    final headers = <String, String>{
+      'Authorization': 'Bearer $accessToken',
+    };
     final client = GoogleAuthClient(headers);
     return drive.DriveApi(client);
   }
@@ -110,7 +169,8 @@ class GoogleDriveBackupService {
     final api = customDriveApi ?? await getDriveApi();
 
     // Busca pasta com nome 'PPVDigital Backups' que não esteja na lixeira
-    const query = "mimeType = 'application/vnd.google-apps.folder' and name = '$backupFolderName' and trashed = false";
+    const query =
+        "mimeType = 'application/vnd.google-apps.folder' and name = '$backupFolderName' and trashed = false";
     final result = await api.files.list(
       q: query,
       spaces: 'drive',
@@ -189,7 +249,8 @@ class GoogleDriveBackupService {
   }
 
   /// Baixa o conteúdo de um arquivo de backup por ID.
-  Future<String> downloadBackup(String fileId, {drive.DriveApi? customDriveApi}) async {
+  Future<String> downloadBackup(String fileId,
+      {drive.DriveApi? customDriveApi}) async {
     final api = customDriveApi ?? await getDriveApi();
 
     final dynamic media = await api.files.get(
@@ -198,7 +259,8 @@ class GoogleDriveBackupService {
     );
 
     if (media is! drive.Media) {
-      throw StateError('Falha ao obter stream de download do arquivo do Google Drive');
+      throw StateError(
+          'Falha ao obter stream de download do arquivo do Google Drive');
     }
 
     final bytes = await media.stream.fold<List<int>>(
@@ -234,7 +296,8 @@ class GoogleDriveBackupService {
           await api.files.delete(file.id!);
           deletedCount++;
         } catch (e, stack) {
-          log('Erro ao remover backup antigo (${file.id}): $e', stackTrace: stack);
+          log('Erro ao remover backup antigo (${file.id}): $e',
+              stackTrace: stack);
         }
       }
     }
