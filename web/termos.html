@@ -1,0 +1,582 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <title>Termos de Serviço | Seapruma</title>
+  <meta name="description" content="Termos de Serviço oficiais do aplicativo Seapruma. Condições gerais de uso, direitos de propriedade sobre os dados e regras da plataforma.">
+  <meta name="robots" content="index, follow">
+  
+  <!-- Favicon -->
+  <link rel="icon" type="image/png" href="favicon.png">
+
+  <!-- Tipografia Plus Jakarta Sans -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --bg: #F9FAFC;
+      --surface: #FFFFFF;
+      --border: #E8EDF2;
+      --primary: #7CB9A8;
+      --primary-dark: #589A88;
+      --primary-container: #E4F4EE;
+      --on-primary-container: #175638;
+      --secondary: #9B9CD6;
+      --secondary-container: #EAEBFC;
+      --on-secondary-container: #3E4079;
+      --tertiary: #F5B1A2;
+      --tertiary-container: #FEECE8;
+      --text-primary: #2D3748;
+      --text-secondary: #718096;
+      --text-muted: #A0AEC0;
+      --radius-sm: 6px;
+      --radius-md: 10px;
+      --radius-lg: 16px;
+      --radius-xl: 24px;
+      --radius-pill: 9999px;
+      --shadow-card: 0 4px 24px rgba(0, 0, 0, 0.04);
+      --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.03);
+      --shadow-hover: 0 6px 20px rgba(124, 185, 168, 0.18);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background-color: var(--bg);
+      color: var(--text-primary);
+      line-height: 1.65;
+      font-size: 16px;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+
+    /* Barra Superior / Header */
+    .site-header {
+      background-color: var(--surface);
+      border-bottom: 1px solid var(--border);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      backdrop-filter: blur(8px);
+      background-color: rgba(255, 255, 255, 0.94);
+    }
+
+    .header-container {
+      max-width: 980px;
+      margin: 0 auto;
+      padding: 14px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 16px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      text-decoration: none;
+      color: var(--text-primary);
+    }
+
+    .brand-logo {
+      width: 38px;
+      height: 38px;
+      border-radius: var(--radius-md);
+      background: linear-gradient(135deg, var(--primary) 0%, #A2D5C6 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 2px 8px rgba(124, 185, 168, 0.3);
+      color: #FFFFFF;
+      font-weight: 800;
+      font-size: 19px;
+    }
+
+    .brand-name {
+      font-size: 20px;
+      font-weight: 700;
+      letter-spacing: -0.4px;
+      color: var(--text-primary);
+    }
+
+    .header-nav {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .nav-pill {
+      font-size: 14px;
+      font-weight: 600;
+      padding: 8px 16px;
+      border-radius: var(--radius-pill);
+      text-decoration: none;
+      transition: all 0.2s ease;
+      color: var(--text-secondary);
+      border: 1px solid transparent;
+    }
+
+    .nav-pill:hover {
+      color: var(--primary-dark);
+      background-color: var(--primary-container);
+    }
+
+    .nav-pill.active {
+      background-color: var(--primary-container);
+      color: var(--on-primary-container);
+      border-color: rgba(124, 185, 168, 0.35);
+    }
+
+    .nav-pill.btn-app {
+      background-color: var(--primary);
+      color: #FFFFFF;
+      box-shadow: 0 2px 8px rgba(124, 185, 168, 0.25);
+    }
+
+    .nav-pill.btn-app:hover {
+      background-color: var(--primary-dark);
+      transform: translateY(-1px);
+      box-shadow: var(--shadow-hover);
+    }
+
+    /* Container Principal */
+    .page-wrapper {
+      max-width: 880px;
+      margin: 40px auto 80px auto;
+      padding: 0 20px;
+    }
+
+    /* Card Central do Documento */
+    .document-card {
+      background-color: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-xl);
+      padding: 48px;
+      box-shadow: var(--shadow-card);
+    }
+
+    @media (max-width: 640px) {
+      .document-card {
+        padding: 24px 20px;
+        border-radius: var(--radius-lg);
+      }
+      .page-wrapper {
+        margin: 20px auto 40px auto;
+      }
+    }
+
+    /* Cabeçalho do Documento */
+    .doc-header {
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 28px;
+      margin-bottom: 32px;
+    }
+
+    .doc-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background-color: var(--primary-container);
+      color: var(--on-primary-container);
+      font-size: 13px;
+      font-weight: 600;
+      padding: 4px 12px;
+      border-radius: var(--radius-pill);
+      margin-bottom: 14px;
+    }
+
+    .doc-badge-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background-color: var(--primary);
+    }
+
+    .doc-title {
+      font-size: 32px;
+      font-weight: 800;
+      letter-spacing: -0.6px;
+      color: var(--text-primary);
+      margin-bottom: 10px;
+    }
+
+    .doc-subtitle {
+      font-size: 16px;
+      color: var(--text-secondary);
+    }
+
+    /* Sumário / Table of Contents */
+    .toc-box {
+      background-color: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 20px 24px;
+      margin-bottom: 36px;
+    }
+
+    .toc-title {
+      font-size: 14px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--text-secondary);
+      margin-bottom: 12px;
+    }
+
+    .toc-list {
+      list-style: none;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 8px 24px;
+    }
+
+    .toc-item a {
+      color: var(--text-primary);
+      text-decoration: none;
+      font-size: 14px;
+      font-weight: 500;
+      transition: color 0.15s ease;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .toc-item a::before {
+      content: "•";
+      color: var(--primary);
+      font-size: 18px;
+    }
+
+    .toc-item a:hover {
+      color: var(--primary-dark);
+      text-decoration: underline;
+    }
+
+    /* Conteúdo Jurídico */
+    .doc-content h2 {
+      font-size: 22px;
+      font-weight: 700;
+      color: var(--text-primary);
+      letter-spacing: -0.3px;
+      margin-top: 36px;
+      margin-bottom: 16px;
+      padding-top: 16px;
+      border-top: 1px solid #F1F4F8;
+    }
+
+    .doc-content h2:first-of-type {
+      border-top: none;
+      margin-top: 0;
+      padding-top: 0;
+    }
+
+    .doc-content h3 {
+      font-size: 17px;
+      font-weight: 600;
+      color: var(--text-primary);
+      margin-top: 20px;
+      margin-bottom: 10px;
+    }
+
+    .doc-content p {
+      margin-bottom: 16px;
+      color: #3B4656;
+      line-height: 1.7;
+    }
+
+    .doc-content ul, .doc-content ol {
+      margin-bottom: 18px;
+      padding-left: 24px;
+      color: #3B4656;
+    }
+
+    .doc-content li {
+      margin-bottom: 8px;
+      line-height: 1.6;
+    }
+
+    .doc-content strong {
+      color: var(--text-primary);
+      font-weight: 600;
+    }
+
+    /* Caixas de Alerta e Destaque Pastel */
+    .highlight-card {
+      border-radius: var(--radius-lg);
+      padding: 22px 26px;
+      margin: 24px 0;
+      border-left: 4px solid;
+    }
+
+    .highlight-mint {
+      background-color: var(--primary-container);
+      border-color: var(--primary);
+      color: var(--on-primary-container);
+    }
+
+    .highlight-mint strong {
+      color: var(--on-primary-container);
+    }
+
+    .highlight-lavender {
+      background-color: var(--secondary-container);
+      border-color: var(--secondary);
+      color: var(--on-secondary-container);
+    }
+
+    .highlight-lavender strong {
+      color: var(--on-secondary-container);
+    }
+
+    .highlight-card p {
+      margin-bottom: 10px;
+      color: inherit;
+    }
+
+    .highlight-card p:last-child {
+      margin-bottom: 0;
+    }
+
+    /* Links de Contato */
+    a.link-contact {
+      color: var(--primary-dark);
+      font-weight: 600;
+      text-decoration: underline;
+      text-underline-offset: 3px;
+    }
+
+    a.link-contact:hover {
+      color: var(--primary);
+    }
+
+    /* Rodapé */
+    .site-footer {
+      border-top: 1px solid var(--border);
+      background-color: var(--surface);
+      padding: 36px 20px;
+      margin-top: 40px;
+      text-align: center;
+      color: var(--text-secondary);
+      font-size: 14px;
+    }
+
+    .footer-links {
+      display: flex;
+      justify-content: center;
+      gap: 20px;
+      margin-bottom: 14px;
+      flex-wrap: wrap;
+    }
+
+    .footer-links a {
+      color: var(--text-secondary);
+      text-decoration: none;
+      font-weight: 500;
+      transition: color 0.15s ease;
+    }
+
+    .footer-links a:hover {
+      color: var(--primary-dark);
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- Barra Superior -->
+  <header class="site-header">
+    <div class="header-container">
+      <a href="index.html" class="brand">
+        <div class="brand-logo">S</div>
+        <span class="brand-name">Seapruma</span>
+      </a>
+      <nav class="header-nav">
+        <a href="privacidade.html" class="nav-pill">Política de Privacidade</a>
+        <a href="termos.html" class="nav-pill active">Termos de Serviço</a>
+        <a href="index.html" class="nav-pill btn-app">Acessar o App</a>
+      </nav>
+    </div>
+  </header>
+
+  <!-- Corpo do Documento -->
+  <main class="page-wrapper">
+    <article class="document-card">
+      
+      <!-- Cabeçalho do Documento -->
+      <header class="doc-header">
+        <div class="doc-badge">
+          <span class="doc-badge-dot"></span>
+          Condições Contratuais de Uso
+        </div>
+        <h1 class="doc-title">Termos de Serviço</h1>
+        <p class="doc-subtitle">Última atualização: 15 de setembro de 2026 • Termos e Condições Oficiais do <strong>Seapruma</strong></p>
+      </header>
+
+      <!-- Sumário Rápido -->
+      <nav class="toc-box" aria-label="Sumário dos Termos de Serviço">
+        <div class="toc-title">Índice do Documento</div>
+        <ul class="toc-list">
+          <li class="toc-item"><a href="#aceitacao">1. Aceitação dos Termos</a></li>
+          <li class="toc-item"><a href="#servicos">2. Objeto e Descrição dos Serviços</a></li>
+          <li class="toc-item"><a href="#cadastro-conduta">3. Cadastro, Credenciais e Conduta</a></li>
+          <li class="toc-item"><a href="#propriedade-dados">4. Propriedade dos Dados do Usuário</a></li>
+          <li class="toc-item"><a href="#backups-nuvem">5. Backups em Nuvem e Google Drive</a></li>
+          <li class="toc-item"><a href="#isencao-financeira">6. Isenção de Consultoria Financeira</a></li>
+          <li class="toc-item"><a href="#propriedade-intelectual">7. Propriedade Intelectual da Plataforma</a></li>
+          <li class="toc-item"><a href="#responsabilidade">8. Limitação de Responsabilidade</a></li>
+          <li class="toc-item"><a href="#rescisao">9. Modificações e Rescisão</a></li>
+          <li class="toc-item"><a href="#foro-contato">10. Legislação Aplicável, Foro e Contato</a></li>
+        </ul>
+      </nav>
+
+      <!-- Conteúdo dos Termos -->
+      <div class="doc-content">
+        
+        <section id="aceitacao">
+          <h2>1. Aceitação dos Termos</h2>
+          <p>
+            Bem-vindo ao <strong>Seapruma</strong>! Ao acessar, baixar, instalar ou utilizar o aplicativo Seapruma (seja via navegador web ou aplicativo móvel), você declara expressamente que leu, compreendeu e concorda integralmente com estes <strong>Termos de Serviço</strong> e com a nossa <a href="privacidade.html" class="link-contact">Política de Privacidade</a>.
+          </p>
+          <p>
+            Caso você não concorde com qualquer disposição aqui estabelecida, solicitamos que não prossiga com o cadastro ou descontinue imediatamente o uso do aplicativo.
+          </p>
+        </section>
+
+        <section id="servicos">
+          <h2>2. Objeto e Descrição dos Serviços</h2>
+          <p>
+            O <strong>Seapruma</strong> é uma plataforma moderna desenvolvida para oferecer suporte à autogestão individual e familiar. Entre suas principais funcionalidades estão:
+          </p>
+          <ul>
+            <li><strong>Gestão Financeira Pessoal:</strong> Cadastro de contas financeiras, categorias personalizadas, transações, receitas, despesas, transferências e divisão proporcional de despesas entre contatos selecionados.</li>
+            <li><strong>Hábitos e Rotinas:</strong> Registro e acompanhamento visual da evolução de hábitos diários e semanais.</li>
+            <li><strong>Gestão de Tarefas e Planejamento:</strong> Organização de afazeres com prazos, prioridades e estados de conclusão.</li>
+            <li><strong>Arquitetura Offline-First:</strong> Funcionamento ininterrupto mesmo na ausência de conexão à internet, sincronizando os dados assim que a conectividade for restabelecida.</li>
+          </ul>
+        </section>
+
+        <section id="cadastro-conduta">
+          <h2>3. Cadastro, Credenciais e Conduta do Usuário</h2>
+          <p>
+            Para usufruir dos recursos sincronizados do Seapruma, é necessário criar uma conta com um endereço de e-mail válido e definir uma senha de acesso.
+          </p>
+          <ul>
+            <li><strong>Guarda e Sigilo:</strong> Você é o único responsável pela guarda, confidencialidade e segurança da sua senha. Qualquer ação realizada por meio de sua conta autenticada será considerada de sua responsabilidade direta.</li>
+            <li><strong>Uso Lícito:</strong> Você se compromete a utilizar a plataforma estritamente para finalidades legais e legítimas. É vedado utilizar o serviço para transmissão de códigos maliciosos, exploração de vulnerabilidades, tentativas de engenharia reversa ou sobrecarga dos servidores e APIs do sistema.</li>
+          </ul>
+        </section>
+
+        <section id="propriedade-dados">
+          <h2>4. Propriedade dos Dados do Usuário</h2>
+          <div class="highlight-card highlight-mint">
+            <p><strong>Titularidade Soberana dos seus Dados:</strong></p>
+            <p>
+              Você é e sempre continuará sendo o titular e proprietário exclusivo de todas as informações, lançamentos financeiros, tarefas, anotações e hábitos inseridos no Seapruma.
+            </p>
+            <p>
+              O Seapruma não reivindica qualquer direito de propriedade intelectual ou comercial sobre o conteúdo dos seus registros. Você tem a liberdade de exportar todos os seus dados a qualquer momento nos formatos CSV ou JSON.
+            </p>
+          </div>
+        </section>
+
+        <section id="backups-nuvem">
+          <h2>5. Backups em Nuvem e Integração com Google Drive</h2>
+          <p>
+            Como recurso de conveniência e segurança preventiva contra perdas, o Seapruma oferece suporte a backups criptográficos locais e exportação em nuvem via <strong>Google Drive</strong>.
+          </p>
+          <ul>
+            <li>Ao autorizar a integração com sua conta Google, o Seapruma solicita exclusivamente o escopo restrito <code>drive.file</code>, com autorização unicamente para criar e ler seus próprios arquivos de backup dentro de sua pasta no Drive.</li>
+            <li>A integridade dos backups é validada por meio de verificação hash SHA-256 no momento da restauração.</li>
+            <li>A manutenção de espaço livre e a retenção de acesso à sua conta pessoal do Google Drive são de responsabilidade do próprio usuário.</li>
+          </ul>
+        </section>
+
+        <section id="isencao-financeira">
+          <h2>6. Isenção de Consultoria Financeira Formal</h2>
+          <div class="highlight-card highlight-lavender">
+            <p><strong>Natureza Informativa e de Autogestão:</strong></p>
+            <p>
+              O <strong>Seapruma</strong> é estritamente uma ferramenta de apoio computacional à organização pessoal e ao controle financeiro. A plataforma <strong>NÃO PRESTA</strong> e não substitui consultoria contábil, financeira, fiscal, jurídica ou de investimentos.
+            </p>
+            <p>
+              Todos os cálculos, relatórios e consolidações baseiam-se unicamente nas entradas manuais fornecidas pelo usuário. Quaisquer decisões financeiras, investimentos, pagamentos ou contratações de produtos financeiros são tomadas por sua própria conta e risco.
+            </p>
+          </div>
+        </section>
+
+        <section id="propriedade-intelectual">
+          <h2>7. Propriedade Intelectual da Plataforma</h2>
+          <p>
+            Todos os direitos sobre a marca <strong>Seapruma</strong>, logotipo, identidade visual, Design System Pastel &amp; Leveza, código-fonte, arquitetura de software, interfaces gráficas e documentações são de propriedade exclusiva de seus desenvolvedores e mantenedores, estando protegidos pelas leis de propriedade intelectual e direitos autorais.
+          </p>
+          <p>
+            A concessão de uso decorrente destes Termos é de caráter pessoal, não exclusivo, revogável e intransferível.
+          </p>
+        </section>
+
+        <section id="responsabilidade">
+          <h2>8. Limitação de Responsabilidade</h2>
+          <p>
+            O serviço é fornecido "no estado em que se encontra" (<em>as is</em>) e conforme a disponibilidade técnica. Empregamos nossos melhores esforços de engenharia para assegurar alta disponibilidade, funcionamento estável e proteção rigorosa contra perdas de dados.
+          </p>
+          <p>
+            Na extensão máxima permitida pela legislação aplicável, o Seapruma não será responsável por eventuais danos indiretos, lucros cessantes, indisponibilidades temporárias de rede causadas por terceiros ou corrupção decorrente de falhas no hardware ou sistema operacional do dispositivo do usuário.
+          </p>
+        </section>
+
+        <section id="rescisao">
+          <h2>9. Modificações dos Termos e Rescisão</h2>
+          <p>
+            Estes Termos de Serviço podem ser atualizados periodicamente para refletir aprimoramentos técnicos ou exigências legais. Quando alterações relevantes forem realizadas, a data de última atualização no topo desta página será revisada.
+          </p>
+          <p>
+            Você pode rescindir este contrato a qualquer momento deixando de utilizar o aplicativo e solicitando a exclusão definitiva de sua conta e dos dados vinculados conforme os procedimentos da nossa Política de Privacidade.
+          </p>
+        </section>
+
+        <section id="foro-contato">
+          <h2>10. Legislação Aplicável, Foro e Suporte</h2>
+          <p>
+            Estes Termos são regidos e interpretados em conformidade com as leis da República Federativa do Brasil, em especial o Marco Civil da Internet (Lei nº 12.965/2014) e a Lei Geral de Proteção de Dados (Lei nº 13.709/2018).
+          </p>
+          <p>
+            Para esclarecer dúvidas, encaminhar sugestões ou solicitar suporte técnico a respeito do <strong>Seapruma</strong>, entre em contato conosco:
+          </p>
+          <p>
+            📧 <strong>E-mail de Suporte:</strong> <a href="mailto:suporte@seapruma.app" class="link-contact">suporte@seapruma.app</a>
+            <br>
+            🌐 <strong>Página Oficial:</strong> <a href="index.html" class="link-contact">Seapruma Web</a>
+          </p>
+        </section>
+
+      </div>
+    </article>
+  </main>
+
+  <!-- Rodapé -->
+  <footer class="site-footer">
+    <div class="footer-links">
+      <a href="privacidade.html">Política de Privacidade</a>
+      <span>•</span>
+      <a href="termos.html">Termos de Serviço</a>
+      <span>•</span>
+      <a href="index.html">Aplicativo Seapruma</a>
+    </div>
+    <p>© 2026 Seapruma. Todos os direitos reservados. Design System Pastel &amp; Leveza.</p>
+  </footer>
+
+</body>
+
+</html>

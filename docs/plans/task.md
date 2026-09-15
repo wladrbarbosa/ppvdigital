@@ -1,8 +1,6 @@
 | Task | Status | Description |
 |---|---|---|
-| 1. Explorar contexto do projeto | COMPLETED | Verificados pubspec.yaml, README.md, docs/design_system.md, web/ e estrutura do app Seapruma |
-| 2. Fazer perguntas clarificadoras | COMPLETED | Definidos: web/privacidade.html e web/termos.html, conformidade com LGPD, Google Play e Google Drive OAuth |
-| 3. Propor abordagens | COMPLETED | Escolhida Abordagem 1: páginas autocontidas com CSS embutido e Design System Pastel |
-| 4. Apresentar design | IN_PROGRESS | Apresentar arquitetura visual, conteúdo de privacidade e termos para aprovação |
-| 5. Escrever documento de design | PENDING | Criar docs/plans/2026-09-15-politica-privacidade-termos-servico-design.md |
-| 6. Transição para implementação | PENDING | Chamar writing-plans para detalhar etapas e testes |
+| Task 1: Testes de Validação das Páginas Legais | COMPLETED | Criado test/web/legal_pages_test.dart e confirmada a falha esperada inicial TDD |
+| Task 2: Implementação da Política de Privacidade | COMPLETED | Criado web/privacidade.html com Design System Pastel, conformidade LGPD, escopo drive.file e aprovado nos testes |
+| Task 3: Implementação dos Termos de Serviço | COMPLETED | Criado web/termos.html com Design System Pastel, regras de uso, propriedade de dados, isenção e 100% dos testes aprovados |
+| Task 4: Verificação Geral e Análise Estática | COMPLETED | Executada suíte completa com 285/285 testes aprovados (100% de sucesso) e análise estática sem novos avisos |
