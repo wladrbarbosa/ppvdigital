@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:intl/intl.dart';
 import 'package:ppvdigital/app/home/widgets/backup_restore_dialog.dart';
+import 'package:ppvdigital/app/home/widgets/legal_viewer_dialog.dart';
 import 'package:ppvdigital/controllers/backup_controller.dart';
 import 'package:ppvdigital/core.dart';
 import 'package:ppvdigital/design_system/design_system.dart';
@@ -957,6 +958,139 @@ class _ConfiguracoesModalWidgetState extends State<ConfiguracoesModalWidget> {
                         ),
                       ),
                     ],
+
+                    const SizedBox(height: AppSpacing.lg),
+
+                    // Seção 4: Informações Legais & Sobre
+                    Row(
+                      children: [
+                        Icon(
+                          Icons.info_outline_rounded,
+                          size: 18,
+                          color: Theme.of(context).colorScheme.primary,
+                        ),
+                        const SizedBox(width: AppSpacing.xs),
+                        Text(
+                          'Informações Legais & Sobre',
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            color: textColor,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: AppSpacing.xxs),
+                    Text(
+                      'Transparência, privacidade de dados e termos de uso do Seapruma',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: textSecondaryColor,
+                      ),
+                    ),
+                    const SizedBox(height: AppSpacing.sm),
+
+                    // Card com Botões de Política e Termos
+                    Container(
+                      decoration: BoxDecoration(
+                        color: cardBgColor,
+                        borderRadius: AppRadius.roundedLg,
+                        border: Border.all(color: borderColor),
+                      ),
+                      child: Material(
+                        type: MaterialType.transparency,
+                        child: Column(
+                          children: [
+                            ListTile(
+                              leading: Container(
+                                padding: const EdgeInsets.all(AppSpacing.xs),
+                                decoration: BoxDecoration(
+                                  color: AppColors.primaryContainerLight,
+                                  borderRadius: AppRadius.roundedMd,
+                                ),
+                                child: const Icon(
+                                  Icons.privacy_tip_outlined,
+                                  size: 20,
+                                  color: AppColors.onPastelSuccessContainer,
+                                ),
+                              ),
+                              title: Text(
+                                'Política de Privacidade',
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w600,
+                                  color: textColor,
+                                ),
+                              ),
+                              subtitle: Text(
+                                'LGPD, escopo restrito do Google Drive e proteção de dados',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  color: textSecondaryColor,
+                                ),
+                              ),
+                              trailing: Icon(
+                                Icons.chevron_right_rounded,
+                                size: 20,
+                                color: textSecondaryColor,
+                              ),
+                              onTap: () => LegalViewerDialog.showPrivacyPolicy(context),
+                            ),
+                            const Divider(height: 1),
+                            ListTile(
+                              leading: Container(
+                                padding: const EdgeInsets.all(AppSpacing.xs),
+                                decoration: BoxDecoration(
+                                  color: AppColors.secondaryContainerLight,
+                                  borderRadius: AppRadius.roundedMd,
+                                ),
+                                child: const Icon(
+                                  Icons.description_outlined,
+                                  size: 20,
+                                  color: AppColors.onPastelWarningContainer,
+                                ),
+                              ),
+                              title: Text(
+                                'Termos de Serviço',
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w600,
+                                  color: textColor,
+                                ),
+                              ),
+                              subtitle: Text(
+                                'Condições contratuais, propriedade dos dados e conduta',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  color: textSecondaryColor,
+                                ),
+                              ),
+                              trailing: Icon(
+                                Icons.chevron_right_rounded,
+                                size: 20,
+                                color: textSecondaryColor,
+                              ),
+                              onTap: () => LegalViewerDialog.showTermsOfService(context),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+
+                    const SizedBox(height: AppSpacing.md),
+
+                    // Rodapé do Modal com Versão do Seapruma
+                    Center(
+                      child: Text(
+                        'Seapruma • Versão 0.31.0\nDesign System Pastel & Leveza',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: textSecondaryColor.withOpacity(0.8),
+                          height: 1.4,
+                        ),
+                      ),
+                    ),
 
                     const SizedBox(height: AppSpacing.md),
                     ],
