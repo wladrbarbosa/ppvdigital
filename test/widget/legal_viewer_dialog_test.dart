@@ -67,82 +67,88 @@ void main() {
       await Core.getIt.reset();
     });
 
-    testWidgets('Exibe diálogo da Política de Privacidade com seções e fecha ao tocar em Entendido',
-        (WidgetTester tester) async {
-      tester.view.physicalSize = const Size(1000, 1400);
-      tester.view.devicePixelRatio = 1.0;
-      addTearDown(() {
-        tester.view.resetPhysicalSize();
-        tester.view.resetDevicePixelRatio();
-      });
+    testWidgets(
+      'Exibe diálogo da Política de Privacidade com seções e fecha ao tocar em Entendido',
+      (WidgetTester tester) async {
+        tester.view.physicalSize = const Size(1000, 1400);
+        tester.view.devicePixelRatio = 1.0;
+        addTearDown(() {
+          tester.view.resetPhysicalSize();
+          tester.view.resetDevicePixelRatio();
+        });
 
-      await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(
-            body: Builder(
-              builder: (context) => ElevatedButton(
-                onPressed: () => LegalViewerDialog.showPrivacyPolicy(context),
-                child: const Text('Abrir Privacidade'),
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Scaffold(
+              body: Builder(
+                builder: (context) => ElevatedButton(
+                  onPressed: () => LegalViewerDialog.showPrivacyPolicy(context),
+                  child: const Text('Abrir Privacidade'),
+                ),
               ),
             ),
           ),
-        ),
-      );
-      await tester.pumpAndSettle();
+        );
+        await tester.pumpAndSettle();
 
-      await tester.tap(find.text('Abrir Privacidade'));
-      await tester.pumpAndSettle();
+        await tester.tap(find.text('Abrir Privacidade'));
+        await tester.pumpAndSettle();
 
-      expect(find.text('Política de Privacidade'), findsOneWidget);
-      expect(find.textContaining('LGPD'), findsWidgets);
-      expect(find.text('Abrir Web'), findsOneWidget);
+        expect(find.text('Política de Privacidade'), findsOneWidget);
+        expect(find.textContaining('LGPD'), findsWidgets);
+        expect(find.text('Abrir Web'), findsOneWidget);
 
-      final entendidoBtn = find.widgetWithText(FilledButton, 'Entendido');
-      expect(entendidoBtn, findsOneWidget);
-      await tester.tap(entendidoBtn);
-      await tester.pumpAndSettle();
+        final entendidoBtn = find.widgetWithText(FilledButton, 'Entendido');
+        expect(entendidoBtn, findsOneWidget);
+        await tester.tap(entendidoBtn);
+        await tester.pumpAndSettle();
 
-      expect(find.text('Política de Privacidade'), findsNothing);
-    });
+        expect(find.text('Política de Privacidade'), findsNothing);
+      },
+    );
 
-    testWidgets('Exibe diálogo dos Termos de Serviço com seções e fecha ao tocar em Entendido',
-        (WidgetTester tester) async {
-      tester.view.physicalSize = const Size(1000, 1400);
-      tester.view.devicePixelRatio = 1.0;
-      addTearDown(() {
-        tester.view.resetPhysicalSize();
-        tester.view.resetDevicePixelRatio();
-      });
+    testWidgets(
+      'Exibe diálogo dos Termos de Serviço com seções e fecha ao tocar em Entendido',
+      (WidgetTester tester) async {
+        tester.view.physicalSize = const Size(1000, 1400);
+        tester.view.devicePixelRatio = 1.0;
+        addTearDown(() {
+          tester.view.resetPhysicalSize();
+          tester.view.resetDevicePixelRatio();
+        });
 
-      await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(
-            body: Builder(
-              builder: (context) => ElevatedButton(
-                onPressed: () => LegalViewerDialog.showTermsOfService(context),
-                child: const Text('Abrir Termos'),
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Scaffold(
+              body: Builder(
+                builder: (context) => ElevatedButton(
+                  onPressed: () =>
+                      LegalViewerDialog.showTermsOfService(context),
+                  child: const Text('Abrir Termos'),
+                ),
               ),
             ),
           ),
-        ),
-      );
-      await tester.pumpAndSettle();
+        );
+        await tester.pumpAndSettle();
 
-      await tester.tap(find.text('Abrir Termos'));
-      await tester.pumpAndSettle();
+        await tester.tap(find.text('Abrir Termos'));
+        await tester.pumpAndSettle();
 
-      expect(find.text('Termos de Serviço'), findsOneWidget);
-      expect(find.text('Abrir Web'), findsOneWidget);
+        expect(find.text('Termos de Serviço'), findsOneWidget);
+        expect(find.text('Abrir Web'), findsOneWidget);
 
-      final entendidoBtn = find.widgetWithText(FilledButton, 'Entendido');
-      await tester.tap(entendidoBtn);
-      await tester.pumpAndSettle();
+        final entendidoBtn = find.widgetWithText(FilledButton, 'Entendido');
+        await tester.tap(entendidoBtn);
+        await tester.pumpAndSettle();
 
-      expect(find.text('Termos de Serviço'), findsNothing);
-    });
+        expect(find.text('Termos de Serviço'), findsNothing);
+      },
+    );
 
-    testWidgets('ConfiguracoesModalWidget exibe seção legal e abre diálogos',
-        (WidgetTester tester) async {
+    testWidgets('ConfiguracoesModalWidget exibe seção legal e abre diálogos', (
+      WidgetTester tester,
+    ) async {
       tester.view.physicalSize = const Size(1000, 1400);
       tester.view.devicePixelRatio = 1.0;
       addTearDown(() {
@@ -171,13 +177,16 @@ void main() {
       expect(find.byType(ConfiguracoesModalWidget), findsOneWidget);
 
       // Rola para baixo para revelar a seção legal
-      await tester.drag(find.byType(SingleChildScrollView).last, const Offset(0, -600));
+      await tester.drag(
+        find.byType(SingleChildScrollView).last,
+        const Offset(0, -600),
+      );
       await tester.pumpAndSettle();
 
       expect(find.text('Informações Legais & Sobre'), findsOneWidget);
       expect(find.text('Política de Privacidade'), findsOneWidget);
       expect(find.text('Termos de Serviço'), findsOneWidget);
-      expect(find.textContaining('Seapruma • Versão 0.31.0'), findsOneWidget);
+      expect(find.textContaining('Seapruma • Versão 0.31.1'), findsOneWidget);
 
       // Toca em Política de Privacidade
       await tester.tap(find.text('Política de Privacidade'));
@@ -196,39 +205,37 @@ void main() {
       await tester.pumpAndSettle();
     });
 
-    testWidgets('LoginPage exibe links para Termos de Serviço e Política de Privacidade',
-        (WidgetTester tester) async {
-      tester.view.physicalSize = const Size(1000, 1400);
-      tester.view.devicePixelRatio = 1.0;
-      addTearDown(() {
-        tester.view.resetPhysicalSize();
-        tester.view.resetDevicePixelRatio();
-      });
+    testWidgets(
+      'LoginPage exibe links para Termos de Serviço e Política de Privacidade',
+      (WidgetTester tester) async {
+        tester.view.physicalSize = const Size(1000, 1400);
+        tester.view.devicePixelRatio = 1.0;
+        addTearDown(() {
+          tester.view.resetPhysicalSize();
+          tester.view.resetDevicePixelRatio();
+        });
 
-      await tester.pumpWidget(
-        const MaterialApp(
-          home: LoginPage(),
-        ),
-      );
-      await tester.pumpAndSettle();
+        await tester.pumpWidget(const MaterialApp(home: LoginPage()));
+        await tester.pumpAndSettle();
 
-      expect(find.text('Termos de Serviço'), findsOneWidget);
-      expect(find.text('Política de Privacidade'), findsOneWidget);
+        expect(find.text('Termos de Serviço'), findsOneWidget);
+        expect(find.text('Política de Privacidade'), findsOneWidget);
 
-      // Toca no link de Termos
-      await tester.tap(find.text('Termos de Serviço'));
-      await tester.pumpAndSettle();
-      expect(find.byType(LegalViewerDialog), findsOneWidget);
-      await tester.tap(find.widgetWithText(FilledButton, 'Entendido'));
-      await tester.pumpAndSettle();
+        // Toca no link de Termos
+        await tester.tap(find.text('Termos de Serviço'));
+        await tester.pumpAndSettle();
+        expect(find.byType(LegalViewerDialog), findsOneWidget);
+        await tester.tap(find.widgetWithText(FilledButton, 'Entendido'));
+        await tester.pumpAndSettle();
 
-      // Toca no link de Privacidade
-      await tester.tap(find.text('Política de Privacidade'));
-      await tester.pumpAndSettle();
-      expect(find.byType(LegalViewerDialog), findsOneWidget);
-      await tester.tap(find.widgetWithText(FilledButton, 'Entendido'));
-      await tester.pumpAndSettle();
-    });
+        // Toca no link de Privacidade
+        await tester.tap(find.text('Política de Privacidade'));
+        await tester.pumpAndSettle();
+        expect(find.byType(LegalViewerDialog), findsOneWidget);
+        await tester.tap(find.widgetWithText(FilledButton, 'Entendido'));
+        await tester.pumpAndSettle();
+      },
+    );
   });
 }
 

@@ -61,11 +61,13 @@ class _ConfiguracoesModalWidgetState extends State<ConfiguracoesModalWidget> {
       SnackBar(
         content: Text(
           success
-              ? (backupController.successMessage ?? 'Backup baixado com sucesso!')
+              ? (backupController.successMessage ??
+                    'Backup baixado com sucesso!')
               : (backupController.errorMessage ?? 'Falha ao baixar backup.'),
         ),
-        backgroundColor:
-            success ? AppColors.pastelSuccess : AppColors.pastelError,
+        backgroundColor: success
+            ? AppColors.pastelSuccess
+            : AppColors.pastelError,
         behavior: SnackBarBehavior.floating,
       ),
     );
@@ -92,8 +94,7 @@ class _ConfiguracoesModalWidgetState extends State<ConfiguracoesModalWidget> {
       return;
     }
 
-    final cleanFirst =
-        await BackupRestoreDialog.showRestoreConfirmationDialog(
+    final cleanFirst = await BackupRestoreDialog.showRestoreConfirmationDialog(
       context: context,
       payload: payload,
     );
@@ -119,12 +120,12 @@ class _ConfiguracoesModalWidgetState extends State<ConfiguracoesModalWidget> {
         content: Text(
           success
               ? (backupController.successMessage ??
-                  'Dados restaurados com sucesso!')
-              : (backupController.errorMessage ??
-                  'Falha ao restaurar dados.'),
+                    'Dados restaurados com sucesso!')
+              : (backupController.errorMessage ?? 'Falha ao restaurar dados.'),
         ),
-        backgroundColor:
-            success ? AppColors.pastelSuccess : AppColors.pastelError,
+        backgroundColor: success
+            ? AppColors.pastelSuccess
+            : AppColors.pastelError,
         behavior: SnackBarBehavior.floating,
       ),
     );
@@ -137,12 +138,15 @@ class _ConfiguracoesModalWidgetState extends State<ConfiguracoesModalWidget> {
       backgroundColor: Colors.transparent,
       builder: (sheetContext) {
         final isDark = Theme.of(sheetContext).brightness == Brightness.dark;
-        final surfaceColor =
-            isDark ? AppColors.surfaceDark : AppColors.surfaceLight;
-        final textColor =
-            isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight;
-        final textSecondary =
-            isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight;
+        final surfaceColor = isDark
+            ? AppColors.surfaceDark
+            : AppColors.surfaceLight;
+        final textColor = isDark
+            ? AppColors.textPrimaryDark
+            : AppColors.textPrimaryLight;
+        final textSecondary = isDark
+            ? AppColors.textSecondaryDark
+            : AppColors.textSecondaryLight;
 
         return Container(
           decoration: BoxDecoration(
@@ -233,12 +237,13 @@ class _ConfiguracoesModalWidgetState extends State<ConfiguracoesModalWidget> {
         content: Text(
           success
               ? (backupController.successMessage ??
-                  'Backup salvo no Google Drive com sucesso!')
+                    'Backup salvo no Google Drive com sucesso!')
               : (backupController.errorMessage ??
-                  'Falha ao enviar backup para o Google Drive.'),
+                    'Falha ao enviar backup para o Google Drive.'),
         ),
-        backgroundColor:
-            success ? AppColors.pastelSuccess : AppColors.pastelError,
+        backgroundColor: success
+            ? AppColors.pastelSuccess
+            : AppColors.pastelError,
         behavior: SnackBarBehavior.floating,
       ),
     );
@@ -271,12 +276,13 @@ class _ConfiguracoesModalWidgetState extends State<ConfiguracoesModalWidget> {
             content: Text(
               success
                   ? (backupController.successMessage ??
-                      'Dados restaurados com sucesso do Google Drive!')
+                        'Dados restaurados com sucesso do Google Drive!')
                   : (backupController.errorMessage ??
-                      'Falha ao restaurar do Google Drive.'),
+                        'Falha ao restaurar do Google Drive.'),
             ),
-            backgroundColor:
-                success ? AppColors.pastelSuccess : AppColors.pastelError,
+            backgroundColor: success
+                ? AppColors.pastelSuccess
+                : AppColors.pastelError,
             behavior: SnackBarBehavior.floating,
           ),
         );
@@ -296,12 +302,13 @@ class _ConfiguracoesModalWidgetState extends State<ConfiguracoesModalWidget> {
         content: Text(
           success
               ? (backupController.successMessage ??
-                  'Conectado ao Google Drive com sucesso!')
+                    'Conectado ao Google Drive com sucesso!')
               : (backupController.errorMessage ??
-                  'Falha ao conectar ao Google Drive.'),
+                    'Falha ao conectar ao Google Drive.'),
         ),
-        backgroundColor:
-            success ? AppColors.pastelSuccess : AppColors.pastelError,
+        backgroundColor: success
+            ? AppColors.pastelSuccess
+            : AppColors.pastelError,
         behavior: SnackBarBehavior.floating,
       ),
     );
@@ -341,15 +348,19 @@ class _ConfiguracoesModalWidgetState extends State<ConfiguracoesModalWidget> {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final surfaceColor =
-        isDark ? AppColors.surfaceDark : AppColors.surfaceLight;
+    final surfaceColor = isDark
+        ? AppColors.surfaceDark
+        : AppColors.surfaceLight;
     final borderColor = isDark ? AppColors.borderDark : AppColors.borderLight;
-    final textColor =
-        isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight;
-    final textSecondaryColor =
-        isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight;
-    final cardBgColor =
-        isDark ? AppColors.surfaceDark : AppColors.backgroundLight;
+    final textColor = isDark
+        ? AppColors.textPrimaryDark
+        : AppColors.textPrimaryLight;
+    final textSecondaryColor = isDark
+        ? AppColors.textSecondaryDark
+        : AppColors.textSecondaryLight;
+    final cardBgColor = isDark
+        ? AppColors.surfaceDark
+        : AppColors.backgroundLight;
 
     return Observer(
       builder: (_) {
@@ -489,7 +500,9 @@ class _ConfiguracoesModalWidgetState extends State<ConfiguracoesModalWidget> {
                         selected: {currentMode},
                         onSelectionChanged: (newSelection) {
                           if (newSelection.isNotEmpty) {
-                            Core.themeController.setThemeMode(newSelection.first);
+                            Core.themeController.setThemeMode(
+                              newSelection.first,
+                            );
                           }
                         },
                         style: ButtonStyle(
@@ -539,16 +552,17 @@ class _ConfiguracoesModalWidgetState extends State<ConfiguracoesModalWidget> {
                         itemCount: AppThemePalette.values.length,
                         gridDelegate:
                             const SliverGridDelegateWithMaxCrossAxisExtent(
-                          maxCrossAxisExtent: 260,
-                          mainAxisExtent: 64,
-                          crossAxisSpacing: AppSpacing.sm,
-                          mainAxisSpacing: AppSpacing.sm,
-                        ),
+                              maxCrossAxisExtent: 260,
+                              mainAxisExtent: 64,
+                              crossAxisSpacing: AppSpacing.sm,
+                              mainAxisSpacing: AppSpacing.sm,
+                            ),
                         itemBuilder: (context, index) {
                           final palette = AppThemePalette.values[index];
                           final isSelected = currentPalette == palette;
-                          final displayColor =
-                              isDark ? palette.primaryDark : palette.primaryLight;
+                          final displayColor = isDark
+                              ? palette.primaryDark
+                              : palette.primaryLight;
                           final containerColor = isDark
                               ? palette.primaryContainerDark
                               : palette.primaryContainerLight;
@@ -560,9 +574,7 @@ class _ConfiguracoesModalWidgetState extends State<ConfiguracoesModalWidget> {
                             shape: RoundedRectangleBorder(
                               borderRadius: AppRadius.roundedLg,
                               side: BorderSide(
-                                color: isSelected
-                                    ? displayColor
-                                    : borderColor,
+                                color: isSelected ? displayColor : borderColor,
                                 width: isSelected ? 1.5 : 1.0,
                               ),
                             ),
@@ -602,8 +614,10 @@ class _ConfiguracoesModalWidgetState extends State<ConfiguracoesModalWidget> {
                                               : FontWeight.w500,
                                           color: isSelected
                                               ? (isDark
-                                                  ? palette.onPrimaryContainerDark
-                                                  : palette.onPrimaryContainerLight)
+                                                    ? palette
+                                                          .onPrimaryContainerDark
+                                                    : palette
+                                                          .onPrimaryContainerLight)
                                               : textColor,
                                         ),
                                       ),
@@ -626,305 +640,110 @@ class _ConfiguracoesModalWidgetState extends State<ConfiguracoesModalWidget> {
                         const SizedBox(height: AppSpacing.xl),
 
                         // Seção 3: Backup e Restauração de Dados
-                      Row(
-                        children: [
-                          Icon(
-                            Icons.cloud_sync_outlined,
-                            size: 18,
-                            color: Theme.of(context).colorScheme.primary,
-                          ),
-                          const SizedBox(width: AppSpacing.xs),
-                          Text(
-                            'Backup e Restauração de Dados',
-                            style: TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w600,
-                              color: textColor,
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: AppSpacing.xxs),
-                      Text(
-                        'Exporte seus dados com segurança ou ative a sincronização com o Google Drive',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: textSecondaryColor,
-                        ),
-                      ),
-                      const SizedBox(height: AppSpacing.mdSm),
-
-                      // Card: Backup Manual
-                      Container(
-                        padding: const EdgeInsets.all(AppSpacing.md),
-                        decoration: BoxDecoration(
-                          color: cardBgColor,
-                          borderRadius: AppRadius.roundedLg,
-                          border: Border.all(color: borderColor),
-                          boxShadow: AppShadows.soft,
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
+                        Row(
                           children: [
-                            Row(
-                              children: [
-                                Container(
-                                  padding: const EdgeInsets.all(AppSpacing.xs),
-                                  decoration: BoxDecoration(
-                                    color: isDark
-                                        ? AppColors.primaryContainerDark.withValues(
-                                            alpha: 0.2,
-                                          )
-                                        : AppColors.primaryContainerLight,
-                                    borderRadius: AppRadius.roundedSm,
-                                  ),
-                                  child: Icon(
-                                    Icons.file_download_outlined,
-                                    size: 18,
-                                    color:
-                                        Theme.of(context).colorScheme.primary,
-                                  ),
-                                ),
-                                const SizedBox(width: AppSpacing.sm),
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        'Backup Manual (.json)',
-                                        style: TextStyle(
-                                          fontSize: 13,
-                                          fontWeight: FontWeight.bold,
-                                          color: textColor,
-                                        ),
-                                      ),
-                                      Text(
-                                        'Exportação completa de contas, transações e tarefas',
-                                        style: TextStyle(
-                                          fontSize: 11,
-                                          color: textSecondaryColor,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ],
+                            Icon(
+                              Icons.cloud_sync_outlined,
+                              size: 18,
+                              color: Theme.of(context).colorScheme.primary,
                             ),
-                            const SizedBox(height: AppSpacing.md),
-                            Row(
-                              children: [
-                                Expanded(
-                                  child: OutlinedButton.icon(
-                                    onPressed: backupController.isBackingUp ||
-                                            backupController.isRestoring
-                                        ? null
-                                        : () => _handleDownloadBackup(context),
-                                    icon: const Icon(
-                                      Icons.download_rounded,
-                                      size: 16,
-                                    ),
-                                    label: const Text('Exportar Arquivo'),
-                                    style: OutlinedButton.styleFrom(
-                                      shape: RoundedRectangleBorder(
-                                        borderRadius: AppRadius.roundedMd,
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                                const SizedBox(width: AppSpacing.sm),
-                                Expanded(
-                                  child: OutlinedButton.icon(
-                                    onPressed: backupController.isBackingUp ||
-                                            backupController.isRestoring
-                                        ? null
-                                        : () => _handleManualRestore(context),
-                                    icon: const Icon(
-                                      Icons.upload_file_rounded,
-                                      size: 16,
-                                    ),
-                                    label: const Text('Restaurar Arquivo'),
-                                    style: OutlinedButton.styleFrom(
-                                      shape: RoundedRectangleBorder(
-                                        borderRadius: AppRadius.roundedMd,
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              ],
+                            const SizedBox(width: AppSpacing.xs),
+                            Text(
+                              'Backup e Restauração de Dados',
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w600,
+                                color: textColor,
+                              ),
                             ),
                           ],
                         ),
-                      ),
-
-                      const SizedBox(height: AppSpacing.md),
-
-                      // Card: Integração Google Drive
-                      Container(
-                        padding: const EdgeInsets.all(AppSpacing.md),
-                        decoration: BoxDecoration(
-                          color: cardBgColor,
-                          borderRadius: AppRadius.roundedLg,
-                          border: Border.all(color: borderColor),
-                          boxShadow: AppShadows.soft,
+                        const SizedBox(height: AppSpacing.xxs),
+                        Text(
+                          'Exporte seus dados com segurança ou ative a sincronização com o Google Drive',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: textSecondaryColor,
+                          ),
                         ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              children: [
-                                Container(
-                                  padding: const EdgeInsets.all(AppSpacing.xs),
-                                  decoration: BoxDecoration(
-                                    color: isDark
-                                        ? AppColors.secondaryContainerDark.withValues(
-                                            alpha: 0.2,
-                                          )
-                                        : AppColors.secondaryContainerLight,
-                                    borderRadius: AppRadius.roundedSm,
-                                  ),
-                                  child: Icon(
-                                    Icons.add_to_drive_outlined,
-                                    size: 18,
-                                    color: isDark
-                                        ? AppColors.secondaryDark
-                                        : AppColors.secondaryLight,
-                                  ),
-                                ),
-                                const SizedBox(width: AppSpacing.sm),
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        'Google Drive',
-                                        style: TextStyle(
-                                          fontSize: 13,
-                                          fontWeight: FontWeight.bold,
-                                          color: textColor,
-                                        ),
-                                      ),
-                                      Text(
-                                        backupController.isGoogleConnected
-                                            ? 'Conectado como ${backupController.googleUserEmail ?? 'Google User'}'
-                                            : 'Não conectado ao Google Drive',
-                                        style: TextStyle(
-                                          fontSize: 11,
-                                          color: backupController.isGoogleConnected
-                                              ? AppColors.onPastelSuccessContainer
-                                              : textSecondaryColor,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                                if (backupController.isGoogleConnected)
-                                  TextButton.icon(
-                                    onPressed: backupController.isLoading
-                                        ? null
-                                        : () => _handleDisconnectGoogleDrive(
-                                            context),
-                                    icon: const Icon(
-                                      Icons.logout_rounded,
-                                      size: 14,
+                        const SizedBox(height: AppSpacing.mdSm),
+
+                        // Card: Backup Manual
+                        Container(
+                          padding: const EdgeInsets.all(AppSpacing.md),
+                          decoration: BoxDecoration(
+                            color: cardBgColor,
+                            borderRadius: AppRadius.roundedLg,
+                            border: Border.all(color: borderColor),
+                            boxShadow: AppShadows.soft,
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  Container(
+                                    padding: const EdgeInsets.all(
+                                      AppSpacing.xs,
                                     ),
-                                    label: const Text(
-                                      'Desconectar',
-                                      style: TextStyle(fontSize: 11),
+                                    decoration: BoxDecoration(
+                                      color: isDark
+                                          ? AppColors.primaryContainerDark
+                                                .withValues(alpha: 0.2)
+                                          : AppColors.primaryContainerLight,
+                                      borderRadius: AppRadius.roundedSm,
                                     ),
-                                  )
-                                else
-                                  FilledButton.tonalIcon(
-                                    onPressed: (backupController.isLoading ||
-                                            backupController.isBackingUp ||
-                                            backupController.isRestoring)
-                                        ? null
-                                        : () =>
-                                            _handleConnectGoogleDrive(context),
-                                    icon: backupController.isLoading
-                                        ? const SizedBox(
-                                            width: 14,
-                                            height: 14,
-                                            child: CircularProgressIndicator(
-                                              strokeWidth: 2,
-                                            ),
-                                          )
-                                        : const Icon(
-                                            Icons.login_rounded,
-                                            size: 14,
+                                    child: Icon(
+                                      Icons.file_download_outlined,
+                                      size: 18,
+                                      color: Theme.of(context)
+                                          .colorScheme
+                                          .primary,
+                                    ),
+                                  ),
+                                  const SizedBox(width: AppSpacing.sm),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          'Backup Manual (.json)',
+                                          style: TextStyle(
+                                            fontSize: 13,
+                                            fontWeight: FontWeight.bold,
+                                            color: textColor,
                                           ),
-                                    label: Text(
-                                      backupController.isLoading
-                                          ? 'Conectando...'
-                                          : 'Conectar',
-                                      style: const TextStyle(fontSize: 11),
-                                    ),
-                                    style: FilledButton.styleFrom(
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: AppSpacing.sm,
-                                        vertical: AppSpacing.xs,
-                                      ),
-                                      shape: RoundedRectangleBorder(
-                                        borderRadius: AppRadius.roundedMd,
-                                      ),
+                                        ),
+                                        Text(
+                                          'Exportação completa de contas, transações e tarefas',
+                                          style: TextStyle(
+                                            fontSize: 11,
+                                            color: textSecondaryColor,
+                                          ),
+                                        ),
+                                      ],
                                     ),
                                   ),
-                              ],
-                            ),
-                            const Divider(height: AppSpacing.lg),
-
-                            // Switch de Backup Automático Diário
-                            Material(
-                              type: MaterialType.transparency,
-                              child: SwitchListTile(
-                                contentPadding: EdgeInsets.zero,
-                                value: backupController.isAutoBackupEnabled,
-                                onChanged: backupController.isGoogleConnected
-                                    ? (val) => backupController
-                                        .setAutoBackupEnabled(val)
-                                    : null,
-                                title: Text(
-                                  'Backup Automático Diário',
-                                  style: TextStyle(
-                                    fontSize: 13,
-                                    fontWeight: FontWeight.w600,
-                                    color: backupController.isGoogleConnected
-                                        ? textColor
-                                        : textSecondaryColor,
-                                  ),
-                                ),
-                                subtitle: Text(
-                                  backupController.lastBackupTime != null
-                                      ? 'Último envio: ${_formatDateTime(backupController.lastBackupTime!)}'
-                                      : (backupController.isGoogleConnected
-                                          ? 'Sincroniza automaticamente a cada 24h'
-                                          : 'Conecte o Google Drive para habilitar'),
-                                  style: TextStyle(
-                                    fontSize: 11,
-                                    color: textSecondaryColor,
-                                  ),
-                                ),
+                                ],
                               ),
-                            ),
-
-                            if (backupController.isGoogleConnected) ...[
-                              const SizedBox(height: AppSpacing.xs),
+                              const SizedBox(height: AppSpacing.md),
                               Row(
                                 children: [
                                   Expanded(
-                                    child: FilledButton.icon(
-                                      onPressed: backupController.isBackingUp ||
+                                    child: OutlinedButton.icon(
+                                      onPressed:
+                                          backupController.isBackingUp ||
                                               backupController.isRestoring
                                           ? null
-                                          : () => _handleUploadGoogleDrive(
-                                              context),
+                                          : () =>
+                                                _handleDownloadBackup(context),
                                       icon: const Icon(
-                                        Icons.cloud_upload_outlined,
+                                        Icons.download_rounded,
                                         size: 16,
                                       ),
-                                      label: const Text('Fazer Backup Agora'),
-                                      style: FilledButton.styleFrom(
+                                      label: const Text('Exportar Arquivo'),
+                                      style: OutlinedButton.styleFrom(
                                         shape: RoundedRectangleBorder(
                                           borderRadius: AppRadius.roundedMd,
                                         ),
@@ -934,16 +753,16 @@ class _ConfiguracoesModalWidgetState extends State<ConfiguracoesModalWidget> {
                                   const SizedBox(width: AppSpacing.sm),
                                   Expanded(
                                     child: OutlinedButton.icon(
-                                      onPressed: backupController.isBackingUp ||
+                                      onPressed:
+                                          backupController.isBackingUp ||
                                               backupController.isRestoring
                                           ? null
-                                          : () => _handleRestoreFromGoogleDrive(
-                                              context),
+                                          : () => _handleManualRestore(context),
                                       icon: const Icon(
-                                        Icons.cloud_download_outlined,
+                                        Icons.upload_file_rounded,
                                         size: 16,
                                       ),
-                                      label: const Text('Restaurar do Drive'),
+                                      label: const Text('Restaurar Arquivo'),
                                       style: OutlinedButton.styleFrom(
                                         shape: RoundedRectangleBorder(
                                           borderRadius: AppRadius.roundedMd,
@@ -954,145 +773,363 @@ class _ConfiguracoesModalWidgetState extends State<ConfiguracoesModalWidget> {
                                 ],
                               ),
                             ],
-                          ],
+                          ),
                         ),
-                      ),
-                    ],
 
-                    const SizedBox(height: AppSpacing.lg),
+                        const SizedBox(height: AppSpacing.md),
 
-                    // Seção 4: Informações Legais & Sobre
-                    Row(
-                      children: [
-                        Icon(
-                          Icons.info_outline_rounded,
-                          size: 18,
-                          color: Theme.of(context).colorScheme.primary,
-                        ),
-                        const SizedBox(width: AppSpacing.xs),
-                        Text(
-                          'Informações Legais & Sobre',
-                          style: TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w600,
-                            color: textColor,
+                        // Card: Integração Google Drive
+                        Container(
+                          padding: const EdgeInsets.all(AppSpacing.md),
+                          decoration: BoxDecoration(
+                            color: cardBgColor,
+                            borderRadius: AppRadius.roundedLg,
+                            border: Border.all(color: borderColor),
+                            boxShadow: AppShadows.soft,
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  Container(
+                                    padding: const EdgeInsets.all(
+                                      AppSpacing.xs,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: isDark
+                                          ? AppColors.secondaryContainerDark
+                                                .withValues(alpha: 0.2)
+                                          : AppColors.secondaryContainerLight,
+                                      borderRadius: AppRadius.roundedSm,
+                                    ),
+                                    child: Icon(
+                                      Icons.add_to_drive_outlined,
+                                      size: 18,
+                                      color: isDark
+                                          ? AppColors.secondaryDark
+                                          : AppColors.secondaryLight,
+                                    ),
+                                  ),
+                                  const SizedBox(width: AppSpacing.sm),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          'Google Drive',
+                                          style: TextStyle(
+                                            fontSize: 13,
+                                            fontWeight: FontWeight.bold,
+                                            color: textColor,
+                                          ),
+                                        ),
+                                        Text(
+                                          backupController.isGoogleConnected
+                                              ? 'Conectado como ${backupController.googleUserEmail ?? 'Google User'}'
+                                              : 'Não conectado ao Google Drive',
+                                          style: TextStyle(
+                                            fontSize: 11,
+                                            color:
+                                                backupController
+                                                    .isGoogleConnected
+                                                ? AppColors
+                                                      .onPastelSuccessContainer
+                                                : textSecondaryColor,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  if (backupController.isGoogleConnected)
+                                    TextButton.icon(
+                                      onPressed: backupController.isLoading
+                                          ? null
+                                          : () => _handleDisconnectGoogleDrive(
+                                              context,
+                                            ),
+                                      icon: const Icon(
+                                        Icons.logout_rounded,
+                                        size: 14,
+                                      ),
+                                      label: const Text(
+                                        'Desconectar',
+                                        style: TextStyle(fontSize: 11),
+                                      ),
+                                    )
+                                  else
+                                    FilledButton.tonalIcon(
+                                      onPressed:
+                                          (backupController.isLoading ||
+                                              backupController.isBackingUp ||
+                                              backupController.isRestoring)
+                                          ? null
+                                          : () => _handleConnectGoogleDrive(
+                                              context,
+                                            ),
+                                      icon: backupController.isLoading
+                                          ? const SizedBox(
+                                              width: 14,
+                                              height: 14,
+                                              child: CircularProgressIndicator(
+                                                strokeWidth: 2,
+                                              ),
+                                            )
+                                          : const Icon(
+                                              Icons.login_rounded,
+                                              size: 14,
+                                            ),
+                                      label: Text(
+                                        backupController.isLoading
+                                            ? 'Conectando...'
+                                            : 'Conectar',
+                                        style: const TextStyle(fontSize: 11),
+                                      ),
+                                      style: FilledButton.styleFrom(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: AppSpacing.sm,
+                                          vertical: AppSpacing.xs,
+                                        ),
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: AppRadius.roundedMd,
+                                        ),
+                                      ),
+                                    ),
+                                ],
+                              ),
+                              const Divider(height: AppSpacing.lg),
+
+                              // Switch de Backup Automático Diário
+                              Material(
+                                type: MaterialType.transparency,
+                                child: SwitchListTile(
+                                  contentPadding: EdgeInsets.zero,
+                                  value: backupController.isAutoBackupEnabled,
+                                  onChanged: backupController.isGoogleConnected
+                                      ? (val) => backupController
+                                            .setAutoBackupEnabled(val)
+                                      : null,
+                                  title: Text(
+                                    'Backup Automático Diário',
+                                    style: TextStyle(
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w600,
+                                      color: backupController.isGoogleConnected
+                                          ? textColor
+                                          : textSecondaryColor,
+                                    ),
+                                  ),
+                                  subtitle: Text(
+                                    backupController.lastBackupTime != null
+                                        ? 'Último envio: ${_formatDateTime(backupController.lastBackupTime!)}'
+                                        : (backupController.isGoogleConnected
+                                              ? 'Sincroniza automaticamente a cada 24h'
+                                              : 'Conecte o Google Drive para habilitar'),
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      color: textSecondaryColor,
+                                    ),
+                                  ),
+                                ),
+                              ),
+
+                              if (backupController.isGoogleConnected) ...[
+                                const SizedBox(height: AppSpacing.xs),
+                                Row(
+                                  children: [
+                                    Expanded(
+                                      child: FilledButton.icon(
+                                        onPressed:
+                                            backupController.isBackingUp ||
+                                                backupController.isRestoring
+                                            ? null
+                                            : () => _handleUploadGoogleDrive(
+                                                context,
+                                              ),
+                                        icon: const Icon(
+                                          Icons.cloud_upload_outlined,
+                                          size: 16,
+                                        ),
+                                        label: const Text('Fazer Backup Agora'),
+                                        style: FilledButton.styleFrom(
+                                          shape: RoundedRectangleBorder(
+                                            borderRadius: AppRadius.roundedMd,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(width: AppSpacing.sm),
+                                    Expanded(
+                                      child: OutlinedButton.icon(
+                                        onPressed:
+                                            backupController.isBackingUp ||
+                                                backupController.isRestoring
+                                            ? null
+                                            : () =>
+                                                  _handleRestoreFromGoogleDrive(
+                                                    context,
+                                                  ),
+                                        icon: const Icon(
+                                          Icons.cloud_download_outlined,
+                                          size: 16,
+                                        ),
+                                        label: const Text('Restaurar do Drive'),
+                                        style: OutlinedButton.styleFrom(
+                                          shape: RoundedRectangleBorder(
+                                            borderRadius: AppRadius.roundedMd,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ],
                           ),
                         ),
                       ],
-                    ),
-                    const SizedBox(height: AppSpacing.xxs),
-                    Text(
-                      'Transparência, privacidade de dados e termos de uso do Seapruma',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: textSecondaryColor,
-                      ),
-                    ),
-                    const SizedBox(height: AppSpacing.sm),
 
-                    // Card com Botões de Política e Termos
-                    Container(
-                      decoration: BoxDecoration(
-                        color: cardBgColor,
-                        borderRadius: AppRadius.roundedLg,
-                        border: Border.all(color: borderColor),
-                      ),
-                      child: Material(
-                        type: MaterialType.transparency,
-                        child: Column(
-                          children: [
-                            ListTile(
-                              leading: Container(
-                                padding: const EdgeInsets.all(AppSpacing.xs),
-                                decoration: BoxDecoration(
-                                  color: AppColors.primaryContainerLight,
-                                  borderRadius: AppRadius.roundedMd,
-                                ),
-                                child: const Icon(
-                                  Icons.privacy_tip_outlined,
-                                  size: 20,
-                                  color: AppColors.onPastelSuccessContainer,
-                                ),
-                              ),
-                              title: Text(
-                                'Política de Privacidade',
-                                style: TextStyle(
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w600,
-                                  color: textColor,
-                                ),
-                              ),
-                              subtitle: Text(
-                                'LGPD, escopo restrito do Google Drive e proteção de dados',
-                                style: TextStyle(
-                                  fontSize: 11,
-                                  color: textSecondaryColor,
-                                ),
-                              ),
-                              trailing: Icon(
-                                Icons.chevron_right_rounded,
-                                size: 20,
-                                color: textSecondaryColor,
-                              ),
-                              onTap: () => LegalViewerDialog.showPrivacyPolicy(context),
+                      const SizedBox(height: AppSpacing.lg),
+
+                      // Seção 4: Informações Legais & Sobre
+                      Row(
+                        children: [
+                          Icon(
+                            Icons.info_outline_rounded,
+                            size: 18,
+                            color: Theme.of(context).colorScheme.primary,
+                          ),
+                          const SizedBox(width: AppSpacing.xs),
+                          Text(
+                            'Informações Legais & Sobre',
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                              color: textColor,
                             ),
-                            const Divider(height: 1),
-                            ListTile(
-                              leading: Container(
-                                padding: const EdgeInsets.all(AppSpacing.xs),
-                                decoration: BoxDecoration(
-                                  color: AppColors.secondaryContainerLight,
-                                  borderRadius: AppRadius.roundedMd,
-                                ),
-                                child: const Icon(
-                                  Icons.description_outlined,
-                                  size: 20,
-                                  color: AppColors.onPastelWarningContainer,
-                                ),
-                              ),
-                              title: Text(
-                                'Termos de Serviço',
-                                style: TextStyle(
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w600,
-                                  color: textColor,
-                                ),
-                              ),
-                              subtitle: Text(
-                                'Condições contratuais, propriedade dos dados e conduta',
-                                style: TextStyle(
-                                  fontSize: 11,
-                                  color: textSecondaryColor,
-                                ),
-                              ),
-                              trailing: Icon(
-                                Icons.chevron_right_rounded,
-                                size: 20,
-                                color: textSecondaryColor,
-                              ),
-                              onTap: () => LegalViewerDialog.showTermsOfService(context),
-                            ),
-                          ],
-                        ),
+                          ),
+                        ],
                       ),
-                    ),
-
-                    const SizedBox(height: AppSpacing.md),
-
-                    // Rodapé do Modal com Versão do Seapruma
-                    Center(
-                      child: Text(
-                        'Seapruma • Versão 0.31.0\nDesign System Pastel & Leveza',
-                        textAlign: TextAlign.center,
+                      const SizedBox(height: AppSpacing.xxs),
+                      Text(
+                        'Transparência, privacidade de dados e termos de uso do Seapruma',
                         style: TextStyle(
-                          fontSize: 11,
-                          color: textSecondaryColor.withOpacity(0.8),
-                          height: 1.4,
+                          fontSize: 12,
+                          color: textSecondaryColor,
                         ),
                       ),
-                    ),
+                      const SizedBox(height: AppSpacing.sm),
 
-                    const SizedBox(height: AppSpacing.md),
+                      // Card com Botões de Política e Termos
+                      Container(
+                        decoration: BoxDecoration(
+                          color: cardBgColor,
+                          borderRadius: AppRadius.roundedLg,
+                          border: Border.all(color: borderColor),
+                        ),
+                        child: Material(
+                          type: MaterialType.transparency,
+                          child: Column(
+                            children: [
+                              ListTile(
+                                leading: Container(
+                                  padding: const EdgeInsets.all(AppSpacing.xs),
+                                  decoration: BoxDecoration(
+                                    color: AppColors.primaryContainerLight,
+                                    borderRadius: AppRadius.roundedMd,
+                                  ),
+                                  child: const Icon(
+                                    Icons.privacy_tip_outlined,
+                                    size: 20,
+                                    color: AppColors.onPastelSuccessContainer,
+                                  ),
+                                ),
+                                title: Text(
+                                  'Política de Privacidade',
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w600,
+                                    color: textColor,
+                                  ),
+                                ),
+                                subtitle: Text(
+                                  'LGPD, escopo restrito do Google Drive e proteção de dados',
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    color: textSecondaryColor,
+                                  ),
+                                ),
+                                trailing: Icon(
+                                  Icons.chevron_right_rounded,
+                                  size: 20,
+                                  color: textSecondaryColor,
+                                ),
+                                onTap: () =>
+                                    LegalViewerDialog.showPrivacyPolicy(
+                                      context,
+                                    ),
+                              ),
+                              const Divider(height: 1),
+                              ListTile(
+                                leading: Container(
+                                  padding: const EdgeInsets.all(AppSpacing.xs),
+                                  decoration: BoxDecoration(
+                                    color: AppColors.secondaryContainerLight,
+                                    borderRadius: AppRadius.roundedMd,
+                                  ),
+                                  child: const Icon(
+                                    Icons.description_outlined,
+                                    size: 20,
+                                    color: AppColors.onPastelWarningContainer,
+                                  ),
+                                ),
+                                title: Text(
+                                  'Termos de Serviço',
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w600,
+                                    color: textColor,
+                                  ),
+                                ),
+                                subtitle: Text(
+                                  'Condições contratuais, propriedade dos dados e conduta',
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    color: textSecondaryColor,
+                                  ),
+                                ),
+                                trailing: Icon(
+                                  Icons.chevron_right_rounded,
+                                  size: 20,
+                                  color: textSecondaryColor,
+                                ),
+                                onTap: () =>
+                                    LegalViewerDialog.showTermsOfService(
+                                      context,
+                                    ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+
+                      const SizedBox(height: AppSpacing.md),
+
+                      // Rodapé do Modal com Versão do Seapruma
+                      Center(
+                        child: Text(
+                          'Seapruma • Versão 0.31.1\nDesign System Pastel & Leveza',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: textSecondaryColor.withOpacity(0.8),
+                            height: 1.4,
+                          ),
+                        ),
+                      ),
+
+                      const SizedBox(height: AppSpacing.md),
                     ],
                   ),
                 ),

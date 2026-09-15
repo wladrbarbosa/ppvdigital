@@ -157,20 +157,16 @@ class Core {
       getIt.registerSingleton<ThemeController>(themeCtrl);
 
       getIt.registerSingleton<BackupService>(
-        BackupService(
-          tablesDB: tablesDB,
-          localDatabase: dbInstance,
-        ),
+        BackupService(tablesDB: tablesDB, localDatabase: dbInstance),
       );
       getIt.registerSingleton<RestoreService>(
-        RestoreService(
-          tablesDB: tablesDB,
-          localDatabase: dbInstance,
-        ),
+        RestoreService(tablesDB: tablesDB, localDatabase: dbInstance),
       );
       getIt.registerSingleton<GoogleDriveBackupService>(
         GoogleDriveBackupService(
-          clientId: defaultGoogleClientId.isNotEmpty ? defaultGoogleClientId : null,
+          clientId: defaultGoogleClientId.isNotEmpty
+              ? defaultGoogleClientId
+              : null,
         ),
       );
 
@@ -211,5 +207,5 @@ class Core {
   }
 
   static GlobalKey<TarefasPageState> globalKey = GlobalKey<TarefasPageState>();
-  static const String appVersion = 'b0.31.0+1';
+  static const String appVersion = 'b0.31.1+1';
 }
