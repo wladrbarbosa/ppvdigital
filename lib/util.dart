@@ -1,6 +1,6 @@
-import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
+import 'package:material_ui/material_ui.dart';
 
 extension NumberPtBrExtension on num {
   /// Formats the number as currency in pt_BR format (e.g., "R$ 1.234,56").
@@ -28,21 +28,67 @@ TextTheme createTextTheme(
 ) {
   final TextTheme baseTextTheme = Theme.of(context).textTheme;
   try {
-    final TextTheme bodyTextTheme = GoogleFonts.getTextTheme(
-      bodyFontString,
-      baseTextTheme,
-    );
-    final TextTheme displayTextTheme = GoogleFonts.getTextTheme(
-      displayFontString,
-      baseTextTheme,
-    );
-    return displayTextTheme.copyWith(
-      bodyLarge: bodyTextTheme.bodyLarge,
-      bodyMedium: bodyTextTheme.bodyMedium,
-      bodySmall: bodyTextTheme.bodySmall,
-      labelLarge: bodyTextTheme.labelLarge,
-      labelMedium: bodyTextTheme.labelMedium,
-      labelSmall: bodyTextTheme.labelSmall,
+    return TextTheme(
+      displayLarge: GoogleFonts.getFont(
+        displayFontString,
+        textStyle: baseTextTheme.displayLarge,
+      ),
+      displayMedium: GoogleFonts.getFont(
+        displayFontString,
+        textStyle: baseTextTheme.displayMedium,
+      ),
+      displaySmall: GoogleFonts.getFont(
+        displayFontString,
+        textStyle: baseTextTheme.displaySmall,
+      ),
+      headlineLarge: GoogleFonts.getFont(
+        displayFontString,
+        textStyle: baseTextTheme.headlineLarge,
+      ),
+      headlineMedium: GoogleFonts.getFont(
+        displayFontString,
+        textStyle: baseTextTheme.headlineMedium,
+      ),
+      headlineSmall: GoogleFonts.getFont(
+        displayFontString,
+        textStyle: baseTextTheme.headlineSmall,
+      ),
+      titleLarge: GoogleFonts.getFont(
+        displayFontString,
+        textStyle: baseTextTheme.titleLarge,
+      ),
+      titleMedium: GoogleFonts.getFont(
+        displayFontString,
+        textStyle: baseTextTheme.titleMedium,
+      ),
+      titleSmall: GoogleFonts.getFont(
+        displayFontString,
+        textStyle: baseTextTheme.titleSmall,
+      ),
+      bodyLarge: GoogleFonts.getFont(
+        bodyFontString,
+        textStyle: baseTextTheme.bodyLarge,
+      ),
+      bodyMedium: GoogleFonts.getFont(
+        bodyFontString,
+        textStyle: baseTextTheme.bodyMedium,
+      ),
+      bodySmall: GoogleFonts.getFont(
+        bodyFontString,
+        textStyle: baseTextTheme.bodySmall,
+      ),
+      labelLarge: GoogleFonts.getFont(
+        bodyFontString,
+        textStyle: baseTextTheme.labelLarge,
+      ),
+      labelMedium: GoogleFonts.getFont(
+        bodyFontString,
+        textStyle: baseTextTheme.labelMedium,
+      ),
+      labelSmall: GoogleFonts.getFont(
+        bodyFontString,
+        textStyle: baseTextTheme.labelSmall,
+      ),
     );
   } catch (e) {
     debugPrint('GoogleFonts loading fallback: $e');

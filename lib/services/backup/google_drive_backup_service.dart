@@ -14,7 +14,7 @@ typedef DriveBackupItem = drive.File;
 /// Cliente HTTP autenticado via cabeçalhos OAuth do Google.
 class GoogleAuthClient extends http.BaseClient {
   GoogleAuthClient(this._headers, {http.Client? client})
-      : _client = client ?? http.Client();
+    : _client = client ?? http.Client();
 
   final Map<String, String> _headers;
   final http.Client _client;
@@ -46,15 +46,16 @@ class GoogleDriveBackupService {
     this._signOutHandler,
     GoogleSignInAccount? initialUser,
     this.clientId,
-  })  : _googleSignIn = googleSignIn ?? GoogleSignIn.instance,
-        _injectedDriveApi = driveApi,
-        _currentUser = initialUser;
+  }) : _googleSignIn = googleSignIn ?? GoogleSignIn.instance,
+       _injectedDriveApi = driveApi,
+       _currentUser = initialUser;
 
-  static const String backupFolderName = 'PPVDigital Backups';
+  static const String backupFolderName = 'Seapruma Backups';
 
   final GoogleSignIn _googleSignIn;
   final drive.DriveApi? _injectedDriveApi;
-  final Future<drive.DriveApi> Function(GoogleSignInAccount account)? driveApiBuilder;
+  final Future<drive.DriveApi> Function(GoogleSignInAccount account)?
+  driveApiBuilder;
   final Future<GoogleSignInAccount?> Function()? _signInHandler;
   final Future<GoogleSignInAccount?> Function()? _signInSilentlyHandler;
   final Future<void> Function()? _signOutHandler;
@@ -82,8 +83,8 @@ class GoogleDriveBackupService {
       final effectiveClientId = (clientId != null && clientId.trim().isNotEmpty)
           ? clientId.trim()
           : (this.clientId != null && this.clientId!.trim().isNotEmpty
-              ? this.clientId!.trim()
-              : null);
+                ? this.clientId!.trim()
+                : null);
 
       if (!_googleSignIn.supportsAuthenticate() &&
           (effectiveClientId == null || effectiveClientId.isEmpty)) {
@@ -93,9 +94,7 @@ class GoogleDriveBackupService {
       }
 
       try {
-        await _googleSignIn.initialize(
-          clientId: effectiveClientId,
-        );
+        await _googleSignIn.initialize(clientId: effectiveClientId);
         _initialized = true;
       } catch (e, stack) {
         log('Erro ao inicializar GoogleSignIn: $e', stackTrace: stack);
@@ -165,8 +164,10 @@ class GoogleDriveBackupService {
       _currentUser = account;
       return account;
     } catch (e, stack) {
-      log('Erro ao autenticar silenciosamente no Google Sign-In: $e',
-          stackTrace: stack);
+      log(
+        'Erro ao autenticar silenciosamente no Google Sign-In: $e',
+        stackTrace: stack,
+      );
       return null;
     }
   }
@@ -233,18 +234,18 @@ class GoogleDriveBackupService {
       throw StateError('Falha ao obter token de acesso para o Google Drive');
     }
 
-    final headers = <String, String>{
-      'Authorization': 'Bearer $accessToken',
-    };
+    final headers = <String, String>{'Authorization': 'Bearer $accessToken'};
     final client = GoogleAuthClient(headers);
     return drive.DriveApi(client);
   }
 
   /// Localiza ou cria a pasta exclusiva de backups no Google Drive do usuário.
-  Future<String> getOrCreateBackupFolder({drive.DriveApi? customDriveApi}) async {
+  Future<String> getOrCreateBackupFolder({
+    drive.DriveApi? customDriveApi,
+  }) async {
     final api = customDriveApi ?? await getDriveApi();
 
-    // Busca pasta com nome 'PPVDigital Backups' que não esteja na lixeira
+    // Busca pasta com nome 'Seapruma Backups' que não esteja na lixeira
     const query =
         "mimeType = 'application/vnd.google-apps.folder' and name = '$backupFolderName' and trashed = false";
     final result = await api.files.list(
@@ -284,7 +285,8 @@ class GoogleDriveBackupService {
     final api = customDriveApi ?? await getDriveApi();
     final folderId = await getOrCreateBackupFolder(customDriveApi: api);
 
-    final name = fileName ??
+    final name =
+        fileName ??
         'ppvdigital_backup_${DateFormat('yyyy-MM-dd_HHmmss').format(DateTime.now())}.json';
 
     final fileMetadata = drive.File()
@@ -293,10 +295,7 @@ class GoogleDriveBackupService {
       ..mimeType = 'application/json';
 
     final bytes = utf8.encode(jsonContent);
-    final media = drive.Media(
-      Stream.value(bytes),
-      bytes.length,
-    );
+    final media = drive.Media(Stream.value(bytes), bytes.length);
 
     final uploadedFile = await api.files.create(
       fileMetadata,
@@ -325,8 +324,10 @@ class GoogleDriveBackupService {
   }
 
   /// Baixa o conteúdo de um arquivo de backup por ID.
-  Future<String> downloadBackup(String fileId,
-      {drive.DriveApi? customDriveApi}) async {
+  Future<String> downloadBackup(
+    String fileId, {
+    drive.DriveApi? customDriveApi,
+  }) async {
     final api = customDriveApi ?? await getDriveApi();
 
     final dynamic media = await api.files.get(
@@ -336,7 +337,8 @@ class GoogleDriveBackupService {
 
     if (media is! drive.Media) {
       throw StateError(
-          'Falha ao obter stream de download do arquivo do Google Drive');
+        'Falha ao obter stream de download do arquivo do Google Drive',
+      );
     }
 
     final bytes = await media.stream.fold<List<int>>(
@@ -372,8 +374,10 @@ class GoogleDriveBackupService {
           await api.files.delete(file.id!);
           deletedCount++;
         } catch (e, stack) {
-          log('Erro ao remover backup antigo (${file.id}): $e',
-              stackTrace: stack);
+          log(
+            'Erro ao remover backup antigo (${file.id}): $e',
+            stackTrace: stack,
+          );
         }
       }
     }

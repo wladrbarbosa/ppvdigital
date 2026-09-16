@@ -1,7 +1,7 @@
 import 'package:appwrite/models.dart' as models;
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get_it/get_it.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:ppvdigital/app/capacitacao/criar_editar_transacao_page.dart';
 import 'package:ppvdigital/app/capacitacao/financas/financas_controller.dart';
 import 'package:ppvdigital/app/login/login_controller.dart';

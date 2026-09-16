@@ -120,11 +120,11 @@ Como o backup ocorre apenas **1 vez ao dia** (Google Drive) ou sob **demanda man
    - **Segurança:** O aplicativo **NÃO** tem acesso aos outros arquivos do usuário no Google Drive, apenas aos arquivos que ele mesmo cria.
    - Não exige processo demorado e burocrático de verificação de segurança restrita do Google Cloud.
 2. **Pasta Dedicada:**
-   - Os arquivos são salvos dentro de uma pasta automática denominada `PPVDigital Backups`.
+   - Os arquivos são salvos dentro de uma pasta automática denominada `Seapruma Backups`.
    - Se a pasta não existir, ela é criada na primeira execução.
 3. **Política de Retenção (Rotação de Backups):**
    - O sistema mantém os últimos 30 backups diários automáticos.
-   - Backups diários mais antigos que 30 dias na pasta `PPVDigital Backups` são automaticamente limpos para economizar espaço de armazenamento do usuário no Google Drive.
+   - Backups diários mais antigos que 30 dias na pasta `Seapruma Backups` são automaticamente limpos para economizar espaço de armazenamento do usuário no Google Drive.
 4. **Download e Restauração Direta do Google Drive:**
    - O usuário pode listar seus backups existentes no Google Drive e restaurar com 1 clique.
 

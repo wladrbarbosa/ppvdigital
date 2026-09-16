@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:ppvdigital/design_system/app_colors.dart';
 import 'package:ppvdigital/design_system/app_radius.dart';
 import 'package:ppvdigital/design_system/app_shadows.dart';

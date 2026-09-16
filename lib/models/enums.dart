@@ -6,7 +6,7 @@ enum TipoTransacao {
   receita('receita', 'Receita'),
   transferencia('transferencia', 'Transferência');
 
-  const TipoTransacao(this.value, this.label);
+  TipoTransacao(this.value, this.label);
   final String value;
   final String label;
 
@@ -28,7 +28,7 @@ enum TipoItem {
   tarefa('tarefa', 'Tarefa'),
   habito('habito', 'Hábito');
 
-  const TipoItem(this.value, this.label);
+  TipoItem(this.value, this.label);
   final String value;
   final String label;
 
@@ -49,7 +49,7 @@ enum TipoHabito {
   positivo('positivo', 'Positivo'),
   negativo('negativo', 'Negativo (Abstinência)');
 
-  const TipoHabito(this.value, this.label);
+  TipoHabito(this.value, this.label);
   final String value;
   final String label;
 
@@ -72,7 +72,7 @@ enum TipoRecorrencia {
   mes('mês', 'Mensal'),
   ano('ano', 'Anual');
 
-  const TipoRecorrencia(this.value, this.label);
+  TipoRecorrencia(this.value, this.label);
   final String value;
   final String label;
 

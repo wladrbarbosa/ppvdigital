@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 /// Tokens de curvatura e cantos arredondados do Design System Seapruma.
 /// Curvas generosas transmitem suavidade, calor e modernidade.

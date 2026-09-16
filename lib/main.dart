@@ -1,15 +1,14 @@
 import 'dart:developer';
 
 import 'package:flutter/foundation.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter_web_plugins/flutter_web_plugins.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:intl/intl.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:mobx/mobx.dart';
 import 'package:ppvdigital/core.dart';
 import 'package:ppvdigital/models/local/app_database.dart';
 import 'package:ppvdigital/root_app_widget.dart';
-
 import 'package:ppvdigital/timezone_helper.dart';
 
 void main() async {

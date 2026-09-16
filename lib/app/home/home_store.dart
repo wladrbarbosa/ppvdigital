@@ -1,6 +1,6 @@
 import 'package:mobx/mobx.dart';
 
-class HomeStore extends HomeStoreBase {}
+class HomeStore extends HomeStoreBase;
 
 abstract class HomeStoreBase {
   final Observable<int> _counter = Observable<int>(0, name: 'contador');

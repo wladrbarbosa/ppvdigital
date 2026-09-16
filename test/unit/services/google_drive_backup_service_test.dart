@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:googleapis/drive/v3.dart' as drive;
@@ -26,14 +27,16 @@ class FakeGoogleSignInAuthorizationClient
 
   @override
   Future<GoogleSignInClientAuthorization?> authorizationForScopes(
-      List<String> scopes) async {
+    List<String> scopes,
+  ) async {
     if (returnNullOnAuthorization) return null;
     return FakeGoogleSignInClientAuthorization(accessToken: token);
   }
 
   @override
   Future<GoogleSignInClientAuthorization> authorizeScopes(
-      List<String> scopes) async {
+    List<String> scopes,
+  ) async {
     return FakeGoogleSignInClientAuthorization(accessToken: token);
   }
 
@@ -88,21 +91,25 @@ class FakeFilesResource implements drive.FilesResource {
 
       if (q != null) {
         if (q.contains("mimeType = 'application/vnd.google-apps.folder'") &&
-            q.contains("name = 'PPVDigital Backups'")) {
+            q.contains("name = 'Seapruma Backups'")) {
           result = result
-              .where((f) =>
-                  f.mimeType == 'application/vnd.google-apps.folder' &&
-                  f.name == GoogleDriveBackupService.backupFolderName &&
-                  !(f.trashed ?? false))
+              .where(
+                (f) =>
+                    f.mimeType == 'application/vnd.google-apps.folder' &&
+                    f.name == GoogleDriveBackupService.backupFolderName &&
+                    !(f.trashed ?? false),
+              )
               .toList();
         } else if (q.contains('in parents')) {
           final match = RegExp("'([^']+)' in parents").firstMatch(q);
           if (match != null) {
             final parentId = match.group(1);
             result = result
-                .where((f) =>
-                    f.parents?.contains(parentId) == true &&
-                    !(f.trashed ?? false))
+                .where(
+                  (f) =>
+                      f.parents?.contains(parentId) == true &&
+                      !(f.trashed ?? false),
+                )
                 .toList();
           }
         }
@@ -144,9 +151,9 @@ class FakeFilesResource implements drive.FilesResource {
         return uploadMedia.stream
             .fold<List<int>>([], (prev, elem) => prev..addAll(elem))
             .then((bytes) {
-          fileContents[id] = bytes;
-          return newFile;
-        });
+              fileContents[id] = bytes;
+              return newFile;
+            });
       }
 
       return Future.value(newFile);
@@ -177,7 +184,7 @@ class FakeFilesResource implements drive.FilesResource {
 
 class FakeDriveApi implements drive.DriveApi {
   FakeDriveApi({FakeFilesResource? files})
-      : fakeFiles = files ?? FakeFilesResource();
+    : fakeFiles = files ?? FakeFilesResource();
 
   final FakeFilesResource fakeFiles;
 
@@ -212,21 +219,29 @@ class FakeHttpClient extends http.BaseClient {
 
 void main() {
   group('GoogleAuthClient', () {
-    test('adiciona cabeçalhos de autenticação e encaminha requisição', () async {
-      final fakeHttp = FakeHttpClient();
-      final authClient = GoogleAuthClient(
-        {'Authorization': 'Bearer token_123', 'X-Custom': 'header_val'},
-        client: fakeHttp,
-      );
+    test(
+      'adiciona cabeçalhos de autenticação e encaminha requisição',
+      () async {
+        final fakeHttp = FakeHttpClient();
+        final authClient = GoogleAuthClient({
+          'Authorization': 'Bearer token_123',
+          'X-Custom': 'header_val',
+        }, client: fakeHttp);
 
-      final response = await authClient.get(Uri.parse('https://example.com/api'));
-      expect(response.statusCode, 200);
-      expect(fakeHttp.lastRequest?.headers['Authorization'], 'Bearer token_123');
-      expect(fakeHttp.lastRequest?.headers['X-Custom'], 'header_val');
+        final response = await authClient.get(
+          Uri.parse('https://example.com/api'),
+        );
+        expect(response.statusCode, 200);
+        expect(
+          fakeHttp.lastRequest?.headers['Authorization'],
+          'Bearer token_123',
+        );
+        expect(fakeHttp.lastRequest?.headers['X-Custom'], 'header_val');
 
-      authClient.close();
-      expect(fakeHttp.isClosed, isTrue);
-    });
+        authClient.close();
+        expect(fakeHttp.isClosed, isTrue);
+      },
+    );
 
     test('instanciação padrão sem client cria client interno', () {
       final authClient = GoogleAuthClient({'Authorization': 'Bearer token'});
@@ -291,15 +306,18 @@ void main() {
       expect(service.isSignedIn, isTrue);
     });
 
-    test('signInSilently retorna null caso ocorra exceção silenciosa', () async {
-      final service = GoogleDriveBackupService(
-        signInSilentlyHandler: () async =>
-            throw Exception('Falha silenciosa'),
-      );
+    test(
+      'signInSilently retorna null caso ocorra exceção silenciosa',
+      () async {
+        final service = GoogleDriveBackupService(
+          signInSilentlyHandler: () async =>
+              throw Exception('Falha silenciosa'),
+        );
 
-      final user = await service.signInSilently();
-      expect(user, isNull);
-    });
+        final user = await service.signInSilently();
+        expect(user, isNull);
+      },
+    );
 
     test('signOut limpa a sessão e propaga exceção se falhar', () async {
       final account = FakeGoogleSignInAccount();
@@ -358,15 +376,18 @@ void main() {
       expect(api.files, isNotNull);
     });
 
-    test('solicita autorização de escopo se authorizationForScopes retornar null', () async {
-      final client = FakeGoogleSignInAuthorizationClient()
-        ..returnNullOnAuthorization = true;
-      final account = FakeGoogleSignInAccount(client: client);
-      final service = GoogleDriveBackupService(initialUser: account);
+    test(
+      'solicita autorização de escopo se authorizationForScopes retornar null',
+      () async {
+        final client = FakeGoogleSignInAuthorizationClient()
+          ..returnNullOnAuthorization = true;
+        final account = FakeGoogleSignInAccount(client: client);
+        final service = GoogleDriveBackupService(initialUser: account);
 
-      final api = await service.getDriveApi();
-      expect(api, isNotNull);
-    });
+        final api = await service.getDriveApi();
+        expect(api, isNotNull);
+      },
+    );
   });
 
   group('GoogleDriveBackupService - Operações de Pasta e Arquivo', () {
@@ -387,8 +408,14 @@ void main() {
       final folderId = await service.getOrCreateBackupFolder();
       expect(folderId, isNotEmpty);
       expect(fakeFiles.filesStore.length, 1);
-      expect(fakeFiles.filesStore.first.name, GoogleDriveBackupService.backupFolderName);
-      expect(fakeFiles.filesStore.first.mimeType, 'application/vnd.google-apps.folder');
+      expect(
+        fakeFiles.filesStore.first.name,
+        GoogleDriveBackupService.backupFolderName,
+      );
+      expect(
+        fakeFiles.filesStore.first.mimeType,
+        'application/vnd.google-apps.folder',
+      );
     });
 
     test('getOrCreateBackupFolder reutiliza pasta existente', () async {
@@ -404,23 +431,29 @@ void main() {
       expect(fakeFiles.filesStore.length, 1);
     });
 
-    test('getOrCreateBackupFolder lança StateError se id retornado for nulo', () {
-      fakeFiles.failCreateFolder = true;
-      expect(() => service.getOrCreateBackupFolder(), throwsStateError);
-    });
+    test(
+      'getOrCreateBackupFolder lança StateError se id retornado for nulo',
+      () {
+        fakeFiles.failCreateFolder = true;
+        expect(() => service.getOrCreateBackupFolder(), throwsStateError);
+      },
+    );
 
-    test('uploadBackup faz upload de arquivo JSON com nome padrão gerado', () async {
-      const jsonContent = '{"version":1,"test":"data"}';
-      final file = await service.uploadBackup(jsonContent: jsonContent);
+    test(
+      'uploadBackup faz upload de arquivo JSON com nome padrão gerado',
+      () async {
+        const jsonContent = '{"version":1,"test":"data"}';
+        final file = await service.uploadBackup(jsonContent: jsonContent);
 
-      expect(file.id, isNotNull);
-      expect(file.name?.startsWith('ppvdigital_backup_'), isTrue);
-      expect(file.name?.endsWith('.json'), isTrue);
-      expect(file.mimeType, 'application/json');
+        expect(file.id, isNotNull);
+        expect(file.name?.startsWith('ppvdigital_backup_'), isTrue);
+        expect(file.name?.endsWith('.json'), isTrue);
+        expect(file.mimeType, 'application/json');
 
-      final storedContent = utf8.decode(fakeFiles.fileContents[file.id!]!);
-      expect(storedContent, jsonContent);
-    });
+        final storedContent = utf8.decode(fakeFiles.fileContents[file.id!]!);
+        expect(storedContent, jsonContent);
+      },
+    );
 
     test('uploadBackup aceita nome de arquivo personalizado', () async {
       const jsonContent = '{"custom":"file"}';
@@ -498,7 +531,12 @@ void main() {
         ..name = 'incomplete.json'
         ..parents = [folderId];
 
-      fakeFiles.filesStore.addAll([recentFile, oldFile1, oldFile2, incompleteFile]);
+      fakeFiles.filesStore.addAll([
+        recentFile,
+        oldFile1,
+        oldFile2,
+        incompleteFile,
+      ]);
 
       final deleted = await service.pruneOldBackups(now: now);
 
@@ -526,19 +564,25 @@ void main() {
       expect(deleted, 0); // Não incrementou por causa da falha capturada
     });
 
-    test('pruneOldBackups utiliza DateTime.now() quando now não for fornecido', () async {
-      final folderId = await service.getOrCreateBackupFolder();
-      final oldFile = drive.File()
-        ..id = 'old_default_now'
-        ..name = 'ppvdigital_backup_default.json'
-        ..parents = [folderId]
-        ..createdTime = DateTime.now().subtract(const Duration(days: 45));
+    test(
+      'pruneOldBackups utiliza DateTime.now() quando now não for fornecido',
+      () async {
+        final folderId = await service.getOrCreateBackupFolder();
+        final oldFile = drive.File()
+          ..id = 'old_default_now'
+          ..name = 'ppvdigital_backup_default.json'
+          ..parents = [folderId]
+          ..createdTime = DateTime.now().subtract(const Duration(days: 45));
 
-      fakeFiles.filesStore.add(oldFile);
+        fakeFiles.filesStore.add(oldFile);
 
-      final deleted = await service.pruneOldBackups();
-      expect(deleted, 1);
-      expect(fakeFiles.filesStore.any((f) => f.id == 'old_default_now'), isFalse);
-    });
+        final deleted = await service.pruneOldBackups();
+        expect(deleted, 1);
+        expect(
+          fakeFiles.filesStore.any((f) => f.id == 'old_default_now'),
+          isFalse,
+        );
+      },
+    );
   });
 }

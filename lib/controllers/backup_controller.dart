@@ -126,10 +126,10 @@ class BackupController {
         }
       });
 
-      // Tenta recuperar sessão silenciosamente se não estiver conectado
-      if (!googleDriveService.isSignedIn) {
-        await googleDriveService.signInSilently();
-      }
+      // Atualiza o status de conexão caso o serviço já esteja autenticado em memória.
+      // Não dispara signInSilently() automaticamente no startup da aplicação
+      // para evitar prompts invasivos do Google (como GIS One Tap na Web).
+      // A conexão com o Google Drive é sob demanda pelo usuário nas Configurações.
 
       mobx.runInAction(() {
         _isGoogleConnected.value = googleDriveService.isSignedIn;

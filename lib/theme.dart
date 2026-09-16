@@ -1,6 +1,6 @@
 // ignore_for_file: use_full_hex_values_for_flutter_colors
 
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:ppvdigital/design_system/design_system.dart';
 
 class MaterialTheme {

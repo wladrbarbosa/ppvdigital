@@ -1,6 +1,6 @@
-import 'package:flutter/material.dart';
 import 'package:flutter_expandable_fab/flutter_expandable_fab.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:ppvdigital/app/capacitacao/tarefas_habitos/dashboard_page.dart';
 import 'package:ppvdigital/core.dart';
 import 'package:ppvdigital/design_system/design_system.dart';
@@ -262,7 +262,7 @@ class TarefasPageState extends State<TarefasPage>
             const Expanded(child: RouterOutlet(defaultWidget: DashboardPage())),
           ],
         ),
-        floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
+        floatingActionButtonLocation: ExpandableFab.location,
         floatingActionButton: ExpandableFab(
           key: _key,
           children: [

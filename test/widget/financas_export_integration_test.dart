@@ -1,7 +1,8 @@
-import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_expandable_fab/flutter_expandable_fab.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:intl/date_symbol_data_local.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:ppvdigital/app/capacitacao/financas/financas_controller.dart';
 import 'package:ppvdigital/app/capacitacao/financas/financas_layout.dart';
 import 'package:ppvdigital/app/capacitacao/financas/widgets/exportar_transacoes_dialog.dart';
@@ -157,5 +158,25 @@ void main() {
       ),
       findsOneWidget,
     );
+  });
+
+  testWidgets('FinancasLayout renderiza ExpandableFab com localização ExpandableFab.location', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      const MaterialApp(
+        home: Scaffold(
+          body: FinancasLayout(),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byType(ExpandableFab), findsOneWidget);
+    final scaffold = tester.widget<Scaffold>(find.descendant(
+      of: find.byType(FinancasLayout),
+      matching: find.byType(Scaffold),
+    ));
+    expect(scaffold.floatingActionButtonLocation, equals(ExpandableFab.location));
   });
 }

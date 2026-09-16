@@ -1,5 +1,5 @@
-import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:ppvdigital/design_system/app_colors.dart';
 
 /// Tokens tipográficos do Design System Seapruma.
@@ -16,65 +16,77 @@ abstract final class AppTypography {
     final secondaryColor = isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight;
 
     try {
-      final googleTheme = GoogleFonts.plusJakartaSansTextTheme(baseTextTheme);
-      return googleTheme.copyWith(
-        displayLarge: googleTheme.displayLarge?.copyWith(
+      return TextTheme(
+        displayLarge: GoogleFonts.plusJakartaSans(
+          textStyle: baseTextTheme.displayLarge,
           color: primaryColor,
           fontWeight: FontWeight.bold,
           letterSpacing: -0.5,
         ),
-        displayMedium: googleTheme.displayMedium?.copyWith(
+        displayMedium: GoogleFonts.plusJakartaSans(
+          textStyle: baseTextTheme.displayMedium,
           color: primaryColor,
           fontWeight: FontWeight.bold,
           letterSpacing: -0.5,
         ),
-        headlineLarge: googleTheme.headlineLarge?.copyWith(
+        headlineLarge: GoogleFonts.plusJakartaSans(
+          textStyle: baseTextTheme.headlineLarge,
           color: primaryColor,
           fontWeight: FontWeight.w700,
           letterSpacing: -0.3,
         ),
-        headlineMedium: googleTheme.headlineMedium?.copyWith(
+        headlineMedium: GoogleFonts.plusJakartaSans(
+          textStyle: baseTextTheme.headlineMedium,
           color: primaryColor,
           fontWeight: FontWeight.w600,
           letterSpacing: -0.2,
         ),
-        titleLarge: googleTheme.titleLarge?.copyWith(
+        titleLarge: GoogleFonts.plusJakartaSans(
+          textStyle: baseTextTheme.titleLarge,
           color: primaryColor,
           fontWeight: FontWeight.w600,
           letterSpacing: -0.1,
         ),
-        titleMedium: googleTheme.titleMedium?.copyWith(
+        titleMedium: GoogleFonts.plusJakartaSans(
+          textStyle: baseTextTheme.titleMedium,
           color: primaryColor,
           fontWeight: FontWeight.w600,
         ),
-        titleSmall: googleTheme.titleSmall?.copyWith(
+        titleSmall: GoogleFonts.plusJakartaSans(
+          textStyle: baseTextTheme.titleSmall,
           color: secondaryColor,
           fontWeight: FontWeight.w500,
         ),
-        bodyLarge: googleTheme.bodyLarge?.copyWith(
+        bodyLarge: GoogleFonts.plusJakartaSans(
+          textStyle: baseTextTheme.bodyLarge,
           color: primaryColor,
           fontWeight: FontWeight.w400,
           height: 1.5,
         ),
-        bodyMedium: googleTheme.bodyMedium?.copyWith(
+        bodyMedium: GoogleFonts.plusJakartaSans(
+          textStyle: baseTextTheme.bodyMedium,
           color: primaryColor,
           fontWeight: FontWeight.w400,
           height: 1.45,
         ),
-        bodySmall: googleTheme.bodySmall?.copyWith(
+        bodySmall: GoogleFonts.plusJakartaSans(
+          textStyle: baseTextTheme.bodySmall,
           color: secondaryColor,
           fontWeight: FontWeight.w400,
         ),
-        labelLarge: googleTheme.labelLarge?.copyWith(
+        labelLarge: GoogleFonts.plusJakartaSans(
+          textStyle: baseTextTheme.labelLarge,
           color: primaryColor,
           fontWeight: FontWeight.w600,
           letterSpacing: 0.1,
         ),
-        labelMedium: googleTheme.labelMedium?.copyWith(
+        labelMedium: GoogleFonts.plusJakartaSans(
+          textStyle: baseTextTheme.labelMedium,
           color: secondaryColor,
           fontWeight: FontWeight.w500,
         ),
-        labelSmall: googleTheme.labelSmall?.copyWith(
+        labelSmall: GoogleFonts.plusJakartaSans(
+          textStyle: baseTextTheme.labelSmall,
           color: secondaryColor,
           fontWeight: FontWeight.w500,
           letterSpacing: 0.2,

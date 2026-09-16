@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 /// Enumeração das 10 paletas de cores pastéis oficiais do Design System Seapruma.
 enum AppThemePalette {
@@ -103,7 +103,7 @@ enum AppThemePalette {
     onPrimaryContainerDark: Color(0xFFF0EEEB),
   );
 
-  const AppThemePalette({
+  AppThemePalette({
     required this.id,
     required this.label,
     required this.primaryLight,

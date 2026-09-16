@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 /// Tokens de cores do Design System do Seapruma (PPVDigital).
 /// Caracterizado por ar de leveza, serenidade e tons pastéis suaves.

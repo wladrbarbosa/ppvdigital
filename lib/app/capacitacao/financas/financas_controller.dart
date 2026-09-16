@@ -1224,8 +1224,8 @@ class FinancasController {
               tableId: Core.tableTransacaoRecorrencias,
               rowId: original.recorrencia!.id,
               data: {
-                if (tipoRecorrencia != null) 'tipoRecorrencia': tipoRecorrencia,
-                if (frequencia != null) 'frequencia': frequencia,
+                'tipoRecorrencia': ?tipoRecorrencia,
+                'frequencia': ?frequencia,
                 'totalParcelas': totalParcelas,
                 'parcelaInicio': startParcel,
               },

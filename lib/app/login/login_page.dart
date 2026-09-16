@@ -1,5 +1,5 @@
-import 'package:flutter/material.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:ppvdigital/app/home/widgets/legal_viewer_dialog.dart';
 import 'package:ppvdigital/app/login/login_controller.dart';
 import 'package:ppvdigital/core.dart';
@@ -367,7 +367,7 @@ class _LoginPageState extends State<LoginPage> {
                               color: Theme.of(context)
                                   .colorScheme
                                   .onSurface
-                                  .withOpacity(0.7),
+                                  .withValues(alpha: 0.7),
                             ),
                           ),
                           InkWell(
@@ -391,7 +391,7 @@ class _LoginPageState extends State<LoginPage> {
                               color: Theme.of(context)
                                   .colorScheme
                                   .onSurface
-                                  .withOpacity(0.7),
+                                  .withValues(alpha: 0.7),
                             ),
                           ),
                           InkWell(
@@ -415,7 +415,7 @@ class _LoginPageState extends State<LoginPage> {
                               color: Theme.of(context)
                                   .colorScheme
                                   .onSurface
-                                  .withOpacity(0.7),
+                                  .withValues(alpha: 0.7),
                             ),
                           ),
                         ],

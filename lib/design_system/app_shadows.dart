@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 /// Tokens de sombras do Design System Seapruma.
 /// Focados em difusão ampla e baixíssima opacidade (4% a 8%)

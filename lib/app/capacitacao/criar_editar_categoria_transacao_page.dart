@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:ppvdigital/core.dart';
 import 'package:ppvdigital/design_system/design_system.dart';
 import 'package:ppvdigital/models/categoria_transacao_model.dart';

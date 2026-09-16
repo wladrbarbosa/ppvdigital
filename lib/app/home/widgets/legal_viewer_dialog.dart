@@ -1,5 +1,4 @@
-import 'package:flutter/foundation.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:ppvdigital/design_system/design_system.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -23,7 +22,7 @@ class LegalViewerDialog extends StatelessWidget {
   static Future<void> showPrivacyPolicy(BuildContext context) {
     return showDialog<void>(
       context: context,
-      builder: (_) => LegalViewerDialog(
+      builder: (_) => const LegalViewerDialog(
         title: 'Política de Privacidade',
         subtitle: 'Conformidade LGPD, Google Play & Escopo Google Drive',
         webUrl: 'privacidade.html',
@@ -36,7 +35,7 @@ class LegalViewerDialog extends StatelessWidget {
   static Future<void> showTermsOfService(BuildContext context) {
     return showDialog<void>(
       context: context,
-      builder: (_) => LegalViewerDialog(
+      builder: (_) => const LegalViewerDialog(
         title: 'Termos de Serviço',
         subtitle: 'Condições gerais, uso da plataforma e propriedade de dados',
         webUrl: 'termos.html',
@@ -50,7 +49,6 @@ class LegalViewerDialog extends StatelessWidget {
       final uri = Uri.parse(webUrl);
       final launched = await launchUrl(
         uri,
-        mode: LaunchMode.platformDefault,
         webOnlyWindowName: '_blank',
       );
       if (!launched && context.mounted) {
@@ -77,10 +75,15 @@ class LegalViewerDialog extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
-    final backgroundColor = isDark ? AppColors.surfaceDark : AppColors.surfaceLight;
-    final textColor = isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight;
-    final textSecondaryColor =
-        isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight;
+    final backgroundColor = isDark
+        ? AppColors.surfaceDark
+        : AppColors.surfaceLight;
+    final textColor = isDark
+        ? AppColors.textPrimaryDark
+        : AppColors.textPrimaryLight;
+    final textSecondaryColor = isDark
+        ? AppColors.textSecondaryDark
+        : AppColors.textSecondaryLight;
     final borderColor = isDark ? AppColors.borderDark : AppColors.borderLight;
 
     return Dialog(
@@ -91,10 +94,7 @@ class LegalViewerDialog extends StatelessWidget {
         vertical: AppSpacing.lg,
       ),
       child: ConstrainedBox(
-        constraints: const BoxConstraints(
-          maxWidth: 680,
-          maxHeight: 700,
-        ),
+        constraints: const BoxConstraints(maxWidth: 680, maxHeight: 700),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
@@ -116,7 +116,7 @@ class LegalViewerDialog extends StatelessWidget {
                       borderRadius: AppRadius.roundedMd,
                     ),
                     alignment: Alignment.center,
-                    child: Text(
+                    child: const Text(
                       'S',
                       style: TextStyle(
                         color: AppColors.onPastelSuccessContainer,
@@ -165,16 +165,21 @@ class LegalViewerDialog extends StatelessWidget {
               child: ListView.separated(
                 padding: const EdgeInsets.all(AppSpacing.lg),
                 itemCount: sections.length,
-                separatorBuilder: (_, __) => const SizedBox(height: AppSpacing.md),
+                separatorBuilder: (_, _) =>
+                    const SizedBox(height: AppSpacing.md),
                 itemBuilder: (context, index) {
                   final section = sections[index];
                   return Container(
                     decoration: BoxDecoration(
                       color: section.isHighlight
                           ? (isDark
-                              ? AppColors.surfaceDark
-                              : AppColors.primaryContainerLight.withOpacity(0.5))
-                          : (isDark ? AppColors.surfaceDark : AppColors.backgroundLight),
+                                ? AppColors.surfaceDark
+                                : AppColors.primaryContainerLight.withValues(
+                                    alpha: 0.5,
+                                  ))
+                          : (isDark
+                                ? AppColors.surfaceDark
+                                : AppColors.backgroundLight),
                       borderRadius: AppRadius.roundedLg,
                       border: Border.all(
                         color: section.isHighlight
@@ -217,7 +222,7 @@ class LegalViewerDialog extends StatelessWidget {
                           style: TextStyle(
                             fontSize: 13,
                             height: 1.55,
-                            color: textColor.withOpacity(0.9),
+                            color: textColor.withValues(alpha: 0.9),
                           ),
                         ),
                       ],
@@ -243,17 +248,17 @@ class LegalViewerDialog extends StatelessWidget {
                 children: [
                   Text(
                     'Seapruma • 2026',
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: textSecondaryColor,
-                    ),
+                    style: TextStyle(fontSize: 12, color: textSecondaryColor),
                   ),
                   Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       OutlinedButton.icon(
                         onPressed: () => _openInBrowser(context),
-                        icon: const Icon(Icons.open_in_browser_rounded, size: 16),
+                        icon: const Icon(
+                          Icons.open_in_browser_rounded,
+                          size: 16,
+                        ),
                         label: const Text('Abrir Web'),
                         style: OutlinedButton.styleFrom(
                           shape: RoundedRectangleBorder(
@@ -300,33 +305,28 @@ class LegalSectionItem {
 const List<LegalSectionItem> _privacyPolicySections = [
   LegalSectionItem(
     title: '1. Visão Geral e Identificação',
-    body:
-        'O Seapruma é uma plataforma voltada para o planejamento pessoal, gestão de hábitos, acompanhamento de tarefas e controle financeiro. Atuamos sob o modelo offline-first com sincronização segura e conformidade estrita com a LGPD (Lei 13.709/2018).',
+    body: 'O Seapruma é uma plataforma voltada para o planejamento pessoal, gestão de hábitos, acompanhamento de tarefas e controle financeiro. Atuamos sob o modelo offline-first com sincronização segura e conformidade estrita com a LGPD (Lei 13.709/2018).',
     icon: Icons.shield_outlined,
   ),
   LegalSectionItem(
     title: '2. Dados Tratados e Finalidade',
-    body:
-        'Tratamos dados cadastrais mínimos (e-mail para autenticação) e informações operacionais inseridas pelo próprio usuário (contas, lançamentos, tarefas e metas). Seus dados nunca são vendidos ou comercializados.',
+    body: 'Tratamos dados cadastrais mínimos (e-mail para autenticação) e informações operacionais inseridas pelo próprio usuário (contas, lançamentos, tarefas e metas). Seus dados nunca são vendidos ou comercializados.',
     icon: Icons.data_usage_outlined,
   ),
   LegalSectionItem(
     title: '3. Integração com Google Drive (drive.file)',
-    body:
-        'O escopo Google Drive solicitado (drive.file) é restrito exclusivamente para criar e restaurar os arquivos de backup gerados pelo próprio Seapruma (Seapruma_Backup_*.json). O app NÃO possui acesso a nenhum outro arquivo pessoal no seu Google Drive.',
+    body: 'O escopo Google Drive solicitado (drive.file) é restrito exclusivamente para criar e restaurar os arquivos de backup gerados pelo próprio Seapruma (Seapruma_Backup_*.json). O app NÃO possui acesso a nenhum outro arquivo pessoal no seu Google Drive.',
     icon: Icons.cloud_outlined,
     isHighlight: true,
   ),
   LegalSectionItem(
     title: '4. Armazenamento e Segurança (Appwrite)',
-    body:
-        'Conexões protegidas via HTTPS/TLS e WSS seguro. Isolamento total por conta de usuário no banco de dados e validação de integridade criptográfica SHA-256 para backups.',
+    body: 'Conexões protegidas via HTTPS/TLS e WSS seguro. Isolamento total por conta de usuário no banco de dados e validação de integridade criptográfica SHA-256 para backups.',
     icon: Icons.lock_outline,
   ),
   LegalSectionItem(
     title: '5. Direitos do Titular & Exclusão de Dados',
-    body:
-        'Em conformidade com o Art. 18 da LGPD, você possui direito de acesso, correção, exportação integral (JSON/CSV) e exclusão total da conta e dados mediante solicitação para suporte@seapruma.app.',
+    body: 'Em conformidade com o Art. 18 da LGPD, você possui direito de acesso, correção, exportação integral (JSON/CSV) e exclusão total da conta e dados mediante solicitação para suporte@seapruma.app.',
     icon: Icons.delete_outline,
     isHighlight: true,
   ),
@@ -335,40 +335,34 @@ const List<LegalSectionItem> _privacyPolicySections = [
 const List<LegalSectionItem> _termsOfServiceSections = [
   LegalSectionItem(
     title: '1. Aceitação dos Termos',
-    body:
-        'Ao acessar ou utilizar o Seapruma, você concorda expressamente com as condições deste documento e com a Política de Privacidade do aplicativo.',
+    body: 'Ao acessar ou utilizar o Seapruma, você concorda expressamente com as condições deste documento e com a Política de Privacidade do aplicativo.',
     icon: Icons.handshake_outlined,
   ),
   LegalSectionItem(
     title: '2. Objeto e Plataforma',
-    body:
-        'O Seapruma é uma ferramenta de apoio computacional à autogestão pessoal, financeira e de rotinas diárias com arquitetura offline-first.',
+    body: 'O Seapruma é uma ferramenta de apoio computacional à autogestão pessoal, financeira e de rotinas diárias com arquitetura offline-first.',
     icon: Icons.apps_outlined,
   ),
   LegalSectionItem(
     title: '3. Propriedade dos Dados',
-    body:
-        'Você é o proprietário integral e soberano de todos os seus lançamentos, transações financeiras, tarefas e anotações cadastradas. O aplicativo concede a liberdade de exportá-los a qualquer momento.',
+    body: 'Você é o proprietário integral e soberano de todos os seus lançamentos, transações financeiras, tarefas e anotações cadastradas. O aplicativo concede a liberdade de exportá-los a qualquer momento.',
     icon: Icons.inventory_2_outlined,
     isHighlight: true,
   ),
   LegalSectionItem(
     title: '4. Isenção de Consultoria Financeira',
-    body:
-        'O Seapruma não presta consultoria contábil, financeira, fiscal ou de investimentos. Todos os relatórios refletem os dados inseridos e as decisões financeiras são de exclusiva responsabilidade do usuário.',
+    body: 'O Seapruma não presta consultoria contábil, financeira, fiscal ou de investimentos. Todos os relatórios refletem os dados inseridos e as decisões financeiras são de exclusiva responsabilidade do usuário.',
     icon: Icons.info_outline,
     isHighlight: true,
   ),
   LegalSectionItem(
     title: '5. Backups e Google Drive',
-    body:
-        'O usuário pode utilizar o backup opcional no Google Drive via escopo restrito drive.file. A guarda da conta Google e do espaço de armazenamento é de sua responsabilidade.',
+    body: 'O usuário pode utilizar o backup opcional no Google Drive via escopo restrito drive.file. A guarda da conta Google e do espaço de armazenamento é de sua responsabilidade.',
     icon: Icons.backup_outlined,
   ),
   LegalSectionItem(
     title: '6. Legislação Aplicável e Contato',
-    body:
-        'Estes termos são regidos pelas leis da República Federativa do Brasil e pelo Marco Civil da Internet. Dúvidas ou suporte: suporte@seapruma.app.',
+    body: 'Estes termos são regidos pelas leis da República Federativa do Brasil e pelo Marco Civil da Internet. Dúvidas ou suporte: suporte@seapruma.app.',
     icon: Icons.gavel_outlined,
   ),
 ];

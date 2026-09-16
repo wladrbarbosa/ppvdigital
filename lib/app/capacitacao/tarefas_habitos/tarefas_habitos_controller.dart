@@ -3,7 +3,7 @@ import 'dart:developer';
 
 import 'package:appwrite/appwrite.dart';
 import 'package:appwrite/models.dart';
-import 'package:flutter/material.dart' hide Row;
+import 'package:material_ui/material_ui.dart' hide Row;
 import 'package:mobx/mobx.dart' as mobx;
 import 'package:ppvdigital/core.dart';
 import 'package:ppvdigital/models/categorias_tarefas_habitos_model.dart';

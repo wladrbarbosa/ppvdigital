@@ -1,11 +1,11 @@
 import 'package:appwrite/appwrite.dart';
 import 'package:appwrite/models.dart' as models;
 import 'package:drift/native.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:googleapis/drive/v3.dart' as drive;
 import 'package:intl/date_symbol_data_local.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:ppvdigital/app/home/widgets/configuracoes_modal_widget.dart';
 import 'package:ppvdigital/app/home/widgets/legal_viewer_dialog.dart';
 import 'package:ppvdigital/app/login/login_controller.dart';
@@ -186,7 +186,7 @@ void main() {
       expect(find.text('Informações Legais & Sobre'), findsOneWidget);
       expect(find.text('Política de Privacidade'), findsOneWidget);
       expect(find.text('Termos de Serviço'), findsOneWidget);
-      expect(find.textContaining('Seapruma • Versão 0.31.1'), findsOneWidget);
+      expect(find.textContaining('Seapruma • Versão 0.31.2'), findsOneWidget);
 
       // Toca em Política de Privacidade
       await tester.tap(find.text('Política de Privacidade'));

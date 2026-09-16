@@ -98,6 +98,7 @@ class FakeGoogleDriveBackupService extends GoogleDriveBackupService {
   bool shouldThrowUpload = false;
   bool shouldThrowDownload = false;
   bool shouldThrowList = false;
+  int signInSilentlyCallCount = 0;
 
   final List<drive.File> driveFiles = [];
   String downloadedContent =
@@ -126,6 +127,7 @@ class FakeGoogleDriveBackupService extends GoogleDriveBackupService {
 
   @override
   Future<FakeGoogleSignInAccount?> signInSilently() async {
+    signInSilentlyCallCount++;
     if (shouldThrowSignIn) throw Exception('Silent sign in failed');
     return isSignedInValue
         ? FakeGoogleSignInAccount(email: 'gdrive_user@gmail.com')
@@ -229,6 +231,13 @@ void main() {
       await db.close();
       await controller.loadSettings();
       expect(controller.isAutoBackupEnabled, isFalse);
+    });
+
+    test('loadSettings não chama signInSilently no startup para evitar popups invasivos', () async {
+      fakeGDrive.isSignedInValue = false;
+      await controller.loadSettings();
+      expect(fakeGDrive.signInSilentlyCallCount, 0);
+      expect(controller.isGoogleConnected, isFalse);
     });
 
     test('setAutoBackupEnabled altera valor, persiste e dispara check se conectado', () async {

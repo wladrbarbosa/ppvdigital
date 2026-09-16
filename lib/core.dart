@@ -1,6 +1,6 @@
 import 'package:appwrite/appwrite.dart';
-import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:ppvdigital/app/capacitacao/financas/financas_controller.dart';
 import 'package:ppvdigital/app/capacitacao/tarefas_habitos/calendario_controller.dart';
 import 'package:ppvdigital/app/capacitacao/tarefas_habitos/categorias_controller.dart';
@@ -207,5 +207,5 @@ class Core {
   }
 
   static GlobalKey<TarefasPageState> globalKey = GlobalKey<TarefasPageState>();
-  static const String appVersion = 'b0.31.1+1';
+  static const String appVersion = 'b0.31.2+1';
 }

@@ -2,8 +2,8 @@ import 'dart:async';
 import 'dart:developer';
 
 import 'package:flutter/foundation.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:ppvdigital/app/capacitacao/tarefas_habitos/tarefas_habitos_layout.dart';
 import 'package:ppvdigital/app/login/auth_builder.dart';
 import 'package:ppvdigital/controllers/theme_controller.dart';
@@ -112,8 +112,11 @@ class _RootAppWidgetState extends State<RootAppWidget>
 
   @override
   Widget build(BuildContext context) {
-    final List<LocalizationsDelegate<dynamic>> appLocalizationDelegates =
-        List.from(AppLocalizations.localizationsDelegates);
+    final List<LocalizationsDelegate<dynamic>> appLocalizationDelegates = [
+      AppLocalizations.delegate,
+      ...GlobalMaterialLocalizations.delegates,
+      SfGlobalLocalizations.delegate,
+    ];
 
     final MaterialTheme theme = _materialTheme ??
         MaterialTheme(
@@ -123,10 +126,6 @@ class _RootAppWidgetState extends State<RootAppWidget>
             'Plus Jakarta Sans',
           ),
         );
-
-    if (!appLocalizationDelegates.contains(SfGlobalLocalizations.delegate)) {
-      appLocalizationDelegates.add(SfGlobalLocalizations.delegate);
-    }
 
     return Observer(
       builder: (context) {

@@ -2,8 +2,8 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:fl_chart/fl_chart.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:ppvdigital/app/capacitacao/tarefas_habitos/dashboard_logic.dart';
 import 'package:ppvdigital/core.dart';
 import 'package:ppvdigital/design_system/design_system.dart';

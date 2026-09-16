@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:ppvdigital/app/capacitacao/tarefas_habitos/lista_habitos_tarefas_widget.dart';
 
 class HabitosListPage extends StatelessWidget {

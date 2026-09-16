@@ -1,6 +1,6 @@
-import 'package:flutter/material.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:intl/intl.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:ppvdigital/app/home/widgets/backup_restore_dialog.dart';
 import 'package:ppvdigital/app/home/widgets/legal_viewer_dialog.dart';
 import 'package:ppvdigital/controllers/backup_controller.dart';
@@ -1119,11 +1119,11 @@ class _ConfiguracoesModalWidgetState extends State<ConfiguracoesModalWidget> {
                       // Rodapé do Modal com Versão do Seapruma
                       Center(
                         child: Text(
-                          'Seapruma • Versão 0.31.1\nDesign System Pastel & Leveza',
+                          'Seapruma • Versão 0.31.2\nDesign System Pastel & Leveza',
                           textAlign: TextAlign.center,
                           style: TextStyle(
                             fontSize: 11,
-                            color: textSecondaryColor.withOpacity(0.8),
+                            color: textSecondaryColor.withValues(alpha: 0.8),
                             height: 1.4,
                           ),
                         ),
