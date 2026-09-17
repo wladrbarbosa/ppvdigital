@@ -1119,7 +1119,7 @@ class _ConfiguracoesModalWidgetState extends State<ConfiguracoesModalWidget> {
                       // Rodapé do Modal com Versão do Seapruma
                       Center(
                         child: Text(
-                          'Seapruma • Versão 0.31.2\nDesign System Pastel & Leveza',
+                          'Seapruma • Versão 0.31.3\nDesign System Pastel & Leveza',
                           textAlign: TextAlign.center,
                           style: TextStyle(
                             fontSize: 11,

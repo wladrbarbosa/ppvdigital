@@ -186,7 +186,7 @@ void main() {
       expect(find.text('Informações Legais & Sobre'), findsOneWidget);
       expect(find.text('Política de Privacidade'), findsOneWidget);
       expect(find.text('Termos de Serviço'), findsOneWidget);
-      expect(find.textContaining('Seapruma • Versão 0.31.2'), findsOneWidget);
+      expect(find.textContaining('Seapruma • Versão 0.31.3'), findsOneWidget);
 
       // Toca em Política de Privacidade
       await tester.tap(find.text('Política de Privacidade'));
