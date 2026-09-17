@@ -5,6 +5,7 @@ import 'package:ppvdigital/design_system/design_system.dart';
 import 'package:ppvdigital/models/categorias_tarefas_habitos_model.dart';
 import 'package:ppvdigital/models/historico_item_model.dart';
 import 'package:syncfusion_flutter_calendar/calendar.dart';
+import 'package:syncfusion_flutter_core/theme.dart';
 
 class CalendarioPage extends StatefulWidget {
   const CalendarioPage({super.key});
@@ -456,12 +457,18 @@ class _CalendarioPageState extends State<CalendarioPage> {
                     },
                   );
 
+                  final calendarTheme = ThemeBridge.createSfCalendarTheme(context);
+                  final themedCalendarWidget = SfCalendarTheme(
+                    data: calendarTheme,
+                    child: calendarWidget,
+                  );
+
                   return Column(
                     children: [
                       Padding(
                         padding: const EdgeInsets.symmetric(
-                          horizontal: 16.0,
-                          vertical: 4.0,
+                          horizontal: AppSpacing.md,
+                          vertical: AppSpacing.xs,
                         ),
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.end,
@@ -473,18 +480,18 @@ class _CalendarioPageState extends State<CalendarioPage> {
                                       DateTime.now();
                                 });
                               },
-                              icon: const Icon(Icons.today),
+                              icon: const Icon(Icons.today_rounded, size: 18),
                               label: const Text('Hoje'),
                               style: TextButton.styleFrom(
                                 shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(8),
+                                  borderRadius: AppRadius.roundedMd,
                                 ),
                               ),
                             ),
                           ],
                         ),
                       ),
-                      Expanded(child: calendarWidget),
+                      Expanded(child: themedCalendarWidget),
                     ],
                   );
                 },

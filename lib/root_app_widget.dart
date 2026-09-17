@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:developer';
 
 import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart' as flutter_material;
 import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:ppvdigital/app/capacitacao/tarefas_habitos/tarefas_habitos_layout.dart';
@@ -14,6 +15,7 @@ import 'package:ppvdigital/routes.g.dart';
 import 'package:ppvdigital/theme.dart';
 import 'package:ppvdigital/util.dart';
 import 'package:routefly/routefly.dart';
+import 'package:syncfusion_flutter_core/theme.dart';
 import 'package:syncfusion_localizations/syncfusion_localizations.dart';
 
 class RootAppWidget extends StatefulWidget {
@@ -139,7 +141,19 @@ class _RootAppWidgetState extends State<RootAppWidget>
         return MaterialApp.router(
           localizationsDelegates: appLocalizationDelegates,
           supportedLocales: AppLocalizations.supportedLocales,
-          builder: (context, child) => AuthBuilder(child: child!),
+          builder: (context, child) {
+            final uiTheme = Theme.of(context);
+            final flutterTheme = ThemeBridge.toFlutterMaterialTheme(uiTheme);
+            return flutter_material.Theme(
+              data: flutterTheme,
+              child: SfTheme(
+                data: uiTheme.brightness == Brightness.dark
+                    ? SfThemeData.dark()
+                    : SfThemeData.light(),
+                child: AuthBuilder(child: child!),
+              ),
+            );
+          },
           routerConfig: Routefly.routerConfig(
             routes: routes,
             initialPath: routePaths.path,

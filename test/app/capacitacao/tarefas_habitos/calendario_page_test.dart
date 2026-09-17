@@ -11,6 +11,7 @@ import 'package:ppvdigital/models/historico_item_model.dart';
 import 'package:ppvdigital/models/tarefas_habitos_model.dart';
 import 'package:ppvdigital/repositories/tarefa_habito_repository.dart';
 import 'package:syncfusion_flutter_calendar/calendar.dart';
+import 'package:syncfusion_flutter_core/theme.dart';
 
 class DummyTarefaHabitoRepository implements TarefaHabitoRepository {
   @override
@@ -161,6 +162,14 @@ void main() {
 
     final calendarFinder = find.byType(SfCalendar);
     expect(calendarFinder, findsOneWidget);
+
+    final calendarThemeFinder = find.byType(SfCalendarTheme);
+    expect(calendarThemeFinder, findsOneWidget);
+
+    final SfCalendarTheme themeWidget = tester.widget(calendarThemeFinder);
+    expect(themeWidget.data.headerTextStyle, isNotNull);
+    expect(themeWidget.data.todayHighlightColor, isNotNull);
+    expect(themeWidget.data.selectionBorderColor, isNotNull);
 
     final SfCalendar calendar = tester.widget(calendarFinder);
     expect(calendar.allowDragAndDrop, isTrue);

@@ -54,6 +54,7 @@ dependencies:
       ref: '2f19820cb9494d5d399dd76ff53454b981618305'
   shimmer: 4.0.0
   syncfusion_flutter_calendar: 34.2.8
+  syncfusion_flutter_core: 34.2.8
   syncfusion_localizations: 34.2.8
   timeline_tile: 2.0.0
   timezone: ^0.11.1
