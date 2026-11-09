@@ -7,12 +7,14 @@ Esta função automatiza a criação de novas transações e respectivas divisõ
 2. Ela busca todas as regras de recorrência indeterminadas da tabela `transacao_recorrencia` (registros que possuem `totalParcelas` nulo).
 3. **Decodificação Segura (Go SDK v5)**: Utiliza `res.Decode()` para extrair todos os atributos de documentos preservando dados dinâmicos (`descricao`, `valor`, `tipo`, `dataCompetencia`, etc.) sem perda por campos não exportados.
 4. **Filtro de Alta Performance em Memória ($O(1)$)**: Verifica o campo `fimRecorrencia` da regra. Se ele já cobrir o horizonte móvel de 24 ocorrências no futuro (`now + 24 * ciclo`), a regra é ignorada imediatamente sem realizar consultas adicionais no banco.
-5. **Buffer Dinâmico com Autocura e No-Op Seguro**:
+5. **Buffer Dinâmico com Autocura, Proteção Anti-Ressurreição e No-Op Seguro**:
    - Suporta qualquer periodicidade (`dia`, `semana`, `quinzenal`, `mês`, `ano`).
-   - Se `fimRecorrencia` estiver ausente ou anterior ao horizonte, consulta a última transação válida existente (`descricao != ""` e `dataCompetencia` válida).
-   - **Garante que se não precisar, ela não cria nada**: Se a última transação já alcançar ou ultrapassar o horizonte, nenhum registro é criado e o checkpoint é registrado.
+   - **Guarda de Recorrência Finita/Encerrada (`isFiniteRecurrence`)**: Qualquer regra com `totalParcelas > 0` (por exemplo, uma recorrência infinita que foi encerrada via exclusão ou edição *"Esta e as próximas"*) é ignorada imediatamente.
+   - **Limpeza de Regras Órfãs**: Caso uma regra de recorrência não possua mais nenhuma transação associada (`len(txDocuments) == 0`), a função remove automaticamente o registro órfão de `transacao_recorrencia`.
+   - **Âncora Monotônica Anti-Ressurreição (`resolveGenerationStartDate`)**: A geração de novas parcelas inicia sempre a partir de `max(latestDate, fimRecorrencia)`. Isso garante que ocorrências excluídas individualmente antes do checkpoint `fimRecorrencia` jamais sejam recriadas quando o horizonte móvel avançar.
+   - **Garante que se não precisar, ela não cria nada**: Se a data inicial de geração já alcançar ou ultrapassar o horizonte, nenhum registro é criado e o checkpoint é atualizado se necessário.
    - **Proteção anti-vazios**: Se a descrição for vazia ou a transação de referência for inválida, a regra é pulada sem gerar dados corrompidos.
-   - Se houver lacuna, executa um loop gerando estritamente as parcelas faltantes até preencher o horizonte de 24 ocorrências.
+   - Se houver lacuna após `max(latestDate, fimRecorrencia)`, executa um loop gerando estritamente as parcelas faltantes até preencher o horizonte de 24 ocorrências.
 6. **Clonagem e Divisões**:
    - Clona a transação com a nova data de competência (com `consolidada: false` por padrão).
    - Clona em lote todas as divisões associadas (`divisao_transacoes`).

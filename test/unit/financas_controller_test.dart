@@ -98,8 +98,11 @@ class MockFinancasRepoForController implements FinancasRepository {
     return c;
   }
 
+  int updateAccountBalanceCallCount = 0;
+
   @override
   Future<void> updateAccountBalance({required String contaId, required double newSaldo}) async {
+    updateAccountBalanceCallCount++;
     final idx = contas.indexWhere((c) => c.id == contaId);
     if (idx != -1) {
       contas[idx] = ContaModel(id: contaId, name: contas[idx].name, userId: contas[idx].userId, saldoAtual: newSaldo);
@@ -119,6 +122,7 @@ class MockFinancasRepoForController implements FinancasRepository {
 
   List<TransacaoModel> recurrenceSeries = [];
   final List<Map<String, dynamic>> updatedRows = [];
+  final List<Map<String, dynamic>> createdRecorrencias = [];
   String createdRecId = 'new_rec_id';
 
   @override
@@ -128,7 +132,7 @@ class MockFinancasRepoForController implements FinancasRepository {
   Future<List<TransacaoModel>> getTransacoes({required String usuarioId, required List<String> contaIds, DateTime? targetMonth, DateTime? beforeDate, bool forceLocal = false, DateTime? lastSyncedAt}) async => transacoes;
 
   @override
-  Future<Set<String>> getActiveTransacaoIdsInMonth({required String usuarioId, required List<String> contaIds, required DateTime targetMonth}) async => transacoes.map((t) => t.id).toSet();
+  Future<Set<String>> getActiveTransacaoIdsInMonth({required String usuarioId, required List<String> contaIds, DateTime? targetMonth, DateTime? beforeDate}) async => transacoes.map((t) => t.id).toSet();
 
   @override
   Future<List<TransacaoModel>> getRecurrenceSeries({required String recurrenceId}) async {
@@ -146,7 +150,16 @@ class MockFinancasRepoForController implements FinancasRepository {
     int? totalParcelas,
     int? parcelaInicio,
     DateTime? fimRecorrencia,
-  }) async => createdRecId;
+  }) async {
+    createdRecorrencias.add({
+      'tipoRecorrencia': tipoRecorrencia,
+      'frequencia': frequencia,
+      'totalParcelas': totalParcelas,
+      'parcelaInicio': parcelaInicio,
+      'fimRecorrencia': fimRecorrencia,
+    });
+    return createdRecId;
+  }
 
   @override
   Future<void> deleteRow({required String tableId, required String rowId}) async {}
@@ -517,6 +530,188 @@ void main() {
           (op) => op['action'] == 'delete' && op['rowId'] == 't3',
         );
         expect(deleteT3, isNotNull);
+      });
+
+      test('Excluir com current_and_future no meio de recorrência infinita encerra a regra de recorrência com totalParcelas e fimRecorrencia', () async {
+        final rec = TransacaoRecorrenciaModel(
+          id: 'rec_inf_del',
+          tipoRecorrencia: 'mês',
+          frequencia: 1,
+        );
+
+        final t1 = TransacaoModel(id: 't1', descricao: 'Netflix', valor: 55, tipo: 'despesa', dataCompetencia: DateTime(2026, 1, 10), consolidada: false, recorrencia: rec, divisoes: []);
+        final t2 = TransacaoModel(id: 't2', descricao: 'Netflix', valor: 55, tipo: 'despesa', dataCompetencia: DateTime(2026, 2, 10), consolidada: false, recorrencia: rec, divisoes: []);
+        final t3 = TransacaoModel(id: 't3', descricao: 'Netflix', valor: 55, tipo: 'despesa', dataCompetencia: DateTime(2026, 3, 10), consolidada: false, recorrencia: rec, divisoes: []);
+        final t4 = TransacaoModel(id: 't4', descricao: 'Netflix', valor: 55, tipo: 'despesa', dataCompetencia: DateTime(2026, 4, 10), consolidada: false, recorrencia: rec, divisoes: []);
+
+        controller.transacoesList.addAll([t1, t2, t3, t4]);
+        mockRepo.recurrenceSeries = [t1, t2, t3, t4];
+
+        // Usuário exclui de t3 em diante com 'current_and_future' (t1 e t2 permanecem)
+        final success = await controller.deleteTransaction(
+          transacao: t3,
+          deleteOption: 'current_and_future',
+        );
+
+        expect(success, isTrue);
+
+        // t3 e t4 deletadas
+        expect(mockRepo.executedBatches.any((op) => op['action'] == 'delete' && op['rowId'] == 't3'), isTrue);
+        expect(mockRepo.executedBatches.any((op) => op['action'] == 'delete' && op['rowId'] == 't4'), isTrue);
+        expect(mockRepo.executedBatches.any((op) => op['action'] == 'delete' && op['rowId'] == 't1'), isFalse);
+        expect(mockRepo.executedBatches.any((op) => op['action'] == 'delete' && op['rowId'] == 't2'), isFalse);
+
+        // A recorrência original DEVE ser atualizada para finita (totalParcelas: 2, fimRecorrencia: 2026-02-10)
+        final updateRec = mockRepo.executedBatches.firstWhere(
+          (op) => op['action'] == 'update' && op['rowId'] == 'rec_inf_del',
+        );
+        final updateRecData = updateRec['data'] as Map<String, dynamic>;
+        expect(updateRecData['totalParcelas'], 2);
+        expect(updateRecData['fimRecorrencia'], DateTime(2026, 2, 10).toIso8601String());
+      });
+
+      test('Excluir com current_and_future a partir da 1ª parcela deleta a regra de recorrência órfã', () async {
+        final rec = TransacaoRecorrenciaModel(
+          id: 'rec_inf_del_all',
+          tipoRecorrencia: 'mês',
+          frequencia: 1,
+        );
+
+        final t1 = TransacaoModel(id: 't1', descricao: 'Spotify', valor: 35, tipo: 'despesa', dataCompetencia: DateTime(2026, 1, 10), consolidada: false, recorrencia: rec, divisoes: []);
+        final t2 = TransacaoModel(id: 't2', descricao: 'Spotify', valor: 35, tipo: 'despesa', dataCompetencia: DateTime(2026, 2, 10), consolidada: false, recorrencia: rec, divisoes: []);
+
+        controller.transacoesList.addAll([t1, t2]);
+        mockRepo.recurrenceSeries = [t1, t2];
+
+        final success = await controller.deleteTransaction(
+          transacao: t1,
+          deleteOption: 'current_and_future',
+        );
+
+        expect(success, isTrue);
+
+        // Nenhuma parcela restou -> rec_inf_del_all deve ser deletada no batch
+        expect(
+          mockRepo.executedBatches.any(
+            (op) => op['action'] == 'delete' && op['rowId'] == 'rec_inf_del_all',
+          ),
+          isTrue,
+        );
+      });
+
+      test('Editar com current_and_future no meio de recorrência infinita encerra a recorrência antiga para não ressuscitar duplicatas', () async {
+        final rec = TransacaoRecorrenciaModel(
+          id: 'rec_old_inf',
+          tipoRecorrencia: 'mês',
+          frequencia: 1,
+        );
+
+        final t1 = TransacaoModel(id: 't1', descricao: 'Internet', valor: 100, tipo: 'despesa', dataCompetencia: DateTime(2026, 1, 10), consolidada: false, recorrencia: rec, divisoes: []);
+        final t2 = TransacaoModel(id: 't2', descricao: 'Internet', valor: 100, tipo: 'despesa', dataCompetencia: DateTime(2026, 2, 10), consolidada: false, recorrencia: rec, divisoes: []);
+        final t3 = TransacaoModel(id: 't3', descricao: 'Internet', valor: 100, tipo: 'despesa', dataCompetencia: DateTime(2026, 3, 10), consolidada: false, recorrencia: rec, divisoes: []);
+
+        controller.transacoesList.addAll([t1, t2, t3]);
+        mockRepo.recurrenceSeries = [t1, t2, t3];
+
+        // Edita a partir de t2 (t1 fica no passado com rec_old_inf)
+        final success = await controller.updateTransacao(
+          id: 't2',
+          descricao: 'Internet Reajustada',
+          valor: 120,
+          tipo: 'despesa',
+          dataCompetencia: DateTime(2026, 2, 10),
+          contaId: null,
+          contaDestinoId: null,
+          consolidada: false,
+          categoriaId: null,
+          divisao: [],
+          optionRecorrencia: 'current_and_future',
+        );
+
+        expect(success, isTrue);
+
+        // A recorrência antiga rec_old_inf deve ser atualizada para finita com totalParcelas: 1 e fimRecorrencia: 2026-01-10
+        final updateOldRec = mockRepo.executedBatches.firstWhere(
+          (op) => op['action'] == 'update' && op['rowId'] == 'rec_old_inf',
+        );
+        final updateOldRecData = updateOldRec['data'] as Map<String, dynamic>;
+        expect(updateOldRecData['totalParcelas'], 1);
+        expect(updateOldRecData['fimRecorrencia'], DateTime(2026, 1, 10).toIso8601String());
+      });
+
+      test('Criar recorrência infinita grava fimRecorrencia com a data da 24ª parcela gerada', () async {
+        final success = await controller.createTransacao(
+          descricao: 'Academia',
+          valor: 150,
+          tipo: 'despesa',
+          dataCompetencia: DateTime(2026, 1, 15),
+          contaId: null,
+          contaDestinoId: null,
+          consolidada: false,
+          categoriaId: null,
+          recorrente: true,
+          recorrenciaIndeterminada: true,
+          tipoRecorrencia: 'mês',
+        );
+
+        expect(success, isTrue);
+        expect(mockRepo.createdRecorrencias, isNotEmpty);
+        expect(
+          mockRepo.createdRecorrencias.first['fimRecorrencia'],
+          DateTime(2027, 12, 15),
+        );
+      });
+
+      test('Excluir e criar séries recorrentes consolidadas agrupa atualização de saldo em 1 única chamada por conta', () async {
+        final conta = ContaModel(id: 'c1', name: 'Conta Principal', userId: 'u1', saldoAtual: 1000.0);
+        mockRepo.contas.add(conta);
+        controller.contasList.add(conta);
+
+        // Cria 4 parcelas consolidadas de R$ 50
+        await controller.createTransacao(
+          descricao: 'Parcelado',
+          valor: 50,
+          tipo: 'despesa',
+          dataCompetencia: DateTime(2026, 1, 10),
+          contaId: 'c1',
+          contaDestinoId: null,
+          consolidada: true,
+          categoriaId: null,
+          recorrente: true,
+          recorrenciaIndeterminada: false,
+          tipoRecorrencia: 'mês',
+          totalParcelas: 4,
+        );
+
+        expect(mockRepo.updateAccountBalanceCallCount, 1);
+        expect(mockRepo.contas.first.saldoAtual, 800.0);
+
+        // Agora exclui todas as 4 parcelas consolidadas
+        mockRepo.updateAccountBalanceCallCount = 0;
+        final rec = TransacaoRecorrenciaModel(id: 'rec_4', tipoRecorrencia: 'mês', frequencia: 1, totalParcelas: 4);
+        final series = List.generate(
+          4,
+          (i) => TransacaoModel(
+            id: 'tx_$i',
+            descricao: 'Parcelado',
+            valor: 50,
+            tipo: 'despesa',
+            dataCompetencia: DateTime(2026, 1 + i, 10),
+            consolidada: true,
+            conta: conta,
+            recorrencia: rec,
+            divisoes: [],
+          ),
+        );
+        mockRepo.recurrenceSeries = series;
+
+        await controller.deleteTransaction(
+          transacao: series.first,
+          deleteOption: 'all',
+        );
+
+        expect(mockRepo.updateAccountBalanceCallCount, 1);
+        expect(mockRepo.contas.first.saldoAtual, 1000.0);
       });
     });
   });

@@ -8,6 +8,7 @@ import 'package:ppvdigital/app/capacitacao/financas/financas_controller.dart';
 import 'package:ppvdigital/app/capacitacao/financas/widgets/exportar_transacoes_dialog.dart';
 import 'package:ppvdigital/app/capacitacao/financas/widgets/seletor_mes_widget.dart';
 import 'package:ppvdigital/core.dart';
+import 'package:ppvdigital/design_system/design_system.dart';
 import 'package:ppvdigital/models/contato_model.dart';
 import 'package:ppvdigital/models/transacao_model.dart';
 import 'package:ppvdigital/routes.g.dart';
@@ -293,11 +294,10 @@ class _FinancasLayoutState extends State<FinancasLayout>
   Map<String, List<TransacaoModel>> _agruparPorDia(List<TransacaoModel> list) {
     final Map<String, List<TransacaoModel>> groups = {};
     for (final t in list) {
-      final dateKey = DateFormat('yyyy-MM-dd').format(t.dataCompetencia);
-      if (!groups.containsKey(dateKey)) {
-        groups[dateKey] = [];
-      }
-      groups[dateKey]!.add(t);
+      final dt = t.dataCompetencia;
+      final dateKey =
+          '${dt.year.toString().padLeft(4, '0')}-${dt.month.toString().padLeft(2, '0')}-${dt.day.toString().padLeft(2, '0')}';
+      (groups[dateKey] ??= []).add(t);
     }
     // Sort keys ascending
     final sortedKeys = groups.keys.toList()..sort((a, b) => a.compareTo(b));
@@ -327,7 +327,9 @@ class _FinancasLayoutState extends State<FinancasLayout>
             style: TextStyle(
               fontWeight: FontWeight.bold,
               fontSize: 13.0,
-              color: saldoExibido >= 0 ? Colors.green : Colors.red,
+              color: saldoExibido >= 0
+                  ? AppColors.pastelSuccess
+                  : AppColors.pastelError,
             ),
           ),
         ],
@@ -341,8 +343,10 @@ class _FinancasLayoutState extends State<FinancasLayout>
         : t.valor;
 
     final Color valueColor = t.tipo == 'receita'
-        ? Colors.green
-        : (t.tipo == 'transferencia' ? Colors.blue : Colors.red);
+        ? AppColors.pastelSuccess
+        : (t.tipo == 'transferencia'
+              ? AppColors.pastelInfo
+              : AppColors.pastelError);
 
     final IconData catIcon =
         _presetIcons[t.categoria?.icone] ?? Icons.monetization_on;
@@ -372,8 +376,11 @@ class _FinancasLayoutState extends State<FinancasLayout>
           CircleAvatar(
             backgroundColor:
                 t.categoria?.cor?.withValues(alpha: 0.2) ??
-                Colors.blue.withValues(alpha: 0.2),
-            child: Icon(catIcon, color: t.categoria?.cor ?? Colors.blue),
+                AppColors.pastelInfo.withValues(alpha: 0.2),
+            child: Icon(
+              catIcon,
+              color: t.categoria?.cor ?? AppColors.pastelInfo,
+            ),
           ),
         ],
       ),
@@ -404,28 +411,28 @@ class _FinancasLayoutState extends State<FinancasLayout>
                   context,
                   icon: Icons.repeat,
                   label: 'Recorrente',
-                  color: Colors.purple,
+                  color: AppColors.secondaryLight,
                 ),
               if (t.devedorContato != null)
                 _buildIndicatorChip(
                   context,
                   icon: Icons.arrow_downward,
                   label: '${t.devedorContato!.nome} deve p/ você',
-                  color: Colors.teal,
+                  color: AppColors.primaryLight,
                 ),
               if (t.credorContato != null)
                 _buildIndicatorChip(
                   context,
                   icon: Icons.arrow_upward,
                   label: 'Você deve p/ ${t.credorContato!.nome}',
-                  color: Colors.orange,
+                  color: AppColors.tertiaryLight,
                 ),
               if (_isDivididaComOutros(t, activeUser))
                 _buildIndicatorChip(
                   context,
                   icon: Icons.pie_chart_outline,
                   label: 'Dividido (${t.divisoes.length})',
-                  color: Colors.blueGrey,
+                  color: AppColors.textSecondaryLight,
                 ),
             ],
           ),
@@ -448,8 +455,8 @@ class _FinancasLayoutState extends State<FinancasLayout>
             padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
             decoration: BoxDecoration(
               color: t.consolidada
-                  ? Colors.green.withValues(alpha: 0.1)
-                  : Colors.amber.withValues(alpha: 0.1),
+                  ? AppColors.pastelSuccess.withValues(alpha: 0.15)
+                  : AppColors.pastelWarning.withValues(alpha: 0.15),
               borderRadius: BorderRadius.circular(4),
             ),
             child: Text(
@@ -457,7 +464,9 @@ class _FinancasLayoutState extends State<FinancasLayout>
               style: TextStyle(
                 fontSize: 10,
                 fontWeight: FontWeight.bold,
-                color: t.consolidada ? Colors.green : Colors.amber[800],
+                color: t.consolidada
+                    ? AppColors.pastelSuccess
+                    : AppColors.pastelWarning,
               ),
             ),
           ),
@@ -586,22 +595,14 @@ class _FinancasLayoutState extends State<FinancasLayout>
                   final allTrans = Core.financasController.transacoesList;
                   final isSyncing = Core.financasController.isSyncing;
 
-                  // Filter list based on toggle
-                  List<TransacaoModel> displayTransList = [];
-                  if (_mostrarDivisoes) {
-                    displayTransList = allTrans
-                        .where((t) => _participaComOutros(t, activeUser))
-                        .toList();
-                  } else {
-                    displayTransList = allTrans;
-                  }
-
-                  // Apply account, category, type, and contact filters
-                  List<TransacaoModel> step1List = [];
-                  if (_selectedContas.isEmpty) {
-                    step1List = displayTransList;
-                  } else {
-                    step1List = displayTransList.where((t) {
+                  // Single-pass filter for division, account, category, type, and contact
+                  final List<TransacaoModel> accountFilteredList = allTrans
+                      .where((t) {
+                    if (_mostrarDivisoes &&
+                        !_participaComOutros(t, activeUser)) {
+                      return false;
+                    }
+                    if (_selectedContas.isNotEmpty) {
                       if (t.tipo == 'transferencia') {
                         final bool origemSel =
                             t.conta != null &&
@@ -609,68 +610,48 @@ class _FinancasLayoutState extends State<FinancasLayout>
                         final bool destinoSel =
                             t.contaDestino != null &&
                             _selectedContas.contains(t.contaDestino!.id);
-                        return origemSel || destinoSel;
+                        if (!origemSel && !destinoSel) return false;
                       } else {
-                        return t.conta != null &&
-                            _selectedContas.contains(t.conta!.id);
+                        if (t.conta == null ||
+                            !_selectedContas.contains(t.conta!.id)) {
+                          return false;
+                        }
                       }
-                    }).toList();
-                  }
-
-                  List<TransacaoModel> step2List = [];
-                  if (_selectedCategorias.isEmpty) {
-                    step2List = step1List;
-                  } else {
-                    step2List = step1List.where((t) {
-                      return t.categoria != null &&
-                          _selectedCategorias.contains(t.categoria!.id);
-                    }).toList();
-                  }
-
-                  List<TransacaoModel> step3List = [];
-                  if (_selectedTipos.isEmpty) {
-                    step3List = step2List;
-                  } else {
-                    step3List = step2List.where((t) {
-                      return _selectedTipos.contains(t.tipo);
-                    }).toList();
-                  }
-
-                  List<TransacaoModel> accountFilteredList = [];
-                  if (_selectedContatos.isEmpty) {
-                    accountFilteredList = step3List;
-                  } else {
-                    accountFilteredList = step3List.where((t) {
+                    }
+                    if (_selectedCategorias.isNotEmpty) {
+                      if (t.categoria == null ||
+                          !_selectedCategorias.contains(t.categoria!.id)) {
+                        return false;
+                      }
+                    }
+                    if (_selectedTipos.isNotEmpty &&
+                        !_selectedTipos.contains(t.tipo)) {
+                      return false;
+                    }
+                    if (_selectedContatos.isNotEmpty) {
                       final bool isDevedor =
                           t.devedorContato != null &&
                           _selectedContatos.contains(t.devedorContato!.id);
                       final bool isCredor =
                           t.credorContato != null &&
                           _selectedContatos.contains(t.credorContato!.id);
-                      return isDevedor || isCredor;
-                    }).toList();
-                  }
+                      if (!isDevedor && !isCredor) return false;
+                    }
+                    return true;
+                  }).toList();
 
-                  List<TransacaoModel> statusFilteredList = [];
-                  if (_selectedConsolidadas.isEmpty) {
-                    statusFilteredList = accountFilteredList;
-                  } else {
-                    statusFilteredList = accountFilteredList.where((t) {
-                      return _selectedConsolidadas.contains(t.consolidada);
-                    }).toList();
-                  }
-
-                  // Apply Month filter
+                  // Single-pass filter for consolidation status, month, and description query
                   final query = _descricaoQuery.trim().toLowerCase();
-                  final filteredTransList = statusFilteredList
-                      .where(
-                        (t) =>
-                            t.dataCompetencia.year == _appliedMonth.year &&
-                            t.dataCompetencia.month == _appliedMonth.month &&
-                            (query.isEmpty ||
-                                t.descricao.toLowerCase().contains(query)),
-                      )
-                      .toList();
+                  final filteredTransList = accountFilteredList.where((t) {
+                    if (_selectedConsolidadas.isNotEmpty &&
+                        !_selectedConsolidadas.contains(t.consolidada)) {
+                      return false;
+                    }
+                    return t.dataCompetencia.year == _appliedMonth.year &&
+                        t.dataCompetencia.month == _appliedMonth.month &&
+                        (query.isEmpty ||
+                            t.descricao.toLowerCase().contains(query));
+                  }).toList();
 
                   Widget mainContent;
 

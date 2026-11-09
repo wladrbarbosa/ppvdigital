@@ -563,28 +563,33 @@ class DashboardLogic {
     final List<DailyCompletionRate> list = [];
     final DateTime now = DateTime.now();
 
+    final Set<String> completedIndex = {};
+    for (final h in historico) {
+      if (h.tarefasEHabitos.arquivado) continue;
+      final hDate = h.createdAt.toLocal();
+      completedIndex.add(
+        '${h.tarefasEHabitos.id}_${hDate.year}_${hDate.month}_${hDate.day}',
+      );
+    }
+
+    final activeHabits = items
+        .where(
+          (item) =>
+              !item.arquivado &&
+              item.tipo == 'habito' &&
+              item.tarefasHabitosQtd.isNotEmpty,
+        )
+        .toList();
+    final int totalHabits = activeHabits.length;
+
     for (int i = 6; i >= 0; i--) {
       final DateTime date = now.subtract(Duration(days: i));
+      final String dateSuffix = '_${date.year}_${date.month}_${date.day}';
 
       int completedOnDate = 0;
-      int totalHabits = 0;
-
-      for (final item in items) {
-        if (item.arquivado) continue;
-        if (item.tipo == 'habito' && item.tarefasHabitosQtd.isNotEmpty) {
-          totalHabits++;
-          final bool wasCompletedOnDate = historico.any((h) {
-            if (h.tarefasEHabitos.arquivado) return false;
-            final hDate = h.createdAt.toLocal();
-            return h.tarefasEHabitos.id == item.id &&
-                hDate.year == date.year &&
-                hDate.month == date.month &&
-                hDate.day == date.day;
-          });
-
-          if (wasCompletedOnDate) {
-            completedOnDate++;
-          }
+      for (final item in activeHabits) {
+        if (completedIndex.contains('${item.id}$dateSuffix')) {
+          completedOnDate++;
         }
       }
 

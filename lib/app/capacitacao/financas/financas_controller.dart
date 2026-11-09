@@ -89,12 +89,15 @@ class FinancasController {
 
     return await mobx.runInAction(() async {
       try {
-        if (Core.loginController.currentUser == null) {
-          await Core.loginController.loadUser();
+        final loginCtrl = Core.maybeLoginController;
+        if (loginCtrl != null && loginCtrl.currentUser == null) {
+          try {
+            await loginCtrl.loadUser();
+          } catch (_) {}
         }
-        final String user = Core.loginController.currentUser?.$id ?? '';
+        final String user = loginCtrl?.currentUser?.$id ?? '';
         if (user.isNotEmpty) {
-          Core.realtimeService.startSubscription(userId: user);
+          Core.maybeRealtimeService?.startSubscription(userId: user);
         }
 
         // Only resubscribe to streams if month changed or streams aren't active yet
@@ -201,7 +204,7 @@ class FinancasController {
       _isSyncing.value = true;
     });
     try {
-      final String? lastSyncStr = await Core.database.getSetting(
+      final String? lastSyncStr = await repository.getSetting(
         'last_financas_sync_time',
       );
       final DateTime? lastSyncedAt = lastSyncStr != null
@@ -217,10 +220,9 @@ class FinancasController {
       // Auto-create a contact for the current user if they don't have one
       final bool hasUserContato = contatos.any((c) => c.userId == user);
       if (!hasUserContato && user.isNotEmpty) {
-        final String currentUserName =
-            Core.loginController.currentUser?.name ?? 'Eu';
-        final String currentUserEmail =
-            Core.loginController.currentUser?.email ?? '';
+        final loginCtrl = Core.maybeLoginController;
+        final String currentUserName = loginCtrl?.currentUser?.name ?? 'Eu';
+        final String currentUserEmail = loginCtrl?.currentUser?.email ?? '';
         try {
           await repository.createContato(
             ownerId: user,
@@ -259,14 +261,14 @@ class FinancasController {
         );
 
         _syncedMonths.add(monthKey);
-        await Core.database.setSetting(
+        await repository.saveSetting(
           'synced_month_$monthKey',
           now.toIso8601String(),
         );
 
         // 4. Fetch and cache past transactions (before targetMonth) for accumulated balance:
         final firstDayOfMonth = DateTime(targetMonth.year, targetMonth.month);
-        final String? pastSyncedSetting = await Core.database.getSetting(
+        final String? pastSyncedSetting = await repository.getSetting(
           'synced_past_financas',
         );
         final bool isPastAlreadySynced =
@@ -279,14 +281,14 @@ class FinancasController {
           lastSyncedAt: isPastAlreadySynced ? lastSyncedAt : null,
         );
         _syncedMonths.add('past');
-        await Core.database.setSetting(
+        await repository.saveSetting(
           'synced_past_financas',
           now.toIso8601String(),
         );
       }
 
       _lastSyncTime = now;
-      await Core.database.setSetting(
+      await repository.saveSetting(
         'last_financas_sync_time',
         now.toIso8601String(),
       );
@@ -466,10 +468,13 @@ class FinancasController {
     String? pagadorRecebedorId,
   }) async {
     try {
-      if (Core.loginController.currentUser == null) {
-        await Core.loginController.loadUser();
+      final loginCtrl = Core.maybeLoginController;
+      if (loginCtrl != null && loginCtrl.currentUser == null) {
+        try {
+          await loginCtrl.loadUser();
+        } catch (_) {}
       }
-      final String user = Core.loginController.currentUser?.$id ?? '';
+      final String user = loginCtrl?.currentUser?.$id ?? '';
       final userContato = _contatosList.firstWhere(
         (c) => c.userId == user,
         orElse: () => ContatoModel(id: '', ownerId: '', nome: ''),
@@ -477,17 +482,6 @@ class FinancasController {
       final String userContatoId = userContato.id;
 
       String? recId;
-
-      if (recorrente) {
-        recId = await repository.createRecorrenciaRow(
-          tipoRecorrencia: tipoRecorrencia,
-          frequencia: frequencia,
-          totalParcelas: recorrenciaIndeterminada ? null : totalParcelas,
-          parcelaInicio: recorrenciaIndeterminada ? null : parcelaInicio,
-          fimRecorrencia: fimRecorrencia,
-        );
-      }
-
       final List<Map<String, dynamic>> ops = [];
 
       if (recorrente) {
@@ -501,6 +495,24 @@ class FinancasController {
           totalParcelas: totalParcelas,
           parcelaInicio: parcelaInicio,
         );
+
+        final DateTime? effectiveFimRecorrencia =
+            fimRecorrencia ??
+            (parcelas.isNotEmpty ? parcelas.last.dataCompetencia : null);
+
+        recId = await repository.createRecorrenciaRow(
+          tipoRecorrencia: tipoRecorrencia,
+          frequencia: frequencia,
+          totalParcelas: recorrenciaIndeterminada ? null : totalParcelas,
+          parcelaInicio: recorrenciaIndeterminada ? null : parcelaInicio,
+          fimRecorrencia: effectiveFimRecorrencia,
+        );
+
+        final Map<String, double> accountDeltas = {};
+        void addAccountDelta(String? id, double delta) {
+          if (id == null || id.isEmpty) return;
+          accountDeltas[id] = (accountDeltas[id] ?? 0.0) + delta;
+        }
 
         for (final parcela in parcelas) {
           final String tRowId = ID.unique();
@@ -526,17 +538,17 @@ class FinancasController {
             },
           });
 
-          // Adjust account balance if consolidated
+          // Accumulate account balance delta if consolidated
           if (consolidada) {
             if (tipo == 'despesa' && contaId != null) {
-              await updateAccountBalance(contaId, -valor);
+              addAccountDelta(contaId, -valor);
             } else if (tipo == 'receita' && contaId != null) {
-              await updateAccountBalance(contaId, valor);
+              addAccountDelta(contaId, valor);
             } else if (tipo == 'transferencia' &&
                 contaId != null &&
                 contaDestinoId != null) {
-              await updateAccountBalance(contaId, -valor);
-              await updateAccountBalance(contaDestinoId, valor);
+              addAccountDelta(contaId, -valor);
+              addAccountDelta(contaDestinoId, valor);
             }
           }
 
@@ -555,6 +567,12 @@ class FinancasController {
                 'peso': rPeso,
               },
             });
+          }
+        }
+
+        for (final entry in accountDeltas.entries) {
+          if (entry.value != 0.0) {
+            await updateAccountBalance(entry.key, entry.value);
           }
         }
       } else {
@@ -962,17 +980,18 @@ class FinancasController {
                 tipoRecorrencia ?? originalRec.tipoRecorrencia;
             final int finalFreq = frequencia ?? originalRec.frequencia ?? 1;
 
-            // Create new recurrence row for current and future
-            final newRecId = await repository.createRecorrenciaRow(
-              tipoRecorrencia: finalPeriod,
-              frequencia: finalFreq,
-              totalParcelas: totalParcelas,
-              parcelaInicio: currentParcel,
-              fimRecorrencia: originalRec.fimRecorrencia,
-            );
-            updatedRecId = newRecId;
+            // Sort past and future transactions chronologically
+            final pastTrans = allRecTrans
+                .where(
+                  (t) =>
+                      t.id != original.id &&
+                      t.dataCompetencia.isBefore(original.dataCompetencia),
+                )
+                .toList()
+              ..sort(
+                (a, b) => a.dataCompetencia.compareTo(b.dataCompetencia),
+              );
 
-            // Sort future transactions chronologically
             final futureTrans = allRecTrans
                 .where(
                   (t) =>
@@ -994,6 +1013,49 @@ class FinancasController {
             } else {
               neededFutureCount =
                   futureTrans.isNotEmpty ? futureTrans.length : 23;
+            }
+
+            final DateTime newSeriesFimRecorrencia =
+                RecorrenciaService.calcularDataParcela(
+                  dataBase: dataCompetencia,
+                  tipoRecorrencia: finalPeriod,
+                  frequencia: finalFreq,
+                  stepIndex: neededFutureCount,
+                );
+
+            // Create new recurrence row for current and future
+            final newRecId = await repository.createRecorrenciaRow(
+              tipoRecorrencia: finalPeriod,
+              frequencia: finalFreq,
+              totalParcelas: totalParcelas,
+              parcelaInicio: currentParcel,
+              fimRecorrencia: newSeriesFimRecorrencia,
+            );
+            updatedRecId = newRecId;
+
+            // Terminate or delete original recurrence rule so it never spawns duplicate future transactions
+            if (pastTrans.isEmpty) {
+              ops.add({
+                'action': 'delete',
+                'databaseId': Core.databaseId,
+                'tableId': Core.tableTransacaoRecorrencias,
+                'rowId': originalRec.id,
+              });
+            } else {
+              final int origStartParcel = originalRec.parcelaInicio ?? 1;
+              final int oldSeriesTotalParcelas =
+                  origStartParcel + pastTrans.length - 1;
+              final DateTime lastPastDate = pastTrans.last.dataCompetencia;
+              ops.add({
+                'action': 'update',
+                'databaseId': Core.databaseId,
+                'tableId': Core.tableTransacaoRecorrencias,
+                'rowId': originalRec.id,
+                'data': {
+                  'totalParcelas': oldSeriesTotalParcelas,
+                  'fimRecorrencia': lastPastDate.toIso8601String(),
+                },
+              });
             }
 
             final int existingCount = futureTrans.length;
@@ -1561,18 +1623,24 @@ class FinancasController {
         }
       }
 
+      final Map<String, double> accountDeltas = {};
+      void addAccountDelta(String? id, double delta) {
+        if (id == null || id.isEmpty) return;
+        accountDeltas[id] = (accountDeltas[id] ?? 0.0) + delta;
+      }
+
       // Revert account balances for target transactions that are currently consolidated
       for (final t in targetTransactions) {
         if (t.consolidada) {
           if (t.tipo == 'despesa' && t.conta != null) {
-            await updateAccountBalance(t.conta!.id, t.valor);
+            addAccountDelta(t.conta!.id, t.valor);
           } else if (t.tipo == 'receita' && t.conta != null) {
-            await updateAccountBalance(t.conta!.id, -t.valor);
+            addAccountDelta(t.conta!.id, -t.valor);
           } else if (t.tipo == 'transferencia' &&
               t.conta != null &&
               t.contaDestino != null) {
-            await updateAccountBalance(t.conta!.id, t.valor);
-            await updateAccountBalance(t.contaDestino!.id, -t.valor);
+            addAccountDelta(t.conta!.id, t.valor);
+            addAccountDelta(t.contaDestino!.id, -t.valor);
           }
         }
       }
@@ -1639,15 +1707,21 @@ class FinancasController {
 
         if (nextConsolidada) {
           if (t.tipo == 'despesa' && nextContaId != null) {
-            await updateAccountBalance(nextContaId, -t.valor);
+            addAccountDelta(nextContaId, -t.valor);
           } else if (t.tipo == 'receita' && nextContaId != null) {
-            await updateAccountBalance(nextContaId, t.valor);
+            addAccountDelta(nextContaId, t.valor);
           } else if (t.tipo == 'transferencia' &&
               nextContaId != null &&
               t.contaDestino?.id != null) {
-            await updateAccountBalance(nextContaId, -t.valor);
-            await updateAccountBalance(t.contaDestino!.id, t.valor);
+            addAccountDelta(nextContaId, -t.valor);
+            addAccountDelta(t.contaDestino!.id, t.valor);
           }
+        }
+      }
+
+      for (final entry in accountDeltas.entries) {
+        if (entry.value != 0.0) {
+          await updateAccountBalance(entry.key, entry.value);
         }
       }
 
@@ -1669,6 +1743,7 @@ class FinancasController {
   }) async {
     try {
       List<TransacaoModel> toDelete = [];
+      List<TransacaoModel> remainingRecTrans = [];
 
       if (deleteOption == 'only_current' ||
           transacao.recorrencia == null ||
@@ -1692,10 +1767,19 @@ class FinancasController {
                     t.dataCompetencia.isAfter(transacao.dataCompetencia),
               )
               .toList();
+          remainingRecTrans = allRecTrans
+              .where((t) => t.dataCompetencia.isBefore(transacao.dataCompetencia))
+              .toList()
+            ..sort((a, b) => a.dataCompetencia.compareTo(b.dataCompetencia));
         }
       }
 
       final List<Map<String, dynamic>> ops = [];
+      final Map<String, double> accountDeltas = {};
+      void addAccountDelta(String? id, double delta) {
+        if (id == null || id.isEmpty) return;
+        accountDeltas[id] = (accountDeltas[id] ?? 0.0) + delta;
+      }
 
       for (final t in toDelete) {
         // Stage delete all division records
@@ -1708,17 +1792,17 @@ class FinancasController {
           });
         }
 
-        // Adjust balance back if it was consolidated
+        // Accumulate balance back if it was consolidated
         if (t.consolidada) {
           if (t.tipo == 'despesa' && t.conta != null) {
-            await updateAccountBalance(t.conta!.id, t.valor);
+            addAccountDelta(t.conta!.id, t.valor);
           } else if (t.tipo == 'receita' && t.conta != null) {
-            await updateAccountBalance(t.conta!.id, -t.valor);
+            addAccountDelta(t.conta!.id, -t.valor);
           } else if (t.tipo == 'transferencia' &&
               t.conta != null &&
               t.contaDestino != null) {
-            await updateAccountBalance(t.conta!.id, t.valor);
-            await updateAccountBalance(t.contaDestino!.id, -t.valor);
+            addAccountDelta(t.conta!.id, t.valor);
+            addAccountDelta(t.contaDestino!.id, -t.valor);
           }
         }
 
@@ -1731,13 +1815,48 @@ class FinancasController {
         });
       }
 
-      if (transacao.recorrencia != null && deleteOption == 'all') {
-        ops.add({
-          'action': 'delete',
-          'databaseId': Core.databaseId,
-          'tableId': Core.tableTransacaoRecorrencias,
-          'rowId': transacao.recorrencia!.id,
-        });
+      for (final entry in accountDeltas.entries) {
+        if (entry.value != 0.0) {
+          await updateAccountBalance(entry.key, entry.value);
+        }
+      }
+
+      if (transacao.recorrencia != null &&
+          transacao.recorrencia!.id.isNotEmpty) {
+        if (deleteOption == 'all') {
+          ops.add({
+            'action': 'delete',
+            'databaseId': Core.databaseId,
+            'tableId': Core.tableTransacaoRecorrencias,
+            'rowId': transacao.recorrencia!.id,
+          });
+        } else if (deleteOption == 'current_and_future') {
+          if (remainingRecTrans.isEmpty) {
+            ops.add({
+              'action': 'delete',
+              'databaseId': Core.databaseId,
+              'tableId': Core.tableTransacaoRecorrencias,
+              'rowId': transacao.recorrencia!.id,
+            });
+          } else {
+            final int origStartParcel =
+                transacao.recorrencia!.parcelaInicio ?? 1;
+            final int newTotalParcelas =
+                origStartParcel + remainingRecTrans.length - 1;
+            final DateTime lastRemainingDate =
+                remainingRecTrans.last.dataCompetencia;
+            ops.add({
+              'action': 'update',
+              'databaseId': Core.databaseId,
+              'tableId': Core.tableTransacaoRecorrencias,
+              'rowId': transacao.recorrencia!.id,
+              'data': {
+                'totalParcelas': newTotalParcelas,
+                'fimRecorrencia': lastRemainingDate.toIso8601String(),
+              },
+            });
+          }
+        }
       }
 
       if (ops.isNotEmpty) {

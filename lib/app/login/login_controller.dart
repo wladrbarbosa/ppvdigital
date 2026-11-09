@@ -3,7 +3,7 @@ import 'dart:convert';
 
 import 'package:appwrite/appwrite.dart';
 import 'package:appwrite/enums.dart';
-import 'package:appwrite/models.dart';
+import 'package:appwrite/models.dart' hide Account;
 import 'package:mobx/mobx.dart' as mobx;
 import 'package:ppvdigital/controllers/backup_controller.dart';
 import 'package:ppvdigital/core.dart';
@@ -72,14 +72,19 @@ class LoginController {
       await Core.database.clearAllUserData();
     }
 
-    await Core.database.setSetting('cached_user_json', json.encode(user.toMap()));
+    await Core.database.setSetting(
+      'cached_user_json',
+      json.encode(user.toMap()),
+    );
     mobx.runInAction(() {
       _currentUser.value = user;
       _statusStreamController.add(AuthStatus.authenticated);
     });
 
     if (Core.getIt.isRegistered<BackupController>()) {
-      Future.microtask(() => Core.backupController.checkAndExecuteDailyBackup());
+      Future.microtask(
+        () => Core.backupController.checkAndExecuteDailyBackup(),
+      );
     }
   }
 

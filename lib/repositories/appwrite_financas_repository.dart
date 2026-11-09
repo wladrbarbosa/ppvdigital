@@ -309,28 +309,38 @@ class AppwriteFinancasRepository implements FinancasRepository {
   Future<Set<String>> getActiveTransacaoIdsInMonth({
     required String usuarioId,
     required List<String> contaIds,
-    required DateTime targetMonth,
+    DateTime? targetMonth,
+    DateTime? beforeDate,
   }) async {
     if (contaIds.isEmpty) return {};
     final TablesDB tablesDB = TablesDB(databases.client);
-    final firstDayOfMonth = DateTime(targetMonth.year, targetMonth.month);
-    final lastDayOfMonth = DateTime(
-      targetMonth.year,
-      targetMonth.month + 1,
-    ).subtract(const Duration(milliseconds: 1));
 
-    final baseQueries = [
+    final List<String> baseQueries = [
       Query.select([r'$id']),
       Query.limit(5000),
-      Query.greaterThanEqual(
-        'dataCompetencia',
-        firstDayOfMonth.toIso8601String(),
-      ),
-      Query.lessThanEqual(
-        'dataCompetencia',
-        lastDayOfMonth.toIso8601String(),
-      ),
     ];
+
+    if (targetMonth != null) {
+      final firstDayOfMonth = DateTime(targetMonth.year, targetMonth.month);
+      final lastDayOfMonth = DateTime(
+        targetMonth.year,
+        targetMonth.month + 1,
+      ).subtract(const Duration(milliseconds: 1));
+      baseQueries.addAll([
+        Query.greaterThanEqual(
+          'dataCompetencia',
+          firstDayOfMonth.toIso8601String(),
+        ),
+        Query.lessThanEqual(
+          'dataCompetencia',
+          lastDayOfMonth.toIso8601String(),
+        ),
+      ]);
+    } else if (beforeDate != null) {
+      baseQueries.add(
+        Query.lessThan('dataCompetencia', beforeDate.toIso8601String()),
+      );
+    }
 
     final Set<String> ids = {};
     for (int k = 0; k < contaIds.length; k += 100) {
@@ -405,9 +415,11 @@ class AppwriteFinancasRepository implements FinancasRepository {
           tableId: Core.tableDivisaoTransacoes,
           queries: [Query.equal('transacao', chunkIds), Query.limit(5000)],
         );
-        allRecDivs.addAll(
-          divsDocs.rows.map((d) => DivisaoTransacaoModel.fromMap(d.data)),
-        );
+        for (final d in divsDocs.rows) {
+          final map = Map<String, dynamic>.from(d.data);
+          map['\$id'] = d.$id;
+          allRecDivs.add(DivisaoTransacaoModel.fromMap(map));
+        }
       }
 
       for (int i = 0; i < allRecTrans.length; i++) {
@@ -531,7 +543,9 @@ class AppwriteFinancasRepository implements FinancasRepository {
     List<Map<String, dynamic>> operations,
   ) async {
     final TablesDB tablesDB = TablesDB(databases.client);
-    final List<Map<String, dynamic>> cleanedOperations = operations.map((op) {
+    final List<Map<String, dynamic>> cleanedOperations = operations
+        .where((op) => ((op['rowId'] as String?) ?? '').isNotEmpty)
+        .map((op) {
       final cleanedOp = Map<String, dynamic>.from(op);
       final action = cleanedOp['action'] as String?;
       if (cleanedOp['data'] is Map<String, dynamic>) {
@@ -546,6 +560,8 @@ class AppwriteFinancasRepository implements FinancasRepository {
       }
       return cleanedOp;
     }).toList();
+
+    if (cleanedOperations.isEmpty) return;
 
     try {
       for (int j = 0; j < cleanedOperations.length; j += 100) {
@@ -566,13 +582,13 @@ class AppwriteFinancasRepository implements FinancasRepository {
       log(
         'Appwrite transaction failed: $e. Falling back to individual operations...',
       );
+      Object? firstError;
       for (final op in cleanedOperations) {
+        final action = op['action'] as String;
+        final tableId = op['tableId'] as String;
+        final rowId = op['rowId'] as String;
+        final data = op['data'] as Map<String, dynamic>?;
         try {
-          final action = op['action'] as String;
-          final tableId = op['tableId'] as String;
-          final rowId = op['rowId'] as String;
-          final data = op['data'] as Map<String, dynamic>?;
-
           if (action == 'update' && data != null) {
             await tablesDB.updateRow(
               databaseId: Core.databaseId,
@@ -595,8 +611,20 @@ class AppwriteFinancasRepository implements FinancasRepository {
             );
           }
         } catch (opError) {
+          if (opError is AppwriteException) {
+            if (action == 'delete' && opError.code == 404) {
+              continue;
+            }
+            if (action == 'create' && opError.code == 409) {
+              continue;
+            }
+          }
           log('Fallback operation failed for row ${op['rowId']}: $opError');
+          firstError ??= opError;
         }
+      }
+      if (firstError != null) {
+        throw firstError;
       }
     }
   }

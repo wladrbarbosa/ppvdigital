@@ -201,6 +201,10 @@ func Main(Context openruntimes.Context) openruntimes.Response {
 			defer func() { <-semaphore }() // release token
 
 			recID := getDocumentID(recDoc)
+			if isFiniteRecurrence(recDoc) {
+				Context.Log(fmt.Sprintf("Recurrence %s has totalParcelas set (finite/terminated). Skipping.", recID))
+				return
+			}
 			tipoRecorrencia := strings.TrimSpace(getStringAttribute(recDoc, "tipoRecorrencia"))
 			if tipoRecorrencia == "" {
 				tipoRecorrencia = "mês" // Default to month
@@ -258,7 +262,8 @@ func Main(Context openruntimes.Context) openruntimes.Response {
 			}
 
 			if len(txDocuments) == 0 {
-				Context.Log(fmt.Sprintf("No transactions found for recurrence %s. Skipping.", recID))
+				Context.Log(fmt.Sprintf("No transactions found for recurrence %s. Deleting orphaned recurrence rule.", recID))
+				_, _ = dbService.DeleteDocument(DatabaseID, RecurrenceColl, recID)
 				return
 			}
 
@@ -290,8 +295,10 @@ func Main(Context openruntimes.Context) openruntimes.Response {
 				return
 			}
 
-			// If latest transaction already reaches or exceeds target horizon, do NOT create any transactions.
-			if !latestDate.Before(targetHorizon) {
+			effectiveStartDate := resolveGenerationStartDate(latestDate, fimRecorrenciaStr)
+
+			// If effective start date already reaches or exceeds target horizon, do NOT create any transactions.
+			if !effectiveStartDate.Before(targetHorizon) {
 				// Save fimRecorrencia checkpoint if missing or outdated so future cron runs skip early
 				if fimRecorrenciaStr == "" {
 					_, _ = dbService.UpdateDocument(
@@ -299,11 +306,11 @@ func Main(Context openruntimes.Context) openruntimes.Response {
 						RecurrenceColl,
 						recID,
 						dbService.WithUpdateDocumentData(map[string]interface{}{
-							"fimRecorrencia": latestDate.Format(time.RFC3339),
+							"fimRecorrencia": effectiveStartDate.Format(time.RFC3339),
 						}),
 					)
 				}
-				Context.Log(fmt.Sprintf("Recurrence %s already has occurrences up to %s (horizon %s). No new transactions needed.", recID, latestDate.Format("2006-01-02"), targetHorizon.Format("2006-01-02")))
+				Context.Log(fmt.Sprintf("Recurrence %s already has occurrences up to %s (horizon %s). No new transactions needed.", recID, effectiveStartDate.Format("2006-01-02"), targetHorizon.Format("2006-01-02")))
 				return
 			}
 
@@ -348,7 +355,7 @@ func Main(Context openruntimes.Context) openruntimes.Response {
 			devedorContato := getRelationID(latestTx, "devedorContato")
 			credorContato := getRelationID(latestTx, "credorContato")
 
-			currentDate := latestDate
+			currentDate := effectiveStartDate
 			createdForRule := 0
 			const maxCreations = 48 // Safety circuit breaker
 
@@ -661,3 +668,20 @@ func parseTransactionDate(doc interface{}, Context openruntimes.Context) (time.T
 	}
 	return time.Time{}, false
 }
+
+// resolveGenerationStartDate returns the later of latestDate and fimRecorrencia so that
+// occurrences intentionally deleted by the user before fimRecorrencia are never resurrected.
+func resolveGenerationStartDate(latestDate time.Time, fimRecorrenciaStr string) time.Time {
+	if fimDate, ok := parseDateString(fimRecorrenciaStr); ok {
+		if fimDate.After(latestDate) {
+			return fimDate
+		}
+	}
+	return latestDate
+}
+
+// isFiniteRecurrence returns true when totalParcelas is a positive integer (finite or terminated series).
+func isFiniteRecurrence(recDoc interface{}) bool {
+	return getIntAttribute(recDoc, "totalParcelas") > 0
+}
+

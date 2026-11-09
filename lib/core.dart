@@ -89,6 +89,8 @@ class Core {
       getIt<FinancasController>();
 
   static LoginController get loginController => getIt<LoginController>();
+  static LoginController? get maybeLoginController =>
+      getIt.isRegistered<LoginController>() ? getIt<LoginController>() : null;
   static HistoricoController get historicoController =>
       getIt<HistoricoController>();
   static CalendarioController get calendarioController =>
@@ -112,6 +114,10 @@ class Core {
       : null;
   static AppwriteRealtimeService get realtimeService =>
       getIt<AppwriteRealtimeService>();
+  static AppwriteRealtimeService? get maybeRealtimeService =>
+      getIt.isRegistered<AppwriteRealtimeService>()
+      ? getIt<AppwriteRealtimeService>()
+      : null;
 
   static BackupController get backupController => getIt<BackupController>();
   static BackupService get backupService => getIt<BackupService>();

@@ -178,7 +178,20 @@ class HistoricoController {
   }
 
   Future<void> updateQtdHabito(String documentId, int newQtd) async {
-    log('updateQtdHabito called, not implemented or used');
+    try {
+      final found = _historicoList
+          .cast<HistoricoItemModel?>()
+          .firstWhere((el) => el?.id == documentId, orElse: () => null);
+      if (found == null) return;
+      final userId =
+          Core.maybeLoginController?.currentUser?.$id ?? found.usuario;
+      await Core.tarefaHabitoRepository.recordHistorico(
+        foundId: found.tarefasEHabitos.id,
+        usuarioId: userId,
+      );
+    } catch (e) {
+      log('Error in updateQtdHabito: $e');
+    }
   }
 
   Future<bool> deleteHistoricoItem(String documentId) async {

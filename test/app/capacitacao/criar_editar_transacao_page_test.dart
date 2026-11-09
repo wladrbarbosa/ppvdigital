@@ -74,7 +74,7 @@ class MockRepoForPage implements FinancasRepository {
   @override
   Future<List<TransacaoModel>> getTransacoes({required String usuarioId, required List<String> contaIds, DateTime? targetMonth, DateTime? beforeDate, bool forceLocal = false, DateTime? lastSyncedAt}) async => [];
   @override
-  Future<Set<String>> getActiveTransacaoIdsInMonth({required String usuarioId, required List<String> contaIds, required DateTime targetMonth}) async => {};
+  Future<Set<String>> getActiveTransacaoIdsInMonth({required String usuarioId, required List<String> contaIds, DateTime? targetMonth, DateTime? beforeDate}) async => {};
   @override
   Future<List<TransacaoModel>> getRecurrenceSeries({required String recurrenceId}) async => [];
   @override

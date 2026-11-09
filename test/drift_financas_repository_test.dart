@@ -27,7 +27,8 @@ class MockRemoteFinancasRepository implements FinancasRepository {
   Future<Set<String>> getActiveTransacaoIdsInMonth({
     required String usuarioId,
     required List<String> contaIds,
-    required DateTime targetMonth,
+    DateTime? targetMonth,
+    DateTime? beforeDate,
   }) async {
     return transacoes.map((t) => t.id).toSet();
   }
@@ -530,6 +531,98 @@ void main() {
     localRows = await database.select(database.transacaos).get();
     expect(localRows.length, equals(1));
     expect(localRows.first.remoteId, equals('t_active'));
+  });
+
+  test('executeBatchOperations updates local recurrence rules in transacaos when tableTransacaoRecorrencias is updated or deleted', () async {
+    final rec = TransacaoRecorrenciaModel(
+      id: 'rec_inf',
+      tipoRecorrencia: 'mês',
+      frequencia: 1,
+    );
+    final t1 = TransacaoModel(
+      id: 't1',
+      descricao: 'Netflix',
+      valor: 50.0,
+      tipo: 'despesa',
+      dataCompetencia: DateTime(2026, 1, 10),
+      consolidada: true,
+      recorrencia: rec,
+      divisoes: [],
+    );
+    await database.into(database.transacaos).insert(driftRepository.toTransacaoCompanion(t1));
+
+    // Update recurrence rule to finite (totalParcelas: 1, fimRecorrencia: 2026-01-10)
+    await driftRepository.executeBatchOperations([
+      {
+        'action': 'update',
+        'databaseId': 'db1',
+        'tableId': 'transacao_recorrencia',
+        'rowId': 'rec_inf',
+        'data': {
+          'totalParcelas': 1,
+          'fimRecorrencia': DateTime(2026, 1, 10).toIso8601String(),
+        },
+      },
+    ]);
+
+    var rows = await database.select(database.transacaos).get();
+    expect(rows.first.recorrencia?.totalParcelas, equals(1));
+    expect(rows.first.recorrencia?.fimRecorrencia, equals(DateTime(2026, 1, 10)));
+
+    // Delete recurrence rule
+    await driftRepository.executeBatchOperations([
+      {
+        'action': 'delete',
+        'databaseId': 'db1',
+        'tableId': 'transacao_recorrencia',
+        'rowId': 'rec_inf',
+      },
+    ]);
+
+    rows = await database.select(database.transacaos).get();
+    expect(rows.first.recorrencia, isNull);
+  });
+
+  test('getTransacoes reconciles deleted remote transactions when beforeDate and lastSyncedAt are provided', () async {
+    final conta = ContaModel(id: 'c1', name: 'Conta 1', userId: 'user1', saldoAtual: 0);
+    final t1 = TransacaoModel(
+      id: 't_past_active',
+      descricao: 'Past Active Tx',
+      valor: 100.0,
+      tipo: 'despesa',
+      dataCompetencia: DateTime(2026, 5, 10),
+      consolidada: true,
+      conta: conta,
+      divisoes: [],
+    );
+    final t2 = TransacaoModel(
+      id: 't_past_deleted',
+      descricao: 'Past Deleted Tx',
+      valor: 50.0,
+      tipo: 'despesa',
+      dataCompetencia: DateTime(2026, 6, 12),
+      consolidada: true,
+      conta: conta,
+      divisoes: [],
+    );
+
+    await database.into(database.transacaos).insert(driftRepository.toTransacaoCompanion(t1));
+    await database.into(database.transacaos).insert(driftRepository.toTransacaoCompanion(t2));
+
+    // Remote database only has t1 left (t2 was deleted on remote)
+    remoteRepository.transacoes = [t1];
+
+    // Incremental sync for beforeDate (July 1st)
+    await driftRepository.getTransacoes(
+      usuarioId: 'user1',
+      contaIds: ['c1'],
+      beforeDate: DateTime(2026, 7),
+      lastSyncedAt: DateTime(2026, 7),
+    );
+
+    final localRows = await database.select(database.transacaos).get();
+    expect(localRows.length, equals(1));
+    expect(localRows.first.remoteId, equals('t_past_active'));
   });
 
   test('FinancasController saves and loads filters using repository and cache', () async {

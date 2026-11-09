@@ -290,3 +290,65 @@ func TestGetDefaultGatewayInRecurrence(t *testing.T) {
 		t.Errorf("getDefaultGateway should never return 0.0.0.0")
 	}
 }
+
+func TestResolveGenerationStartDate_DoesNotResurrectDeletedFutureTransactions(t *testing.T) {
+	// Suppose the recurrence had generated up to 2028-09-01 (saved in fimRecorrencia),
+	// and the user deleted the 2028-08-01 and 2028-09-01 occurrences, leaving latestDate = 2028-07-01.
+	latestDate := time.Date(2028, 7, 1, 0, 0, 0, 0, time.UTC)
+	fimRecorrenciaStr := "2028-09-01T00:00:00Z"
+
+	startDate := resolveGenerationStartDate(latestDate, fimRecorrenciaStr)
+	expected := time.Date(2028, 9, 1, 0, 0, 0, 0, time.UTC)
+	if !startDate.Equal(expected) {
+		t.Errorf("expected startDate %s (fimRecorrencia) to prevent resurrecting deleted occurrences, got %s",
+			expected.Format("2006-01-02"), startDate.Format("2006-01-02"))
+	}
+
+	// When targetHorizon moves to 2028-10-01, only 1 new transaction (2028-10-01) should be created,
+	// NOT 2028-08-01 or 2028-09-01.
+	targetHorizon := time.Date(2028, 10, 1, 0, 0, 0, 0, time.UTC)
+	currentDate := startDate
+	var generatedDates []string
+	for currentDate.Before(targetHorizon) {
+		currentDate = addRecurrenceInterval(currentDate, "mês", 1, 1)
+		generatedDates = append(generatedDates, currentDate.Format("2006-01-02"))
+	}
+	if len(generatedDates) != 1 || generatedDates[0] != "2028-10-01" {
+		t.Errorf("expected only [2028-10-01] to be generated, got %v", generatedDates)
+	}
+}
+
+func TestResolveGenerationStartDate_FallbackToLatestDate(t *testing.T) {
+	latestDate := time.Date(2028, 7, 1, 0, 0, 0, 0, time.UTC)
+
+	// Empty fimRecorrencia
+	if got := resolveGenerationStartDate(latestDate, ""); !got.Equal(latestDate) {
+		t.Errorf("expected %v, got %v", latestDate, got)
+	}
+
+	// fimRecorrencia older than latestDate
+	if got := resolveGenerationStartDate(latestDate, "2028-05-01T00:00:00Z"); !got.Equal(latestDate) {
+		t.Errorf("expected %v, got %v", latestDate, got)
+	}
+}
+
+func TestIsFiniteRecurrence(t *testing.T) {
+	infiniteDoc := map[string]interface{}{
+		"$id":             "rec_inf",
+		"tipoRecorrencia": "mês",
+		"totalParcelas":   nil,
+	}
+	if isFiniteRecurrence(infiniteDoc) {
+		t.Errorf("expected infiniteDoc to not be finite")
+	}
+
+	terminatedDoc := map[string]interface{}{
+		"$id":             "rec_term",
+		"tipoRecorrencia": "mês",
+		"totalParcelas":   5,
+	}
+	if !isFiniteRecurrence(terminatedDoc) {
+		t.Errorf("expected terminatedDoc with totalParcelas=5 to be finite")
+	}
+}
+
