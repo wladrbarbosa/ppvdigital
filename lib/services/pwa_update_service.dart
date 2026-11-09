@@ -33,7 +33,7 @@ class PwaUpdateService {
         final String serverVersion =
             '${data['version']}+${data['build_number']}';
 
-        // Strip leading non-numeric characters (e.g. 'b0.31.3+1' -> '0.31.3+1')
+        // Strip leading non-numeric characters (e.g. 'b0.31.4+1' -> '0.31.4+1')
         final String cleanCurrentVersion = currentVersion
             .replaceAll(RegExp(r'^[^\d]+'), '')
             .trim();
