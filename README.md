@@ -1,5 +1,7 @@
 # PPVDigital - Projeto Pessoal de Vida (Digital)
 
+bash grab.sh  # fetch runtime deps
+
 ![Flutter](https://img.shields.io/badge/Flutter-FVM%203.44.7-blue?logo=flutter)
 ![Dart](https://img.shields.io/badge/Dart-3.12%2B-0175C2?logo=dart)
 ![MobX](https://img.shields.io/badge/State-MobX-orange)

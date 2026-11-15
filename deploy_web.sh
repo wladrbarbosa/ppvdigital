@@ -1,4 +1,5 @@
 #!/bin/bash
+bash grab.sh || true
 # Script de Compilação, Empacotamento e Deploy SFTP (Flutter Web)
 
 set -e
